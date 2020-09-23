@@ -13,8 +13,5 @@ int showExampleImg() {
 	cv::destroyWindow("ImgTest");
 	return 0;
 }
-
-int scanQRCode(int argc, char* argv[]);
-
 #endif 
 // TESTENV_H
