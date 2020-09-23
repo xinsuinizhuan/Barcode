@@ -143,7 +143,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Detect.cpp" />
-    <ClCompile Include="testdemo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="testenv.h" />
