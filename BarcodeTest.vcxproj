@@ -142,7 +142,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\opencv\samples\cpp\qrcode.cpp" />
     <ClCompile Include="testdemo.cpp" />
   </ItemGroup>
   <ItemGroup>
