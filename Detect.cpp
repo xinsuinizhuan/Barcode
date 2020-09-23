@@ -6,8 +6,8 @@
 using namespace cv;
 class Detect {
 private:
-	Mat srcImage;//åŸå›¾
-	Mat desImage;//é¢„å¤„ç†è¿‡çš„å›¾
+	Mat srcImage;//Ô­Í¼
+	Mat desImage;//Ô¤´¦Àí¹ıµÄÍ¼
 
 public:
 	Detect(std::string);
@@ -16,20 +16,20 @@ public:
 
 };
 Detect::Detect(std::string imgURL) {
-	srcImage = imread(imgURL);//"F:\Pictures\qr.png""F:\Pictures\æ¡å½¢ç .png"
+	srcImage = imread(imgURL);//"F:\Pictures\qr.png""F:\Pictures\ÌõĞÎÂë.png"
 
 	if (srcImage.empty()) {
-		printf("æ–‡ä»¶ä¸å­˜åœ¨");
+		printf("ÎÄ¼ş²»´æÔÚ");
 		exit(1);
 	}
 	cvtColor(srcImage, desImage, CV_RGBA2GRAY);
-	//imshow("ç°åº¦å›¾", desImage);
+	//imshow("»Ò¶ÈÍ¼", desImage);
 	//waitKey(0);
 	/*if (show)
-		imshow("ç°åº¦å›¾", cimage);
+		imshow("»Ò¶ÈÍ¼", cimage);
 	return cimage;*/
 	GaussianBlur(desImage, desImage, Size(3, 3), 0);
-	//imshow("é«˜æ–¯æ¨¡ç³Šå›¾", desImage);
+	//imshow("¸ßË¹Ä£ºıÍ¼", desImage);
 	//waitKey(0);
 	Mat imageSobelX, imageSobelY;
 	Sobel(desImage, imageSobelX, CV_16S, 1, 0);
@@ -50,18 +50,18 @@ Detect::Detect(std::string imgURL) {
 	auto process = [horizontalElement, verticalElement, element](Mat img, bool direction) {
 		blur(img, img, Size(3, 3));
 		medianBlur(img, img, 3);
-		//imshow("å‡å€¼æ»¤æ³¢å›¾", desImage);
+		//imshow("¾ùÖµÂË²¨Í¼", desImage);
 		//waitKey(0);
 
 		threshold(img, img, 80, 255, CV_THRESH_BINARY);
-		//imshow("äºŒå€¼åŒ–å›¾", desImage);
+		//imshow("¶şÖµ»¯Í¼", desImage);
 		//waitKey(0);
 
 		if (direction) {
-			//å…ˆåœ¨æ°´å¹³æ–¹å‘ä¸Šè†¨èƒ€ï¼Œå¡«å……æ¡ç ä¸­é—´çš„ç©ºéš™
+			//ÏÈÔÚË®Æ½·½ÏòÉÏÅòÕÍ£¬Ìî³äÌõÂëÖĞ¼äµÄ¿ÕÏ¶
 			morphologyEx(img, img, MORPH_DILATE, horizontalElement);
 
-			//åœ¨å‚ç›´æ–¹å‘ä¸Šè…èš€ï¼Œåˆ†ç¦»æ¡ç å’Œå­—ç¬¦
+			//ÔÚ´¹Ö±·½ÏòÉÏ¸¯Ê´£¬·ÖÀëÌõÂëºÍ×Ö·û
 			morphologyEx(img, img, MORPH_ERODE, verticalElement);
 		}
 		else {
@@ -81,14 +81,14 @@ Detect::Detect(std::string imgURL) {
 	//resize(image, image, Size(srcimage.cols, srcimage.rows), 0, 0, INTER_AREA);
 
 	desImage = verticalImage + horizontalImage;
-	//å»é™¤å­—ç¬¦
+	//È¥³ı×Ö·û
 
 
 	erode(desImage, desImage, element);
 	erode(desImage, desImage, element);
 	dilate(desImage, desImage, element);
 
-	imshow("å»é™¤é—´éš™", desImage);
+	imshow("È¥³ı¼äÏ¶", desImage);
 	waitKey();
 
 }
@@ -118,7 +118,7 @@ std::vector<RotatedRect> Detect::getRect() {
 			barcodes.push_back(rect);
 		}
 	}
-	//imshow("æ¡†æ¡†å›¾", srcImage);
+	//imshow("¿ò¿òÍ¼", srcImage);
 	//waitKey();
 	return barcodes;
 }
@@ -142,13 +142,13 @@ int main(int argc, char* argv)
 			Mat M = getPerspectiveTransform(vertices, dst_vertices);
 			Mat perspective;
 			warpPerspective(myclass->getSrc(), perspective, M, barcodes[n].size, cv::INTER_LINEAR);
-			imshow("æ¡†æ¡†å›¾", perspective);
+			imshow("¿ò¿òÍ¼", perspective);
 			waitKey();
 
 			for (int i = 0; i < 4; i++)
 				line(myclass->getSrc(), vertices[i], vertices[(i + 1) % 4], Scalar(0, 255, 0));
 		}
-		imshow("æ¡†æ¡†å›¾", myclass->getSrc());
+		imshow("¿ò¿òÍ¼", myclass->getSrc());
 		waitKey();
 
 	}
