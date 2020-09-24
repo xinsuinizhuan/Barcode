@@ -10,6 +10,7 @@
 *.sln.docstates
 *.props
 OpenCVPath.cmake
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
@@ -32,8 +33,11 @@ bld/
 [Ll]og/
 [Ll]ogs/
 out/
-# Visual Studio 2015/2017 cache/options directory
+cmake-[Bb]uild-[Dd]ebug/
+# IDEs directory
 .vs/
+.vscode/
+.idea/
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 
