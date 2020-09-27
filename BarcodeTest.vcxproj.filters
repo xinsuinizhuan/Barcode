@@ -13,15 +13,30 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\decoder">
+      <UniqueIdentifier>{80200998-0dfd-4894-8b99-6229fe25d052}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Detect.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="decoder\Bardecoder.cpp">
+      <Filter>Source Files\decoder</Filter>
+    </ClCompile>
+    <ClCompile Include="decoder\EanDecoder.cpp">
+      <Filter>Source Files\decoder</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="testenv.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="decoder\AbsDecoder.h">
+      <Filter>Source Files\decoder</Filter>
+    </ClInclude>
+    <ClInclude Include="decoder\EanDecoder.h">
+      <Filter>Source Files\decoder</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

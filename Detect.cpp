@@ -122,10 +122,10 @@ std::vector<RotatedRect> Detect::getRect() {
 	//waitKey();
 	return barcodes;
 }
-int main(int argc, char* argv)
+int testDetect(int argc, char* argv)
 {
 	if (argc < 2) {
-		Detect* myclass = new Detect("C:\\Users\\97659\\Pictures\\Barcode\\20200325170404705.png");
+		Detect* myclass = new Detect("D:\\Project\\Barcode\\img\\1.png");
 		std::vector<RotatedRect> barcodes = myclass->getRect();
 		for (int n = 0; n < barcodes.size(); n++) {
 

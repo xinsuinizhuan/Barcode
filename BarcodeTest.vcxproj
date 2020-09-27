@@ -142,10 +142,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="decoder\Bardecoder.cpp" />
+    <ClCompile Include="decoder\EanDecoder.cpp" />
     <ClCompile Include="Detect.cpp" />
+    <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="testenv.h" />
+    <ClInclude Include="decoder\AbsDecoder.h" />
+    <ClInclude Include="decoder\EanDecoder.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
