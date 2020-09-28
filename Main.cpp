@@ -1,5 +1,8 @@
 #include "decoder/AbsDecoder.h"
+
+void test() {};
+
 int main() {
-    test();//²âÊÔÊ¶±ğÌõÂë
-	return 0;
+    test();//æµ‹è¯•è¯†åˆ«æ¡ç 
+    return 0;
 }
