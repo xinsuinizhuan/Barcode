@@ -12,7 +12,7 @@ else ()
     set(CMAKE_BUILD_TYPE "Release")
     #set it to Release, it will auto choose *.dll
 endif ()
-
+set(CMAKE_CXX_STANDARD 11)
 add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 
@@ -33,5 +33,9 @@ target_link_libraries(${PROJECT_NAME}_Detect ${OpenCV_LIBS})
 add_executable(${PROJECT_NAME}_test src/testenv.cpp)
 target_link_libraries(${PROJECT_NAME}_test ${OpenCV_LIBS})
 
-add_executable(${PROJECT_NAME}_main Main.cpp)
-target_link_libraries(${PROJECT_NAME}_main ${OpenCV_LIBS})
+#add_executable(${PROJECT_NAME}_main Main.cpp)
+#target_link_libraries(${PROJECT_NAME}_main ${OpenCV_LIBS})
+
+add_executable(${PROJECT_NAME}_bardecoder src/Bardecode.cpp
+        src/decoder/AbsDecoder.cpp src/decoder/EanDecoder.cpp Main.cpp)
+target_link_libraries(${PROJECT_NAME}_bardecoder ${OpenCV_LIBS})
