@@ -279,7 +279,7 @@ namespace cv {
         std::vector<int> counters{0, 0, 0};
         while (!foundStart) {
             std::fill(std::begin(counters), std::end(counters), 0);
-            startRange = findGuardPattern(row, nextStart, false, BEGIN_PATTERN, counters);
+            startRange = find_gurad_patterns(row, nextStart, false, BEGIN_PATTERN, counters);
             int start = startRange.first;
             nextStart = startRange.second;
             // Make sure there is a quiet zone at least as big as the start pattern before the barcode.
@@ -300,11 +300,11 @@ namespace cv {
         return startRange;
     }
 
-    static std::pair<int, int> findGuardPattern(const std::vector<uchar> &row,
-                                                int rowOffset,
-                                                uchar whiteFirst,
-                                                std::vector<int> &pattern,
-                                                std::vector<int> &counters) {
+    static std::pair<int, int> find_gurad_patterns(const std::vector<uchar> &row,
+                                                   int rowOffset,
+                                                   uchar whiteFirst,
+                                                   std::vector<int> &pattern,
+                                                   std::vector<int> &counters) {
         int patternLength = pattern.size();
         int width = row.size();
         uchar isWhite = whiteFirst;
