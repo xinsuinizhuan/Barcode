@@ -12,6 +12,8 @@ namespace cv {
     constexpr static int BLACK = std::numeric_limits<uchar>::min();
     // WHITE elemental area is 0xff
     constexpr static int WHITE = std::numeric_limits<uchar>::max();
+
+    constexpr static uint INTEGER_MATH_SHIFT = 8;
 }
 
 #endif //BARCODE_INCLUDE_DECODER_BARCODE_COLOR_H

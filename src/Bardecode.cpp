@@ -5,8 +5,7 @@
 #include <cstdlib>
 #include <opencv2/imgproc/types_c.h>
 #include <iostream>
-#include <decoder/AbsDecoder.hpp>
-#include "decoder/EanDecoder.h"
+#include "decoder/ean_decoder.hpp"
 #include "picture_path.h"
 
 namespace cv {
@@ -15,41 +14,21 @@ namespace cv {
         std::cout.flush();
         std::string imgPath = test_picture_path;
         cv::Mat greyImg = cv::imread(imgPath, IMREAD_GRAYSCALE);
-        //cv::Mat greyImg;
-        //cv::cvtColor(rawImg, greyImg, CV_RGBA2GRAY);
 
         cv::Mat thresholdImg;
         cv::threshold(greyImg, thresholdImg, 127, 255, CV_THRESH_OTSU);
-        //int width = thresholdImg.cols;
         int height = thresholdImg.rows;
 
         int center = height / 2;
         cv::imshow("2zhi", thresholdImg);
-        //cv::waitKey();
+        cv::waitKey();
         cv::Mat centerLine = thresholdImg.rowRange(center, center + 1);
+        std::vector<uchar> middle_array = centerLine.isContinuous() ? centerLine : centerLine.clone();
         cv::imshow("center line", centerLine);
-        //cv::waitKey();
-        //int unit = 0;
-        //bool counting = false;
-        int start = -1;
-        // ignore the brink's white points
-        while (start < centerLine.cols) {
-            start++;
-            if (centerLine.at<uchar>(0, start) == BLACK) {
-                break;
-            }
-        }
-        centerLine = centerLine.reshape(1, 1);
-        std::vector<uchar> array;
-        array = centerLine.isContinuous() ? centerLine : centerLine.clone();
+        cv::waitKey();
 
-        auto units = get_unit_length(array);
-        for (const auto &i: units) {
-            EanDecoder decoder = EanDecoder(EAN13, i);
-            std::cout << decoder.decode(array, start) << std::endl;
-        }
-        auto temp = find_start_end_patterns(array);
-        std::cout << temp.first << std::endl;
+        ean_decoder decoder = ean_decoder(EAN13);
+        std::cout << decoder.decode(middle_array, 28) << std::endl;
     }
 
 
