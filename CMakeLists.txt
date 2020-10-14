@@ -27,18 +27,23 @@ include_directories(include)
 include_directories(${OpenCV_INCLUDE_DIRS})
 link_directories(${OpenCV_LIBS})
 
-add_executable(${PROJECT_NAME}_Detect src/Detect.cpp)
-target_link_libraries(${PROJECT_NAME}_Detect ${OpenCV_LIBS})
+#add_executable(${PROJECT_NAME}_Detect src/Detect.cpp)
+#target_link_libraries(${PROJECT_NAME}_Detect ${OpenCV_LIBS})
 
-add_executable(${PROJECT_NAME}_test src/testenv.cpp)
-target_link_libraries(${PROJECT_NAME}_test ${OpenCV_LIBS})
 
 #add_executable(${PROJECT_NAME}_main Main.cpp)
 #target_link_libraries(${PROJECT_NAME}_main ${OpenCV_LIBS})
 
-add_executable(${PROJECT_NAME}_bardecoder src/Bardecode.cpp
+add_executable(${PROJECT_NAME}_bardecoder src/bardecode.cpp
         src/decoder/absdecoder.cpp src/decoder/ean_decoder.cpp
         src/decoder/patternmatch.cpp
         Main.cpp)
 
 target_link_libraries(${PROJECT_NAME}_bardecoder ${OpenCV_LIBS})
+
+
+add_executable(${PROJECT_NAME}_Detect src/detector/detect.cpp
+
+        )
+
+target_link_libraries(${PROJECT_NAME}_Detect ${OpenCV_LIBS})

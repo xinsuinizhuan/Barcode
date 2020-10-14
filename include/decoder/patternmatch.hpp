@@ -9,7 +9,7 @@
 #include <numeric>
 #include <utility>
 #include "opencv2/core/mat.hpp"
-#include "barcode_data.h"
+#include "barcode_data.hpp"
 
 namespace cv {
     int patternMatch(std::vector<int> counters,

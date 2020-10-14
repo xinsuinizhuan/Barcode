@@ -5,7 +5,7 @@
 #include "opencv2/core/mat.hpp"
 #include <utility>
 #include <vector>
-#include "barcode_data.h"
+#include "barcode_data.hpp"
 #include "patternmatch.hpp"
 /*
 	absdecoder 是各种识别方式的抽象类，EAN-13/8 Code128 等等都实现它

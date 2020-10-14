@@ -1,12 +1,8 @@
 #include <opencv2/opencv.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
 #include <iostream>
-#include <cstdlib>
 #include <opencv2/imgproc/types_c.h>
-#include <iostream>
 #include "decoder/ean_decoder.hpp"
-#include "picture_path.h"
+#include "picture_path.hpp"
 
 namespace cv {
     void test() {
