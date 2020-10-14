@@ -7,6 +7,24 @@
 namespace cv {
     using std::vector;
 
+    static float calcRectSum(const Mat &integral, int right_col, int left_col, int top_row, int bottom_row) {
+        // calculates sum of values within a rectangle from a given integral image
+        // if top_row or left_col are -1, it uses 0 for their value
+        // this is useful when one part of the rectangle lies outside the image bounds
+        // if the right col or bottom row falls outside the image bounds, pass the max col or max row to this method
+        // does NOT perform any bounds checking
+        float top_left, top_right, bottom_left, bottom_right;
+        float sum;
+
+        bottom_right = integral.at<float>(bottom_row, right_col);
+        top_right = (top_row == -1) ? 0 : integral.at<float>(top_row, right_col);
+        top_left = (left_col == -1 || top_row == -1) ? 0 : integral.at<float>(top_row, left_col);
+        bottom_left = (left_col == -1) ? 0 : integral.at<float>(bottom_row, left_col);
+
+        sum = (bottom_right - bottom_left - top_right + top_left);
+        return sum;
+    }
+
     void Detect::init(const Mat &src) {
         barcode = src.clone();
         //const double min_side = std::min(src.size().width, src.size().height);
@@ -235,23 +253,7 @@ namespace cv {
 
     }
 
-    float Detect::calcRectSum(const Mat &integral, int right_col, int left_col, int top_row, int bottom_row) {
-        // calculates sum of values within a rectangle from a given integral image
-        // if top_row or left_col are -1, it uses 0 for their value
-        // this is useful when one part of the rectangle lies outside the image bounds
-        // if the right col or bottom row falls outside the image bounds, pass the max col or max row to this method
-        // does NOT perform any bounds checking
-        float top_left, top_right, bottom_left, bottom_right;
-        float sum;
 
-        bottom_right = integral.at<float>(bottom_row, right_col);
-        top_right = (top_row == -1) ? 0 : integral.at<float>(top_row, right_col);
-        top_left = (left_col == -1 || top_row == -1) ? 0 : integral.at<float>(top_row, left_col);
-        bottom_left = (left_col == -1) ? 0 : integral.at<float>(bottom_row, left_col);
-
-        sum = (bottom_right - bottom_left - top_right + top_left);
-        return sum;
-    }
 }
 
 int main(int argc, char **argv) {

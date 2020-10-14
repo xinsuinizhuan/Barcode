@@ -40,7 +40,6 @@ namespace cv {
 
         void connectComponents();
 
-        static float calcRectSum(const Mat &integral, int right_col, int left_col, int top_row, int bottom_row);
 
     };
 }
