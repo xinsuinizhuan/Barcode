@@ -15,8 +15,6 @@ namespace cv {
 
     class Detect {
     private:
-        Mat srcImage;//原图
-        Mat desImage;//预处理过的图
         const int USE_ROTATED_RECT_ANGLE = 361;
 
     public:
@@ -30,7 +28,7 @@ namespace cv {
         } purpose;
         double eps_vertical, eps_horizontal, coeff_expansion;
         int height, width;
-        Mat barcode, resized_barcode, gray_barcode, resized_bin_barcode, straight_barcode, gradient_direction, gradient_magnitude, integral_gradient_directions, adjusted_variance, processed_barcode;
+        Mat barcode, resized_barcode, gray_barcode, gradient_direction, gradient_magnitude, integral_gradient_directions, adjusted_variance, processed_barcode;
 
         void findCandidates();
 

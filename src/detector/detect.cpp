@@ -73,15 +73,14 @@ namespace cv {
     void Detect::localization() {
         findCandidates();   // find areas with low variance in gradient direction
         connectComponents();
-        imshow("处理的图", processed_barcode);
+        imshow("image after processing", processed_barcode);
 
         vector<vector<Point> > contours;
         vector<Vec4i> hierarchy;
         findContours(processed_barcode, contours, hierarchy, RETR_LIST, CHAIN_APPROX_SIMPLE);
         double bounding_rect_area = 0;
         RotatedRect minRect;
-        Mat ROI;
-        double THRESHOLD_MIN_AREA = height * width * 0.01;
+        double THRESHOLD_MIN_AREA = height * width * 0.005;
         for (size_t i = 0; i < contours.size(); i++) {
             double area = contourArea(contours[i]);
             minRect = minAreaRect(contours[i]);
@@ -93,20 +92,24 @@ namespace cv {
 
             if ((area / bounding_rect_area) > 0.6) // check if contour is of a rectangular object
             {
-                Point2f vertices[4];
-                minRect.points(vertices);
+
                 double angle = getBarcodeOrientation(contours, i);
                 if (angle == USE_ROTATED_RECT_ANGLE) {
                     printf("%f\n", minRect.angle);
                 } else {
                     printf("%f %f\n", minRect.angle, angle);
-
+//                    while(angle>0)
+//                        angle-=90;
+//                    minRect.angle = angle;
                 }
+
+                Point2f vertices[4];
+                minRect.points(vertices);
                 for (int j = 0; j < 4; j++)
                     line(resized_barcode, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0));
             }
         }
-        imshow("框框图", resized_barcode);
+        imshow("bounding box image", resized_barcode);
         waitKey();
     }
 
@@ -147,6 +150,7 @@ namespace cv {
         variance.setTo(Scalar(maxVal), mask);
 
         normalize(variance, variance, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
+
         threshold(variance, variance, 75, 255, THRESH_BINARY_INV);
 
         adjusted_variance = variance.clone();
@@ -158,7 +162,7 @@ namespace cv {
         //adjusted_variance.setTo(Scalar(63), mask);
         //imshow("梯度大小图", gradient_magnitude);
         //imshow("调整后方差图", adjusted_variance);
-        imshow("调整前方差图", variance);
+        //imshow("variance before adjusted", raw_variance);
 
         processed_barcode = variance;
     }
@@ -187,6 +191,8 @@ namespace cv {
 
         drawContours(mask, contours, i, Scalar(255), -1); // -1 thickness to fill contour
         bitwise_and(gradient_direction, mask, temp_directions);
+        bitwise_and(gradient_magnitude, mask, temp_magnitudes);
+
         // gradient_direction now contains non-zero values only where there is a gradient
         // mask now contains angles only for pixels within region enclosed by contour
 
@@ -209,8 +215,8 @@ namespace cv {
         integral_gradient_directions = Mat(gray_barcode.size(), CV_32F);
         Mat integral_sumsq(gray_barcode.size(), CV_32F), variance(gray_barcode.size(), CV_32F), gradient_density, temp;
 
-        int width_offset = (int) (0.1 * width / 2);
-        int height_offset = (int) (0.1 * height / 2);
+        int width_offset = (int) (0.05 * width / 2);
+        int height_offset = (int) (0.05 * height / 2);
         float rect_area;
 
         // set angle to 0 at all points where gradient magnitude is 0 i.e. where there are no edges
@@ -243,7 +249,8 @@ namespace cv {
                 sumsq = calcRectSum(integral_sumsq, right_col, left_col, top_row, bottom_row);
 
                 // calculate variance based only on points in the rectangular window which are edges
-                // edges are defined as points with high gradient magnitude
+                // edges are defined as points with high gradient magnitude,平方的均值减去均值的平方
+
                 data = (sumsq / rect_area) - (sum * sum / rect_area / rect_area);
                 variance.at<float_t>(y, pos) = data;
             }
@@ -262,7 +269,7 @@ int main(int argc, char **argv) {
         Mat srcImage = imread(R"(C:\Users\97659\Pictures\Barcode\TB20.jpg)");
 
         if (srcImage.empty()) {
-            printf("文件不存在");
+            printf("file not exist");
             exit(1);
         }
         Detect bardet;
