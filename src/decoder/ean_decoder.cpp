@@ -119,22 +119,53 @@ namespace cv {
         return MIDDLE_PATTERN_;
     }
 
+    const std::array<char, 32> &FIRST_CHAR_ARRAY() {
+        // use array to simulation a Hashmap,
+        // becuase the datasize is small,
+        // use a hashmap or brute-force search 10 times both can not accept
+        static const std::array<char, 32> pattern{
+                '0', '0', '0', '0', '0', '0',
+                '0', '6', '0', '0', '0', '9',
+                '0', '8', '3', '0', '0', '0',
+                '0', '5', '0', '7', '2', '0',
+                '0', '4', '1', '0', '0', '0',
+                '0', '0'
+        };// length is 32 to ensure the security
+        // 0x00000 -> 0  -> 0
+        // 0x11010 -> 26 -> 1
+        // 0x10110 -> 22 -> 2
+        // 0x01110 -> 14 -> 3
+        // 0x11001 -> 25 -> 4
+        // 0x10011 -> 19 -> 5
+        // 0x00111 -> 7  -> 6
+        // 0x10101 -> 21 -> 7
+        // 0x01101 -> 13 -> 8
+        // 0x01011 -> 11 -> 9
+        // delete the first bit, calculate from right side.
+        return pattern;
+    }
+
     std::string ean_decoder::decode(std::vector<uchar> data, int start) const {
         // at least it should have EAN13LENGTH's bits
         // else it can not decode at all
-        char decoderesult[14];
-        decoderesult[13] = '\0';
+        char decoderesult[14]{'\0'};
         if (data.size() - start < EAN13LENGTH) {
             return "size wrong";
         }
         auto temp = find_start_end_patterns(data);
         std::vector<int> counters = {0, 0, 0, 0};
         int end = data.size();
-        for (int i = 0; i < 6 && start < end; ++i) {
+        uint32_t first_char_bit = 0;
+        for (int i = 1; i < 7 && start < end; ++i) {
             int bestMatch = decodeDigit(data, counters, start, get_AB_Patterns());
-            decoderesult[i + 1] = static_cast<char>('0' + bestMatch % 10);
+            decoderesult[i] = static_cast<char>('0' + bestMatch % 10);
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
+            first_char_bit |= (bestMatch >= 10) << i;
         }
+        decoderesult[0] = FIRST_CHAR_ARRAY()[first_char_bit >> 2];
+        // why there need >> 2?
+        // first, the i in for-cycle is begin in 1
+        // second, the first i = 1 is always
         start = find_gurad_patterns(data, start, true, MIDDLE_PATTERN(),
                                     std::vector<int>(MIDDLE_PATTERN().size())).second;
         for (int i = 0; i < 6 && start < end; ++i) {
@@ -146,11 +177,6 @@ namespace cv {
         for (int i = 1; i < 12; ++i) {
             sums[i % 2 == 0] += decoderesult[i] - '0';
         }
-        decoderesult[0] = '0' + (10 - (sums[0] * 3 + sums[1]) % 10) % 10;
-        for (const auto &item : decoderesult) {
-            std::cout << item << std::endl;
-        }
-        // ps: 第一个不是前置码，是校验码
         return std::string(decoderesult);
     }
 

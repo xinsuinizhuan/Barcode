@@ -16,13 +16,12 @@ namespace cv {
         int height = thresholdImg.rows;
 
         int center = height / 2;
-        cv::imshow("2zhi", thresholdImg);
-        cv::waitKey();
+        //cv::imshow("2zhi", thresholdImg);
+        //cv::waitKey();
         cv::Mat centerLine = thresholdImg.rowRange(center, center + 1);
         std::vector<uchar> middle_array = centerLine.isContinuous() ? centerLine : centerLine.clone();
-        cv::imshow("center line", centerLine);
-        cv::waitKey();
-
+        //cv::imshow("center line", centerLine);
+        //cv::waitKey();
         ean_decoder decoder = ean_decoder(EAN13);
         std::cout << decoder.decode(middle_array, 28) << std::endl;
     }
