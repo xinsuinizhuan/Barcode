@@ -20,7 +20,7 @@ namespace cv {
     public:
         void init(const Mat &src);
 
-        void localization();
+        void localization(bool debug);
 
         Mat getCandidatePicture();
 

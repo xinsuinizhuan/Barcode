@@ -70,21 +70,26 @@ namespace cv {
     }
 
 
-    void Detect::localization() {
+    void Detect::localization(bool debug) {
         localization_rects.clear();
-        clock_t start = clock();
-        findCandidates();   // find areas with low variance in gradient direction
-        std::cout << "Find candidates costs " << (clock() - start) << " ms" << std::endl;
-        start = clock();
-        connectComponents();
-        std::cout << "Connect components costs " << (clock() - start) << " ms" << std::endl;
+        if (debug) {
+            clock_t start = clock();
+            findCandidates();   // find areas with low variance in gradient direction
+            std::cout << "Find candidates costs " << (clock() - start) << " ms" << std::endl;
+            start = clock();
+            connectComponents();
+            std::cout << "Connect components costs " << (clock() - start) << " ms" << std::endl;
 
-//      imshow("image after processing", processed_barcode);
+            imshow("image after processing", processed_barcode);
+            start = clock();
+            locateBarcodes();
+            std::cout << "Locate barcodes costs " << (clock() - start) << " ms" << std::endl;
+        } else {
+            findCandidates();   // find areas with low variance in gradient direction
+            connectComponents();
+            locateBarcodes();
+        }
 
-        start = clock();
-
-        locateBarcodes();
-        std::cout << "Locate barcodes costs " << (clock() - start) << " ms" << std::endl;
 
     }
 
@@ -195,8 +200,8 @@ namespace cv {
         dilate(processed_barcode, processed_barcode, small_elemSE);
         erode(processed_barcode, processed_barcode, large_elemSE);
 
-//        erode(processed_barcode, processed_barcode, small_elemSE);
-//        dilate(processed_barcode, processed_barcode, large_elemSE);
+        erode(processed_barcode, processed_barcode, small_elemSE);
+        dilate(processed_barcode, processed_barcode, large_elemSE);
     }
 
     double Detect::getBarcodeOrientation(const vector<vector<Point> > &contours, int i) {
@@ -297,7 +302,7 @@ int main(int argc, char **argv) {
             start = clock();
             capture.read(frame);
             bardet.init(frame);
-            bardet.localization();
+            bardet.localization(true);
 
             imshow("bounding boxes", bardet.getCandidatePicture());
             fps = 1.0f * CLOCKS_PER_SEC / (float) (clock() - start);
