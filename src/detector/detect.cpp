@@ -50,9 +50,9 @@ namespace cv {
 //            Size new_size(width, height);
 //            resize(src, resized_barcode, new_size, 0, 0, INTER_LINEAR);
 //        }
-        if (min_side > 512.0) {
+        if (min_side > 320.0) {
             purpose = SHRINKING;
-            coeff_expansion = min_side / 512.0;
+            coeff_expansion = min_side / 320.0;
             width = cvRound(src.size().width / coeff_expansion);
             height = cvRound(src.size().height / coeff_expansion);
             Size new_size(width, height);
@@ -73,14 +73,17 @@ namespace cv {
     void Detect::localization(bool debug) {
         localization_rects.clear();
         if (debug) {
+            imshow("gray image after resizing", gray_barcode);
             clock_t start = clock();
             findCandidates();   // find areas with low variance in gradient direction
             std::cout << "Find candidates costs " << (clock() - start) << " ms" << std::endl;
             start = clock();
+            imshow("image before morphing", processed_barcode);
+
             connectComponents();
             std::cout << "Connect components costs " << (clock() - start) << " ms" << std::endl;
 
-            imshow("image after processing", processed_barcode);
+            imshow("image after morphing", processed_barcode);
             start = clock();
             locateBarcodes();
             std::cout << "Locate barcodes costs " << (clock() - start) << " ms" << std::endl;
@@ -99,7 +102,7 @@ namespace cv {
         findContours(processed_barcode, contours, hierarchy, RETR_LIST, CHAIN_APPROX_SIMPLE);
         double bounding_rect_area = 0;
         RotatedRect minRect;
-        double THRESHOLD_MIN_AREA = height * width * 0.003;
+        double THRESHOLD_MIN_AREA = height * width * 0.005;
         for (size_t i = 0; i < contours.size(); i++) {
             double area = contourArea(contours[i]);
             if (area < THRESHOLD_MIN_AREA) // ignore contour if it is of too small a region
@@ -193,9 +196,11 @@ namespace cv {
         // connect large components by doing morph close followed by morph open
         // use larger element size for erosion to remove small elements joined by dilation
         Mat small_elemSE, large_elemSE;
-
-        small_elemSE = getStructuringElement(MorphShapes::MORPH_ELLIPSE, Size(10, 10));
-        large_elemSE = getStructuringElement(MorphShapes::MORPH_ELLIPSE, Size(12, 12));
+        int small = cvRound(sqrt(width * height) * 0.019), large = cvRound(sqrt(width * height) * 0.023);
+        small_elemSE = getStructuringElement(MorphShapes::MORPH_ELLIPSE,
+                                             Size(small, small));
+        large_elemSE = getStructuringElement(MorphShapes::MORPH_ELLIPSE,
+                                             Size(large, large));
 
         dilate(processed_barcode, processed_barcode, small_elemSE);
         erode(processed_barcode, processed_barcode, large_elemSE);
@@ -233,17 +238,19 @@ namespace cv {
         in the img_details.gradient_directions matrix
         */
         int right_col, left_col, top_row, bottom_row;
-        float sum, sumsq, data;
+        float sum, sum_sq, data;
         integral_gradient_directions = Mat(gray_barcode.size(), CV_32F);
-        Mat integral_sumsq(gray_barcode.size(), CV_32F), variance(gray_barcode.size(), CV_32F), gradient_density, temp;
+        Mat integral_sum_sq(gray_barcode.size(), CV_32F), variance(gray_barcode.size(), CV_32F), gradient_density, temp;
 
-        int width_offset = (int) (0.05 * width / 2);
-        int height_offset = (int) (0.05 * height / 2);
-        float rect_area;
+        int width_offset = cvRound(0.05 * width / 2);
+        int height_offset = cvRound(0.05 * height / 2);
+//        float THRESHOLD_AREA = float(width_offset * height_offset) * 1.2f;
+        float rect_area;                    // min number of gradient edges in rectangular window to consider as non-zero
+
 
         // set angle to 0 at all points where gradient magnitude is 0 i.e. where there are no edges
         bitwise_and(gradient_direction, gradient_magnitude, gradient_direction);
-        integral(gradient_direction, integral_gradient_directions, integral_sumsq, CV_32F, CV_32F);
+        integral(gradient_direction, integral_gradient_directions, integral_sum_sq, CV_32F, CV_32F);
         threshold(gradient_magnitude, temp, 1, 1, THRESH_BINARY);
         integral(temp, gradient_density, CV_32F);
         //imshow("非零积分图", gradient_magnitude);
@@ -267,14 +274,20 @@ namespace cv {
                 right_col = ((pos + width_offset) > width) ? width : (pos + width_offset);
                 //we had an integral image to count non-zero elements
                 rect_area = calcRectSum(gradient_density, right_col, left_col, top_row, bottom_row);
+//                if (rect_area < THRESHOLD_AREA) {
+//                    // 有梯度的点占比小于阈值则视为平滑区域
+//                    variance_row[pos] = -1.0f;
+//                    continue;
+//
+//                }
                 // get the values of the rectangle corners from the integral image - 0 if outside bounds
                 sum = calcRectSum(integral_gradient_directions, right_col, left_col, top_row, bottom_row);
-                sumsq = calcRectSum(integral_sumsq, right_col, left_col, top_row, bottom_row);
+                sum_sq = calcRectSum(integral_sum_sq, right_col, left_col, top_row, bottom_row);
 
                 // calculate variance based only on points in the rectangular window which are edges
                 // edges are defined as points with high gradient magnitude,平方的均值减去均值的平方
 
-                data = (sumsq / rect_area) - (sum * sum / rect_area / rect_area);
+                data = (sum_sq / rect_area) - (sum * sum / rect_area / rect_area);
                 variance_row[pos] = data;
 
 //                variance.at<float_t>(y, pos) = data;
