@@ -22,6 +22,9 @@ namespace cv {
 
         void localization();
 
+        Mat getCandidatePicture();
+
+
     protected:
         enum resize_direction {
             ZOOMING, SHRINKING, UNCHANGED
@@ -29,8 +32,10 @@ namespace cv {
         double eps_vertical, eps_horizontal, coeff_expansion;
         int height, width;
         Mat barcode, resized_barcode, gray_barcode, gradient_direction, gradient_magnitude, integral_gradient_directions, adjusted_variance, processed_barcode;
+        vector<RotatedRect> localization_rects;
 
         void findCandidates();
+
 
         double getBarcodeOrientation(const vector<vector<Point> > &contours, int i);
 
@@ -39,6 +44,7 @@ namespace cv {
         void connectComponents();
 
 
+        void locateBarcodes();
     };
 }
 

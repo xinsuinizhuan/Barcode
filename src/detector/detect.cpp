@@ -27,90 +27,111 @@ namespace cv {
 
     void Detect::init(const Mat &src) {
         barcode = src.clone();
-        //const double min_side = std::min(src.size().width, src.size().height);
-        if (barcode.rows > 512) {
-            width = (int) (barcode.cols * (512 * 1.0 / barcode.rows));
-            height = 512;
-
-            resize(barcode, resized_barcode, Size(width, height), 0, 0, INTER_AREA);
-
-        } else {
-            width = barcode.cols;
-            height = barcode.rows;
-            resized_barcode = barcode.clone();
-        }
-        /*if (min_side < 512.0)
-        {
-            purpose = ZOOMING;
-            coeff_expansion = 512.0 / min_side;
-            width = cvRound(src.size().width * coeff_expansion);
-            height = cvRound(src.size().height * coeff_expansion);
-            Size new_size(width, height);
-            resize(src, resized_barcode, new_size, 0, 0, INTER_LINEAR);
-        }
-        else if (min_side > 512.0)
-        {
+        const double min_side = std::min(src.size().width, src.size().height);
+//        if (barcode.rows > 512) {
+//            width = (int) (barcode.cols * (512 * 1.0 / barcode.rows));
+//            height = 512;
+//
+//            resize(barcode, resized_barcode, Size(width, height), 0, 0, INTER_AREA);
+//            coeff_expansion = barcode.rows / (1.0 * resized_barcode.rows);
+//
+//        } else {
+//            width = barcode.cols;
+//            height = barcode.rows;
+//            resized_barcode = barcode.clone();
+//            coeff_expansion = 1.0;
+//        }
+//        if (min_side < 512.0)
+//        {
+//            purpose = ZOOMING;
+//            coeff_expansion = 512.0 / min_side;
+//            width = cvRound(src.size().width * coeff_expansion);
+//            height = cvRound(src.size().height * coeff_expansion);
+//            Size new_size(width, height);
+//            resize(src, resized_barcode, new_size, 0, 0, INTER_LINEAR);
+//        }
+        if (min_side > 512.0) {
             purpose = SHRINKING;
             coeff_expansion = min_side / 512.0;
             width = cvRound(src.size().width / coeff_expansion);
             height = cvRound(src.size().height / coeff_expansion);
             Size new_size(width, height);
             resize(src, resized_barcode, new_size, 0, 0, INTER_AREA);
-        }
-        else
-        {
+        } else {
             purpose = UNCHANGED;
             coeff_expansion = 1.0;
             width = src.size().width;
             height = src.size().height;
             resized_barcode = barcode.clone();
-        }*/
+        }
         //resized_barcode.convertTo(resized_barcode, CV_32FC3);
         cvtColor(resized_barcode, gray_barcode, CV_RGBA2GRAY);
 
     }
 
-    void Detect::localization() {
-        findCandidates();   // find areas with low variance in gradient direction
-        connectComponents();
-        imshow("image after processing", processed_barcode);
 
-        vector<vector<Point> > contours;
-        vector<Vec4i> hierarchy;
+    void Detect::localization() {
+        localization_rects.clear();
+        clock_t start = clock();
+        findCandidates();   // find areas with low variance in gradient direction
+        std::cout << "Find candidates costs " << (clock() - start) << " ms" << std::endl;
+        start = clock();
+        connectComponents();
+        std::cout << "Connect components costs " << (clock() - start) << " ms" << std::endl;
+
+//      imshow("image after processing", processed_barcode);
+
+        start = clock();
+
+        locateBarcodes();
+        std::cout << "Locate barcodes costs " << (clock() - start) << " ms" << std::endl;
+
+    }
+
+    void Detect::locateBarcodes() {
+        std::vector<std::vector<Point> > contours;
+        std::vector<Vec4i> hierarchy;
         findContours(processed_barcode, contours, hierarchy, RETR_LIST, CHAIN_APPROX_SIMPLE);
         double bounding_rect_area = 0;
         RotatedRect minRect;
-        double THRESHOLD_MIN_AREA = height * width * 0.005;
+        double THRESHOLD_MIN_AREA = height * width * 0.003;
         for (size_t i = 0; i < contours.size(); i++) {
             double area = contourArea(contours[i]);
+            if (area < THRESHOLD_MIN_AREA) // ignore contour if it is of too small a region
+                continue;
             minRect = minAreaRect(contours[i]);
             bounding_rect_area = minRect.size.width * minRect.size.height;
-
-
-            if (bounding_rect_area < THRESHOLD_MIN_AREA) // ignore contour if it is of too small a region
-                continue;
-
             if ((area / bounding_rect_area) > 0.6) // check if contour is of a rectangular object
             {
 
-                double angle = getBarcodeOrientation(contours, i);
-                if (angle == USE_ROTATED_RECT_ANGLE) {
-                    printf("%f\n", minRect.angle);
-                } else {
-                    printf("%f %f\n", minRect.angle, angle);
-//                    while(angle>0)
-//                        angle-=90;
-//                    minRect.angle = angle;
-                }
+//                double angle = getBarcodeOrientation(contours, i);
+//                if (angle == USE_ROTATED_RECT_ANGLE) {
+//                    printf("%f\n", minRect.angle);
+//                } else {
+//                    printf("%f %f\n", minRect.angle, angle);
+////                    while(angle>0)
+////                        angle-=90;
+////                    minRect.angle = angle;
+//                }
+                minRect.center.x = minRect.center.x * coeff_expansion;
+                minRect.center.y = minRect.center.y * coeff_expansion;
+                minRect.size.height *= coeff_expansion;
+                minRect.size.width *= coeff_expansion;
+                localization_rects.push_back(minRect);
 
-                Point2f vertices[4];
-                minRect.points(vertices);
-                for (int j = 0; j < 4; j++)
-                    line(resized_barcode, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0));
             }
         }
-        imshow("bounding box image", resized_barcode);
-        waitKey();
+    }
+
+    Mat Detect::getCandidatePicture() {
+        Mat candidate_picture = barcode.clone();
+        Point2f vertices[4];
+        for (int i = 0; i < localization_rects.size(); i++) {
+            localization_rects[i].points(vertices);
+            for (int j = 0; j < 4; j++)
+                line(candidate_picture, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0));
+        }
+        return candidate_picture;
     }
 
     void Detect::findCandidates() {
@@ -134,11 +155,7 @@ namespace cv {
         threshold(gradient_magnitude, gradient_magnitude, 50, 255, THRESH_BINARY | THRESH_OTSU);
         // calculate variances, normalize and threshold so that low-variance areas are bright(255) and
         // high-variance areas are dark(0)
-        //clock_t  start = clock();
         Mat raw_variance = calVariance();
-        //clock_t  end = clock();
-        //printf("%d\n", end-start);
-
         // replaces every instance of -1 with the max variance
         // this prevents a situation where areas with no edges show up as low variance bec their angles are 0
         // if the value in these cells are set to double.maxval, all the real variances get normalized to 0
@@ -146,16 +163,16 @@ namespace cv {
         double maxVal;
         minMaxLoc(raw_variance, nullptr, &maxVal, nullptr, nullptr);
         mask = Mat::zeros(raw_variance.size(), CV_8U);
-        inRange(raw_variance, Scalar(-1), Scalar(-1), mask);
+        inRange(raw_variance, Scalar(-1.5), Scalar(-0.5), mask);
         variance.setTo(Scalar(maxVal), mask);
 
         normalize(variance, variance, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
 
         threshold(variance, variance, 75, 255, THRESH_BINARY_INV);
 
-        adjusted_variance = variance.clone();
-        inRange(raw_variance, Scalar(-1), Scalar(-1), mask);
-        adjusted_variance.setTo(Scalar(127), mask);
+        //adjusted_variance = variance.clone();
+        //inRange(raw_variance, Scalar(-1), Scalar(-1), mask);
+        //adjusted_variance.setTo(Scalar(127), mask);
 
         //-5没有设置过，以后再删
         //inRange(raw_variance, Scalar(-5), Scalar(-5), mask);
@@ -178,8 +195,8 @@ namespace cv {
         dilate(processed_barcode, processed_barcode, small_elemSE);
         erode(processed_barcode, processed_barcode, large_elemSE);
 
-        erode(processed_barcode, processed_barcode, small_elemSE);
-        dilate(processed_barcode, processed_barcode, large_elemSE);
+//        erode(processed_barcode, processed_barcode, small_elemSE);
+//        dilate(processed_barcode, processed_barcode, large_elemSE);
     }
 
     double Detect::getBarcodeOrientation(const vector<vector<Point> > &contours, int i) {
@@ -228,14 +245,15 @@ namespace cv {
         for (int y = 0; y < height; y++) {
             //pixels_position.clear();
             const uint8_t *gradient_magnitude_row = gradient_magnitude.ptr<uint8_t>(y);
+            auto *variance_row = variance.ptr<float_t>(y);
 
             top_row = ((y - height_offset - 1) < 0) ? -1 : (y - height_offset - 1);
             bottom_row = ((y + height_offset) > height) ? height : (y + height_offset);
             int pos = 0;
             for (; pos < width; pos++) {
                 if (gradient_magnitude_row[pos] == 0) {
-                    variance.at<float_t>(y,
-                                         pos) = -1.0f;// used as marker number in variance grid at points with no gradient
+                    variance_row[pos] = -1.0f;
+                    // used as marker number in variance grid at points with no gradient
                     continue;
                 }
                 // then calculate the column locations of the rectangle and set them to -1
@@ -252,7 +270,9 @@ namespace cv {
                 // edges are defined as points with high gradient magnitude,平方的均值减去均值的平方
 
                 data = (sumsq / rect_area) - (sum * sum / rect_area / rect_area);
-                variance.at<float_t>(y, pos) = data;
+                variance_row[pos] = data;
+
+//                variance.at<float_t>(y, pos) = data;
             }
 
         }
@@ -266,17 +286,27 @@ namespace cv {
 int main(int argc, char **argv) {
     using namespace cv;
     if (argc < 2) {
-        Mat srcImage = imread(R"(C:\Users\97659\Pictures\Barcode\TB20.jpg)");
-
-        if (srcImage.empty()) {
-            printf("file not exist");
-            exit(1);
-        }
+        VideoCapture capture(0);
+        capture.set(CAP_PROP_FRAME_WIDTH, 1920);
+        capture.set(CAP_PROP_FRAME_HEIGHT, 1080);
         Detect bardet;
-        bardet.init(srcImage);
-        bardet.localization();
+        Mat frame;
+        clock_t start;
+        float fps;
+        while (true) {
+            start = clock();
+            capture.read(frame);
+            bardet.init(frame);
+            bardet.localization();
+
+            imshow("bounding boxes", bardet.getCandidatePicture());
+            fps = 1.0f * CLOCKS_PER_SEC / (float) (clock() - start);
+            std::cout << fps << " fps" << std::endl;
+//            for(int i = 0;i<bardet.rotated)
+            if (waitKey(1) > 0) break;
 
 
+        }
     }
     return 0;
 }
