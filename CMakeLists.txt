@@ -44,7 +44,10 @@ target_link_libraries(${PROJECT_NAME}_bardecoder ${OpenCV_LIBS})
 
 
 add_executable(${PROJECT_NAME}_Detect src/detector/detect.cpp
-
+        src/detect_main.cpp
+        src/decoder/ean_decoder.cpp
+        src/decoder/patternmatch.cpp
+        src/decoder/absdecoder.cpp
         )
 
 target_link_libraries(${PROJECT_NAME}_Detect ${OpenCV_LIBS})

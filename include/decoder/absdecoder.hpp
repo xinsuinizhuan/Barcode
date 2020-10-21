@@ -18,7 +18,7 @@ namespace cv {
     class absdecoder {
     public:
         //input 1 row 2-value Mat, return decode string
-        virtual std::string decode(std::vector<uchar> bar, int start, bool isRevert) const = 0;
+        virtual std::string decode(std::vector<uchar> bar, int start) const = 0;
 
         virtual std::string decode_and_detect(std::vector<uchar> bar) const = 0;
 
