@@ -124,11 +124,11 @@ namespace cv {
         // becuase the datasize is small,
         // use a hashmap or brute-force search 10 times both can not accept
         static const std::array<char, 32> pattern{
-                '0', '0', '0', '0', '0', '0',
-                '0', '6', '0', '0', '0', '9',
-                '0', '8', '3', '0', '0', '0',
-                '0', '5', '0', '7', '2', '0',
-                '0', '4', '1', '0', '0', '0',
+                '\x00', '0', '0', '0', '0', '0',
+                '0', '\x06', '0', '0', '0', '\x09',
+                '0', '\x08', '\x03', '0', '0', '0',
+                '0', '\x05', '0', '\x07', '\x02', '0',
+                '0', '\x04', '\x01', '0', '0', '0',
                 '0', '0'
         };// length is 32 to ensure the security
         // 0x00000 -> 0  -> 0
@@ -141,7 +141,8 @@ namespace cv {
         // 0x10101 -> 21 -> 7
         // 0x01101 -> 13 -> 8
         // 0x01011 -> 11 -> 9
-        // delete the first bit, calculate from right side.
+        // delete the 1-13's 2 number's bit,
+        // it always be A which do not need to count.
         return pattern;
     }
 
@@ -158,7 +159,7 @@ namespace cv {
         uint32_t first_char_bit = 0;
         for (int i = 1; i < 7 && start < end; ++i) {
             int bestMatch = decodeDigit(data, counters, start, get_AB_Patterns());
-            decoderesult[i] = static_cast<char>('0' + bestMatch % 10);
+            decoderesult[i] = static_cast<char>(bestMatch % 10);
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
             first_char_bit |= (bestMatch >= 10) << i;
         }
@@ -170,13 +171,17 @@ namespace cv {
                                     std::vector<int>(MIDDLE_PATTERN().size())).second;
         for (int i = 0; i < 6 && start < end; ++i) {
             int bestMatch = decodeDigit(data, counters, start, get_A_or_C_Patterns());
-            decoderesult[i + 7] = static_cast<char>('0' + bestMatch);
+            decoderesult[i + 7] = static_cast<char>(bestMatch);
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
         }
         int sums[2]{0, 0};
-        for (int i = 1; i < 12; ++i) {
-            sums[i % 2 == 0] += decoderesult[i] - '0';
+        for (int i = 0; i < 12; ++i) {
+            sums[i & 1 ^ 1] += decoderesult[i];
         }
+        CV_Assert((10 - (sums[0] + sums[1] * 3) % 10) == decoderesult[12]);
+        // TODO, deal with the check bit
+        std::transform(std::begin(decoderesult), std::end(decoderesult) - 1, std::begin(decoderesult),
+                       [](char ch) { return ch + '0'; });
         return std::string(decoderesult);
     }
 
@@ -340,6 +345,4 @@ namespace cv {
         return std::max(-1, bestMatch);
         // -1 is dismatch or means error.
     }
-
-
 }
