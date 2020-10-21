@@ -1,8 +1,6 @@
 #include "decoder/ean_decoder.hpp"
 #include <iostream>
 #include <array>
-/*	TODO 目前只做了正向图片识别，如果图片是反的需要反转一下识别的序列
-*/
 // 三种编码方式 https://baike.baidu.com/item/EAN-13
 namespace cv {
     const std::vector<std::vector<int>> &get_A_or_C_Patterns() {
@@ -66,11 +64,11 @@ namespace cv {
         // becuase the datasize is small,
         // use a hashmap or brute-force search 10 times both can not accept
         static const std::array<char, 32> pattern{
-                '0', '0', '0', '0', '0', '0',
-                '0', '6', '0', '0', '0', '9',
-                '0', '8', '3', '0', '0', '0',
-                '0', '5', '0', '7', '2', '0',
-                '0', '4', '1', '0', '0', '0',
+                '\x00', '0', '0', '0', '0', '0',
+                '0', '\x06', '0', '0', '0', '\x09',
+                '0', '\x08', '\x03', '0', '0', '0',
+                '0', '\x05', '0', '\x07', '\x02', '0',
+                '0', '\x04', '\x01', '0', '0', '0',
                 '0', '0'
         };// length is 32 to ensure the security
         // 0x00000 -> 0  -> 0
@@ -83,7 +81,8 @@ namespace cv {
         // 0x10101 -> 21 -> 7
         // 0x01101 -> 13 -> 8
         // 0x01011 -> 11 -> 9
-        // delete the first bit, calculate from right side.
+        // delete the 1-13's 2 number's bit,
+        // it always be A which do not need to count.
         return pattern;
     }
     /**
@@ -120,7 +119,7 @@ namespace cv {
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
             first_char_bit |= (bestMatch >= 10) << i;
         }
-        decoderesult[0] = FIRST_CHAR_ARRAY()[first_char_bit >> 2];
+        decoderesult[0] = FIRST_CHAR_ARRAY()[first_char_bit >> 2] + '0';
         // why there need >> 2?
         // first, the i in for-cycle is begin in 1
         // second, the first i = 1 is always
@@ -255,6 +254,4 @@ namespace cv {
         return std::max(-1, bestMatch);
         // -1 is dismatch or means error.
     }
-
-
 }
