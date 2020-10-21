@@ -34,7 +34,7 @@ namespace cv {
     public:
         void init(const Mat &src);
 
-        void localization(bool debug = true);
+        void localization(bool debug = false);
 
         vector<RotatedRect> getLocalizationRects() { return localization_rects; }
 
@@ -201,12 +201,14 @@ namespace cv {
         Mat scharr_x(resized_barcode.size(), CV_32F), scharr_y(resized_barcode.size(), CV_32F), variance, mask;
         Scharr(resized_barcode, scharr_x, CV_32F, 1, 0);
         Scharr(resized_barcode, scharr_y, CV_32F, 0, 1);
-        phase(scharr_x, scharr_y, gradient_direction, true);
 
+
+        phase(scharr_x, scharr_y, gradient_direction, true);
         inRange(gradient_direction, Scalar(180), Scalar(360), mask);
         add(gradient_direction, Scalar(-180), gradient_direction, mask);
         inRange(gradient_direction, Scalar(170), Scalar(180), mask);
         gradient_direction.setTo(Scalar(0), mask);
+
 //        inRange(gradient_direction, Scalar(0), Scalar(5), mask);
 //        gradient_direction.setTo(Scalar(0), mask);
 
@@ -360,7 +362,7 @@ namespace cv {
 
     BarcodeDetector::~BarcodeDetector() = default;
 
-    bool BarcodeDetector::detect(InputArray img, CV_OUT std::vector<RotatedRect> &rects) const {
+    bool BarcodeDetector::detect(InputArray img, CV_OUT std::vector<RotatedRect> &rects, bool debug) const {
         Mat inarr;
         if (!checkBarInputImage(img, inarr)) {
             return false;
@@ -368,7 +370,7 @@ namespace cv {
 
         Detect bardet;
         bardet.init(inarr);
-        bardet.localization();
+        bardet.localization(debug);
         vector<RotatedRect> _rects = bardet.getLocalizationRects();
         rects.assign(_rects.begin(), _rects.end());
         return true;

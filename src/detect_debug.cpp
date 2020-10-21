@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
 //        }
         frame = imread("../test/data/K71NM_45.jpg");
         std::vector<RotatedRect> rects;
-        bardet.detect(frame, rects);
+        bardet.detect(frame, rects, true);
         for (auto &rect : rects) {
             rect.points(vertices);
             for (int j = 0; j < 4; j++)
