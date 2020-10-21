@@ -8,8 +8,8 @@
 
 namespace cv {
 //extern struct EncodePair;
-
-
+    using std::string;
+    using std::vector;
     constexpr static int PATTERN_MATCH_RESULT_SCALE_FACTOR = 1 << INTEGER_MATH_SHIFT;
     constexpr static int MAX_AVG_VARIANCE = static_cast<int>(PATTERN_MATCH_RESULT_SCALE_FACTOR * 0.48f);
     constexpr static int MAX_INDIVIDUAL_VARIANCE = static_cast<int>(PATTERN_MATCH_RESULT_SCALE_FACTOR * 0.7f);
@@ -27,41 +27,35 @@ namespace cv {
         ~ean_decoder();
 
         //输入初始位置固定的2值化后的数据, 输出解码字符串
-        std::string decode(std::vector<uchar> data, int start, bool isRevert) const override;
-        //Detect encode type
-        std::string decode_and_detect(std::vector<uchar> data) const override;
+        string decode(vector<uchar> data, int start) const override;
 
-        std::string getName() const override;
+        //Detect encode type
+        string decode_and_detect(vector<uchar> data) const override;
+
+        string getName() const override;
+
+        string decode_outer(vector<uchar> data);
+
+        vector<string> rect_to_ucharlist(const Mat &mat, const std::vector<RotatedRect> &rect);
 
     private:
-        std::string name;//EAN具体解码类别：EAN-13 / EAN-8
+        string name;//EAN具体解码类别：EAN-13 / EAN-8
         uchar unitWidth;
         uchar bitsNum;
         uchar codeLength;
         static constexpr uchar EAN13LENGTH = 95;
         //TODO EAN8 Length ...
 
-        bool isValid(std::string result) const override;
+        bool isValid(string result) const override;
 
-        // 传入简化宽度后的bits
-        std::string parseCode(std::vector<uchar> part) const;
+        static int decodeDigit(const vector<uchar> &row, vector<int> &counters, int rowOffset,
+                               vector<vector<int>> patterns);
 
-        //返回编码内容和编码集
-        EncodePair getContent(uchar code) const;
-
-        bool delimiterIsValid(std::vector<uchar> data) const;
-
-        static int decodeDigit(const std::vector<uchar> &row, std::vector<int> &counters, int rowOffset,
-                               std::vector<std::vector<int>> patterns);
-
-        static std::pair<int, int> find_start_end_patterns(const std::vector<uchar> &row);
-
-        static std::pair<int, int> find_gurad_patterns(const std::vector<uchar> &row,
+        static std::pair<int, int> find_gurad_patterns(const vector<uchar> &row,
                                                        int rowOffset,
                                                        uchar whiteFirst,
-                                                       const std::vector<int> &pattern,
-                                                       std::vector<int> counters);
-
+                                                       const vector<int> &pattern,
+                                                       vector<int> counters);
     };
 
 }
