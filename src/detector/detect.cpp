@@ -7,6 +7,62 @@
 namespace cv {
     using std::vector;
 
+    static bool checkBarInputImage(InputArray img, Mat &gray) {
+        CV_Assert(!img.empty());
+        CV_CheckDepthEQ(img.depth(), CV_8U, "");
+
+        if (img.cols() <= 20 || img.rows() <= 20) {
+            return false;  // image data is not enough for providing reliable results
+        }
+        int incn = img.channels();
+        CV_Check(incn, incn == 1 || incn == 3 || incn == 4, "");
+        if (incn == 3 || incn == 4) {
+            cvtColor(img, gray, COLOR_BGR2GRAY);
+        } else {
+            gray = img.getMat();
+        }
+        return true;
+    }
+
+//    static void updateRectsResult(vector<RotatedRect> &rects_, const vector<RotatedRect> &rects) {
+//    }
+
+    class Detect {
+    private:
+        const int USE_ROTATED_RECT_ANGLE = 361;
+
+    public:
+        void init(const Mat &src);
+
+        void localization(bool debug = true);
+
+        vector<RotatedRect> getLocalizationRects() { return localization_rects; }
+
+        Mat getCandidatePicture();
+
+
+    protected:
+        enum resize_direction {
+            ZOOMING, SHRINKING, UNCHANGED
+        } purpose;
+        double coeff_expansion;
+        int height, width;
+        Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, integral_gradient_directions, processed_barcode;
+        vector<RotatedRect> localization_rects;
+
+        void findCandidates();
+
+
+        double getBarcodeOrientation(const vector<vector<Point> > &contours, int i);
+
+        Mat calVariance();
+
+        void connectComponents();
+
+
+        void locateBarcodes();
+    };
+
     static float calcRectSum(const Mat &integral, int right_col, int left_col, int top_row, int bottom_row) {
         // calculates sum of values within a rectangle from a given integral image
         // if top_row or left_col are -1, it uses 0 for their value
@@ -65,7 +121,6 @@ namespace cv {
             resized_barcode = barcode.clone();
         }
         //resized_barcode.convertTo(resized_barcode, CV_32FC3);
-        cvtColor(resized_barcode, gray_barcode, CV_RGBA2GRAY);
 
     }
 
@@ -73,20 +128,22 @@ namespace cv {
     void Detect::localization(bool debug) {
         localization_rects.clear();
         if (debug) {
-            imshow("gray image after resizing", gray_barcode);
             clock_t start = clock();
+
             findCandidates();   // find areas with low variance in gradient direction
-            std::cout << "Find candidates costs " << (clock() - start) << " ms" << std::endl;
-            start = clock();
+            clock_t find_time = clock();
             imshow("image before morphing", processed_barcode);
 
             connectComponents();
-            std::cout << "Connect components costs " << (clock() - start) << " ms" << std::endl;
-
+            clock_t connect_time = clock();
             imshow("image after morphing", processed_barcode);
-            start = clock();
+
             locateBarcodes();
-            std::cout << "Locate barcodes costs " << (clock() - start) << " ms" << std::endl;
+            clock_t locate_time = clock();
+
+            printf("Finding candidates costs %ld ms, connecting components costs %ld ms, locating barcodes costs %ld ms\n",
+                   find_time - start, connect_time - find_time,
+                   locate_time - connect_time);
         } else {
             findCandidates();   // find areas with low variance in gradient direction
             connectComponents();
@@ -131,28 +188,21 @@ namespace cv {
         }
     }
 
-    Mat Detect::getCandidatePicture() {
-        Mat candidate_picture = barcode.clone();
-        Point2f vertices[4];
-        for (int i = 0; i < localization_rects.size(); i++) {
-            localization_rects[i].points(vertices);
-            for (int j = 0; j < 4; j++)
-                line(candidate_picture, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0));
-        }
-        return candidate_picture;
-    }
 
     void Detect::findCandidates() {
-        gradient_direction = Mat::zeros(gray_barcode.size(), CV_32F);
-        Mat scharr_x(gray_barcode.size(), CV_32F), scharr_y(gray_barcode.size(), CV_32F), variance, mask;
-        Scharr(gray_barcode, scharr_x, CV_32F, 1, 0);
-        Scharr(gray_barcode, scharr_y, CV_32F, 0, 1);
+        gradient_direction = Mat::zeros(resized_barcode.size(), CV_32F);
+        Mat scharr_x(resized_barcode.size(), CV_32F), scharr_y(resized_barcode.size(), CV_32F), variance, mask;
+        Scharr(resized_barcode, scharr_x, CV_32F, 1, 0);
+        Scharr(resized_barcode, scharr_y, CV_32F, 0, 1);
         phase(scharr_x, scharr_y, gradient_direction, true);
 
         inRange(gradient_direction, Scalar(180), Scalar(360), mask);
         add(gradient_direction, Scalar(-180), gradient_direction, mask);
-        inRange(gradient_direction, Scalar(170), Scalar(180), mask);
+        inRange(gradient_direction, Scalar(175), Scalar(180), mask);
         gradient_direction.setTo(Scalar(0), mask);
+        inRange(gradient_direction, Scalar(0), Scalar(5), mask);
+        gradient_direction.setTo(Scalar(0), mask);
+
         gradient_direction.convertTo(gradient_direction, CV_8U);
 
 
@@ -239,8 +289,9 @@ namespace cv {
         */
         int right_col, left_col, top_row, bottom_row;
         float sum, sum_sq, data;
-        integral_gradient_directions = Mat(gray_barcode.size(), CV_32F);
-        Mat integral_sum_sq(gray_barcode.size(), CV_32F), variance(gray_barcode.size(), CV_32F), gradient_density, temp;
+        integral_gradient_directions = Mat(resized_barcode.size(), CV_32F);
+        Mat integral_sum_sq(resized_barcode.size(), CV_32F), variance(resized_barcode.size(),
+                                                                      CV_32F), gradient_density, temp;
 
         int width_offset = cvRound(0.05 * width / 2);
         int height_offset = cvRound(0.05 * height / 2);
@@ -298,7 +349,34 @@ namespace cv {
 
     }
 
+    BarcodeDetector::BarcodeDetector() = default;
 
+    BarcodeDetector::~BarcodeDetector() = default;
+
+    bool BarcodeDetector::detect(InputArray img, CV_OUT std::vector<RotatedRect> &rects) const {
+        Mat inarr;
+        if (!checkBarInputImage(img, inarr)) {
+            return false;
+        }
+
+        Detect bardet;
+        bardet.init(inarr);
+        bardet.localization();
+        vector<RotatedRect> _rects = bardet.getLocalizationRects();
+        rects.assign(_rects.begin(), _rects.end());
+        return true;
+    }
+
+    bool BarcodeDetector::decode(InputArray img, const std::vector<RotatedRect> &rects, CV_OUT
+                                 vector<std::string> &decoded_info) const {
+        Mat inarr;
+        if (!checkBarInputImage(img, inarr)) {
+            return false;
+        }
+        CV_Assert(!rects.empty());
+
+        return true;
+    }
 }
 
 int main(int argc, char **argv) {
@@ -307,19 +385,24 @@ int main(int argc, char **argv) {
         VideoCapture capture(0);
         capture.set(CAP_PROP_FRAME_WIDTH, 1920);
         capture.set(CAP_PROP_FRAME_HEIGHT, 1080);
-        Detect bardet;
+        BarcodeDetector bardet;
         Mat frame;
         clock_t start;
         float fps;
+        Point2f vertices[4];
         while (true) {
             start = clock();
             capture.read(frame);
-            bardet.init(frame);
-            bardet.localization(true);
-
-            imshow("bounding boxes", bardet.getCandidatePicture());
+            std::vector<RotatedRect> rects;
+            bardet.detect(frame, rects);
+            for (auto &rect : rects) {
+                rect.points(vertices);
+                for (int j = 0; j < 4; j++)
+                    line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0));
+            }
             fps = 1.0f * CLOCKS_PER_SEC / (float) (clock() - start);
             std::cout << fps << " fps" << std::endl;
+            imshow("bounding boxes", frame);
 //            for(int i = 0;i<bardet.rotated)
             if (waitKey(1) > 0) break;
 
