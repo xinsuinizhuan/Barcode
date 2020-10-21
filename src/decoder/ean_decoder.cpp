@@ -1,10 +1,7 @@
 #include "decoder/ean_decoder.hpp"
 #include <iostream>
 #include <array>
-/*	目前只做了正向图片识别，如果图片是反的需要反转一下识别的序列
-	TODO：
-	1. 单位宽度如果低于4像素并且黑白条的宽度不均匀会存在识别错误，需要优化，如果能达到识别2像素单位的条码就不错了
-	2. 错误校验
+/*	TODO 目前只做了正向图片识别，如果图片是反的需要反转一下识别的序列
 */
 // 三种编码方式 https://baike.baidu.com/item/EAN-13
 namespace cv {
@@ -28,69 +25,19 @@ namespace cv {
 
     const std::vector<std::vector<int>> &get_AB_Patterns() {
         static const std::vector<std::vector<int>> AB_Patterns = [] {
-            auto AB_Patterns_inited = std::vector<std::vector<int>>(20, std::vector<int>(4, 0));
+            auto AB_Patterns_inited = std::vector<std::vector<int>>(20, std::vector<int>(PATTERN_LENGTH, 0));
             std::copy(get_A_or_C_Patterns().cbegin(), get_A_or_C_Patterns().cend(), AB_Patterns_inited.begin());
+            //AB pattern is
+            int offset = 10;
             for (int i = 0; i < get_A_or_C_Patterns().size(); ++i) {
-                for (int j = 0; j < 4; ++j) {
-                    AB_Patterns_inited[i + 10][j] = AB_Patterns_inited[i][3 - j];
+                for (int j = 0; j < PATTERN_LENGTH; ++j) {
+                    AB_Patterns_inited[i + offset][j] = AB_Patterns_inited[i][PATTERN_LENGTH-j-1];
                 }
             }
             return AB_Patterns_inited;
         }();
         return AB_Patterns;
     }
-
-    const static std::map<uchar, std::string> A = {
-            {0x0D, "0"},
-            {0x19, "1"},
-            {0x13, "2"},
-            {0x3D, "3"},
-            {0x23, "4"},
-            {0x31, "5"},
-            {0x2F, "6"},
-            {0x3B, "7"},
-            {0x37, "8"},
-            {0x0B, "9"}
-    };
-
-    static std::map<uchar, std::string> B = {
-            {0x27, "0"},
-            {0x33, "1"},
-            {0x1B, "2"},
-            {0x21, "3"},
-            {0x1D, "4"},
-            {0x39, "5"},
-            {0x05, "6"},
-            {0x11, "7"},
-            {0x09, "8"},
-            {0x17, "9"}
-    };
-
-    static std::map<uchar, std::string> R = {
-            {0x72, "0"},
-            {0x66, "1"},
-            {0x6C, "2"},
-            {0x42, "3"},
-            {0x5C, "4"},
-            {0x4E, "5"},
-            {0x50, "6"},
-            {0x44, "7"},
-            {0x48, "8"},
-            {0x74, "9"}
-    };
-
-    static std::map<std::string, std::string> prefixMap = {
-            {"AAAAAA", "0"},
-            {"AABABB", "1"},
-            {"AABBAB", "2"},
-            {"AABBBA", "3"},
-            {"ABAABB", "4"},
-            {"ABBAAB", "5"},
-            {"ABBBAA", "6"},
-            {"ABABAB", "7"},
-            {"ABABBA", "8"},
-            {"ABBABA", "9"}
-    };
 
     ean_decoder::ean_decoder(const char *const name) {
         this->name = std::string(name);
@@ -104,16 +51,11 @@ namespace cv {
 
     ean_decoder::~ean_decoder() = default;
 
-/*
-	data 输入初始位置固定的2值化后的数据, 输出解码字符串
-	start 第一个条码出现的下标
-	return 解码后的条码内容
-*/
-    /** decode EAN-13
-      *@prama: data: the input array,
-      *@prama: start, the index of start order, begin at 0, max-value is data.size()-1
-      * it scan begin at the data[start]
-     */
+    const std::vector<int> &BEGIN_PATTERN() {
+        static const std::vector<int> BEGIN_PATTERN_(3, 1);
+        return BEGIN_PATTERN_;
+    }
+
     const std::vector<int> &MIDDLE_PATTERN() {
         static const std::vector<int> MIDDLE_PATTERN_(5, 1);
         return MIDDLE_PATTERN_;
@@ -144,20 +86,36 @@ namespace cv {
         // delete the first bit, calculate from right side.
         return pattern;
     }
-
-    std::string ean_decoder::decode(std::vector<uchar> data, int start) const {
+    /**
+     * decode EAN-13
+     * @prama: data: the input array,
+     * @prama: start, the index of start order, begin at 0, max-value is data.size()-1
+     * it scan begin at the data[start]
+     */
+    std::string ean_decoder::decode(std::vector<uchar> data, int start, bool isRevert) const {
         // at least it should have EAN13LENGTH's bits
         // else it can not decode at all
         char decoderesult[14]{'\0'};
         if (data.size() - start < EAN13LENGTH) {
             return "size wrong";
         }
-        auto temp = find_start_end_patterns(data);
+        std::vector<int> guradCounters{0, 0, 0};
+        std::pair<int, int> temp = find_gurad_patterns(data, start, false, BEGIN_PATTERN(), guradCounters);
+        start = temp.second;
         std::vector<int> counters = {0, 0, 0, 0};
         int end = data.size();
         uint32_t first_char_bit = 0;
+        // [1,6] are left part of EAN13, [7,12] are right part, index 0 is calculated by left part
         for (int i = 1; i < 7 && start < end; ++i) {
             int bestMatch = decodeDigit(data, counters, start, get_AB_Patterns());
+            if (bestMatch == -1) {
+                if (!isRevert) {
+                    std::vector<uchar> cpData;
+                    cpData.assign(data.rbegin(),data.rend());
+                    return decode(cpData,0,true);
+                }
+                return "ERROR";
+            }
             decoderesult[i] = static_cast<char>('0' + bestMatch % 10);
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
             first_char_bit |= (bestMatch >= 10) << i;
@@ -177,7 +135,17 @@ namespace cv {
         for (int i = 1; i < 12; ++i) {
             sums[i % 2 == 0] += decoderesult[i] - '0';
         }
-        return std::string(decoderesult);
+        std::string result = std::string(decoderesult);
+        if(!isValid(result)) {
+            if (!isRevert) {
+                std::vector<uchar> cpData;
+                cpData.assign(data.rbegin(),data.rend());
+                return decode(cpData,0,true);
+            }
+            return "wrong: " + result;
+        }
+        //TODO throw exception
+        return result;
     }
 
     std::string ean_decoder::decode_and_detect(std::vector<uchar> data) const {
@@ -190,73 +158,20 @@ namespace cv {
         return this->name;
     }
 
-    bool ean_decoder::isValid() const {
-        return false;
-    }
-
-// 传入简化宽度后的bits
-    std::string ean_decoder::parseCode(std::vector<uchar> part) const {
-        std::vector<uchar> array(codeLength);
-        std::string content = "";
-        for (int i = 0; i < part.size(); i++) {
-            int digit = i / codeLength;
-            array[digit] = array[digit] << 1;
-            if (part[i] == BLACK) {
-                array[digit] += 1;
+    bool ean_decoder::isValid(std::string result) const {
+        int i = 1, sum = 0;
+        int checkDigit = result[result.size()-1] - '0';
+        for(int index = result.size()-i-1;index >= 0;index--,i++) {
+            int temp = result[index] - '0';
+            if(i % 2 != 0) {
+                temp *= 3;
             }
+            sum += temp;
         }
-        std::string types = "";
-        //TODO 检查result 是否属于A,B,R中的其中一种,如果不属于则反相扫描
-        for (int i = 0; i < codeLength; i++) {
-            EncodePair temp = getContent(array[i]);
-            if (temp.valid) {
-                content.append(temp.content);
-                types.append(temp.type);
-            }
-        }
-        auto iter = prefixMap.find(types);
-
-        if (iter != prefixMap.end()) {
-            content.insert(0, iter->second);
-        }
-        return content;
+        return checkDigit == (10 - (sum % 10)) % 10;
     }
 
-//返回编码内容和编码集
-    EncodePair ean_decoder::getContent(uchar code) const {
-        //std::map<uchar, std::string>::iterator iter;
-        auto iter = A.find(code);
-        if (iter != A.end()) {
-            return EncodePair(iter->second, "A");
-        }
-        iter = B.find(code);
-        if (iter != B.end()) {
-            return EncodePair(iter->second, "B");
-        }
-        iter = R.find(code);
-        if (iter != R.end()) {
-            return EncodePair(iter->second, "R");
-        }
-        EncodePair wrong = EncodePair("WRONG", "WRONG");
-        wrong.valid = false;
-        return wrong;
-    }
 
-    bool ean_decoder::delimiterIsValid(std::vector<uchar> data) const {
-        //检查头分界符
-        constexpr uchar delimiter[3]{BLACK, WHITE, BLACK};
-        for (int i = 0; i < 3; i++) {
-            if (data[i] != delimiter[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    const std::vector<int> &BEGIN_PATTERN() {
-        static const std::vector<int> BEGIN_PATTERN_(3, 1);
-        return BEGIN_PATTERN_;
-    }
 
     std::pair<int, int> ean_decoder::find_start_end_patterns(const std::vector<uchar> &row) {
         bool foundStart = false;

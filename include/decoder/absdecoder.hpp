@@ -18,19 +18,17 @@ namespace cv {
     class absdecoder {
     public:
         //input 1 row 2-value Mat, return decode string
-        virtual std::string decode(std::vector<uchar> bar, int start) const = 0;
+        virtual std::string decode(std::vector<uchar> bar, int start, bool isRevert) const = 0;
 
         virtual std::string decode_and_detect(std::vector<uchar> bar) const = 0;
 
         virtual std::string getName() const = 0;
 
     private:
-        virtual bool isValid() const = 0;
+        virtual bool isValid(std::string result) const = 0;
     };
 
-    // TODO, let those variables move to their own class
-    const static char *EAN13 = "EAN-13";
-    const static char *EAN8 = "EAN-8";
+
 
     void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters);
 
