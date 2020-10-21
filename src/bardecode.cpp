@@ -25,7 +25,7 @@ namespace cv {
         //cv::waitKey();
         ean_decoder decoder = ean_decoder(EAN13);
         decoder.rect_to_ucharlist(greyImg, RotatedRect());
-        std::cout << decoder.decode(middle_array, 0, false) << std::endl;
+        std::cout << decoder.decode(middle_array, 0) << std::endl;
         cv::waitKey();
     }
 

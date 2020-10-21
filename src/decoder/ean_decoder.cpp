@@ -3,7 +3,23 @@
 #include <array>
 #include <opencv2/imgproc.hpp>
 // 三种编码方式 https://baike.baidu.com/item/EAN-13
+
+/**
+ * TODO 1. 多条
+ */
 namespace cv {
+
+    bool isValidCoordinate(Point2f point, const Mat &mat) {
+        //TODO fix <=
+        if ((point.x <= 0) || (point.y <= 0))
+            return false;
+
+        if ((point.x >= mat.cols - 1) || (point.y >= mat.rows - 1))
+            return false;
+
+        return true;
+    }
+
     // default thought that mat is a matrix after binary-transfer.
     vector<string> ean_decoder::rect_to_ucharlist(const Mat &mat, const vector<RotatedRect> &rects) {
         vector<string> will_return;
@@ -29,10 +45,11 @@ namespace cv {
             }
             LineIterator line = LineIterator(mat, begin, end);
             middle.reserve(line.count);
-            for (int i = 0; i < line.count; ++i, ++line) {
-                middle.push_back(mat.at<uchar>(line.pos()));
+            do{
+                ++line;
                 std::cout << line.pos() << " " << (mat.at<uchar>(line.pos())) << std::endl;
-            }
+                middle.push_back(mat.at<uchar>(line.pos()));
+            }while (isValidCoordinate(line.pos(),mat));
             cv::threshold(middle,middle,0,255,THRESH_BINARY|THRESH_OTSU);
             std::string result = this->decode(middle, 0);
             if (result.size() != 13) {
@@ -41,8 +58,11 @@ namespace cv {
             will_return.push_back(result);
 
         }
+
         return will_return;
     }
+
+
 
     const vector<vector<int>> &get_A_or_C_Patterns() {
         static const vector<vector<int>> A_or_C_Patterns = {
