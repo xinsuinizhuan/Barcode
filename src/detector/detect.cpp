@@ -97,16 +97,14 @@ namespace cv {
 //            resized_barcode = barcode.clone();
 //            coeff_expansion = 1.0;
 //        }
-//        if (min_side < 512.0)
-//        {
-//            purpose = ZOOMING;
-//            coeff_expansion = 512.0 / min_side;
-//            width = cvRound(src.size().width * coeff_expansion);
-//            height = cvRound(src.size().height * coeff_expansion);
-//            Size new_size(width, height);
-//            resize(src, resized_barcode, new_size, 0, 0, INTER_LINEAR);
-//        }
-        if (min_side > 320.0) {
+        if (min_side < 320.0) {
+            purpose = ZOOMING;
+            coeff_expansion = 320.0 / min_side;
+            width = cvRound(src.size().width * coeff_expansion);
+            height = cvRound(src.size().height * coeff_expansion);
+            Size new_size(width, height);
+            resize(src, resized_barcode, new_size, 0, 0, INTER_LINEAR);
+        } else if (min_side > 320.0) {
             purpose = SHRINKING;
             coeff_expansion = min_side / 320.0;
             width = cvRound(src.size().width / coeff_expansion);
@@ -129,6 +127,7 @@ namespace cv {
         localization_rects.clear();
         if (debug) {
             clock_t start = clock();
+            imshow("gray image", resized_barcode);
 
             findCandidates();   // find areas with low variance in gradient direction
             clock_t find_time = clock();
@@ -174,14 +173,22 @@ namespace cv {
 //                    printf("%f\n", minRect.angle);
 //                } else {
 //                    printf("%f %f\n", minRect.angle, angle);
-////                    while(angle>0)
-////                        angle-=90;
-////                    minRect.angle = angle;
+//                    while(angle>0)
+//                        angle-=90;
+//                    minRect.angle = angle;
 //                }
-                minRect.center.x = minRect.center.x * coeff_expansion;
-                minRect.center.y = minRect.center.y * coeff_expansion;
-                minRect.size.height *= coeff_expansion;
-                minRect.size.width *= coeff_expansion;
+                if (purpose == ZOOMING) {
+                    minRect.center.x /= coeff_expansion;
+                    minRect.center.y /= coeff_expansion;
+                    minRect.size.height /= coeff_expansion;
+                    minRect.size.width /= coeff_expansion;
+                } else if (purpose = SHRINKING) {
+                    minRect.center.x *= coeff_expansion;
+                    minRect.center.y *= coeff_expansion;
+                    minRect.size.height *= coeff_expansion;
+                    minRect.size.width *= coeff_expansion;
+                }
+
                 localization_rects.push_back(minRect);
 
             }
@@ -198,10 +205,10 @@ namespace cv {
 
         inRange(gradient_direction, Scalar(180), Scalar(360), mask);
         add(gradient_direction, Scalar(-180), gradient_direction, mask);
-        inRange(gradient_direction, Scalar(175), Scalar(180), mask);
+        inRange(gradient_direction, Scalar(170), Scalar(180), mask);
         gradient_direction.setTo(Scalar(0), mask);
-        inRange(gradient_direction, Scalar(0), Scalar(5), mask);
-        gradient_direction.setTo(Scalar(0), mask);
+//        inRange(gradient_direction, Scalar(0), Scalar(5), mask);
+//        gradient_direction.setTo(Scalar(0), mask);
 
         gradient_direction.convertTo(gradient_direction, CV_8U);
 
@@ -246,7 +253,7 @@ namespace cv {
         // connect large components by doing morph close followed by morph open
         // use larger element size for erosion to remove small elements joined by dilation
         Mat small_elemSE, large_elemSE;
-        int small = cvRound(sqrt(width * height) * 0.019), large = cvRound(sqrt(width * height) * 0.023);
+        int small = cvRound(sqrt(width * height) * 0.025), large = cvRound(sqrt(width * height) * 0.030);
         small_elemSE = getStructuringElement(MorphShapes::MORPH_ELLIPSE,
                                              Size(small, small));
         large_elemSE = getStructuringElement(MorphShapes::MORPH_ELLIPSE,
@@ -382,32 +389,43 @@ namespace cv {
 int main(int argc, char **argv) {
     using namespace cv;
     if (argc < 2) {
-        VideoCapture capture(0);
-        capture.set(CAP_PROP_FRAME_WIDTH, 1920);
-        capture.set(CAP_PROP_FRAME_HEIGHT, 1080);
+//        VideoCapture capture(0);
+//        capture.set(CAP_PROP_FRAME_WIDTH, 1920);
+//        capture.set(CAP_PROP_FRAME_HEIGHT, 1080);
         BarcodeDetector bardet;
         Mat frame;
         clock_t start;
         float fps;
         Point2f vertices[4];
-        while (true) {
-            start = clock();
-            capture.read(frame);
-            std::vector<RotatedRect> rects;
-            bardet.detect(frame, rects);
-            for (auto &rect : rects) {
-                rect.points(vertices);
-                for (int j = 0; j < 4; j++)
-                    line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0));
-            }
-            fps = 1.0f * CLOCKS_PER_SEC / (float) (clock() - start);
-            std::cout << fps << " fps" << std::endl;
-            imshow("bounding boxes", frame);
-//            for(int i = 0;i<bardet.rotated)
-            if (waitKey(1) > 0) break;
-
-
+//        while (true) {
+//            start = clock();
+//            capture.read(frame);
+//            std::vector<RotatedRect> rects;
+//            bardet.detect(frame, rects);
+//            for (auto &rect : rects) {
+//                rect.points(vertices);
+//                for (int j = 0; j < 4; j++)
+//                    line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0));
+//            }
+//            fps = 1.0f * CLOCKS_PER_SEC / (float) (clock() - start);
+//            std::cout << fps << " fps" << std::endl;
+//            imshow("bounding boxes", frame);
+////            for(int i = 0;i<bardet.rotated)
+//            if (waitKey(1) > 0) break;
+//
+//
+//        }
+        frame = imread("../test/data/K71NM_45.jpg");
+        std::vector<RotatedRect> rects;
+        bardet.detect(frame, rects);
+        for (auto &rect : rects) {
+            rect.points(vertices);
+            for (int j = 0; j < 4; j++)
+                line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0), 2);
         }
+        imshow("bounding boxes", frame);
+        waitKey();
+
     }
     return 0;
 }
