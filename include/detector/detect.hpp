@@ -44,9 +44,8 @@ namespace cv {
          @param decoded_info UTF8-encoded output vector of string or empty vector of string if the codes cannot be decoded.
          */
         CV_WRAP bool
-        detectAndDecode(InputArray img, CV_OUT std::vector<std::string> &decoded_info,
-                        OutputArray rects = noArray()) const;
-
+        detectAndDecode(InputArray img, CV_OUT std::vector<std::string> &decoded_info, CV_OUT
+                        std::vector<RotatedRect> &rects) const;
 
     };
 }

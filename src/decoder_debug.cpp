@@ -20,9 +20,10 @@ int main(int argc, char **argv) {
             }
             BarcodeDetector bd;
             vector<RotatedRect> vec_rate;
-            bd.detect(frame, vec_rate);
+            //bd.detect(frame, vec_rate);
             vector<string> result_strings;
-            bd.decode(frame, vec_rate, result_strings);
+            //bd.decode(frame, vec_rate, result_strings);
+            bd.detectAndDecode(frame, result_strings, vec_rate);
             Point2f begin;
             Point2f end;
             Point2f vertices[4];
