@@ -38,20 +38,22 @@ int main(int argc, char **argv) {
             }
             for (const auto &item : result_strings) {
                 std::cout << item << std::endl;
-                Point2f vertices[4];
-                for (auto &rect : vec_rate) {
-                    rect.points(vertices);
-                    for (int j = 0; j < 4; j++) {
-                        line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0));
-                    }
-                    line(frame, begin, end, Scalar(255, 0, 0));
-                    imshow("origin", frame);
-                    //resize(frame, frame, {frame.size().width >> 1, frame.size().height >> 1},0,0,INTER_AREA);
-                    // imshow("bounding boxes", frame);
-                    // imshow("gray graph", grayframe);
-                    waitKey();
-                }
+//                Point2f vertices[4];
+
             }
+            for (auto &rect : vec_rate) {
+                rect.points(vertices);
+                for (int j = 0; j < 4; j++) {
+                    line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0));
+                }
+                line(frame, begin, end, Scalar(255, 0, 0));
+
+            }
+            imshow("origin", frame);
+            //resize(frame, frame, {frame.size().width >> 1, frame.size().height >> 1},0,0,INTER_AREA);
+            // imshow("bounding boxes", frame);
+            // imshow("gray graph", grayframe);
+            waitKey();
         }
 
     }
