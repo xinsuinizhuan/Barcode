@@ -2,7 +2,6 @@
 // Created by nanos on 2020/10/21.
 //
 #include "detector/detect.hpp"
-#include "decoder/ean_decoder.hpp"
 
 int main(int argc, char **argv) {
     using namespace cv;
@@ -22,7 +21,8 @@ int main(int argc, char **argv) {
             BarcodeDetector bd;
             vector<RotatedRect> vec_rate;
             bd.detect(frame, vec_rate);
-            ean_decoder decoder("");
+            vector<string> result_strings;
+            bd.decode(frame, vec_rate, result_strings);
             Point2f begin;
             Point2f end;
             Point2f vertices[4];
@@ -36,9 +36,8 @@ int main(int argc, char **argv) {
                 begin = (vertices[0] + vertices[1]) / 2;
                 end = (vertices[2] + vertices[3]) / 2;
             }
-            // TODO refactor in here, it seems that it need a binary-rafactored matrix to decode.
-            for (const auto &i : decoder.rect_to_ucharlist(frame, vec_rate)) {
-                std::cout << i << std::endl;
+            for (const auto &item : result_strings) {
+                std::cout << item << std::endl;
                 Point2f vertices[4];
                 for (auto &rect : vec_rate) {
                     rect.points(vertices);

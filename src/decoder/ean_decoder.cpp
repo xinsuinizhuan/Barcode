@@ -27,15 +27,12 @@ namespace cv {
 //        for (int i = 0; i < line.count; ++i, ++line) {
 //            std::cout << line.pos() << " " << (mat.at<uchar>(line.pos())) << std::endl;
 //        }
-        Mat grayMat;
-        cvtColor(mat, grayMat, COLOR_BGR2GRAY);
         for (const auto &rect : rects) {
             vector<uchar> middle;
             Point2f begin;
             Point2f end;
             Point2f vertices[4];
             rect.points(vertices);
-
             double distance1 = cv::norm(vertices[0] - vertices[1]);
             double distance2 = cv::norm(vertices[1] - vertices[2]);
             if (distance1 > distance2) {
@@ -45,13 +42,13 @@ namespace cv {
                 begin = (vertices[0] + vertices[1]) / 2;
                 end = (vertices[2] + vertices[3]) / 2;
             }
-            LineIterator line = LineIterator(grayMat, begin, end);
+            LineIterator line = LineIterator(mat, begin, end);
             middle.reserve(line.count);
             do {
                 ++line;
                 //std::cout << line.pos() << " " << (mat.at<uchar>(line.pos())) << std::endl;
-                middle.push_back(grayMat.at<uchar>(line.pos()));
-            } while (isValidCoordinate(line.pos(), grayMat));
+                middle.push_back(mat.at<uchar>(line.pos()));
+            } while (isValidCoordinate(line.pos(), mat));
             cv::threshold(middle, middle, 0, 255, THRESH_BINARY | THRESH_OTSU);
             std::string result = this->decode(middle, 0);
             if (result.size() != 13) {

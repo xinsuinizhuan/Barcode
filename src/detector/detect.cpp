@@ -387,7 +387,7 @@ namespace cv {
         CV_Assert(!rects.empty());
         ean_decoder decoder("");
         // TODO, need fix and reafactor
-        decoded_info = decoder.rect_to_ucharlist((Mat &&) img, rects);
+        decoded_info = decoder.rect_to_ucharlist(inarr, rects);
         return true;
     }
 }
