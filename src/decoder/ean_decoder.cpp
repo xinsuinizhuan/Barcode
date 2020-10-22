@@ -47,7 +47,7 @@ namespace cv {
             middle.reserve(line.count);
             do {
                 ++line;
-                std::cout << line.pos() << " " << (mat.at<uchar>(line.pos())) << std::endl;
+                //std::cout << line.pos() << " " << (mat.at<uchar>(line.pos())) << std::endl;
                 middle.push_back(mat.at<uchar>(line.pos()));
             } while (isValidCoordinate(line.pos(), mat));
             cv::threshold(middle, middle, 0, 255, THRESH_BINARY | THRESH_OTSU);
