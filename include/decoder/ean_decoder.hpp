@@ -34,7 +34,7 @@ namespace cv {
 
         string decode_outer(vector<uchar> data);
 
-        vector<string> rect_to_ucharlist(const Mat &mat, const std::vector<RotatedRect> &rect);
+        vector<string> rect_to_ucharlist(Mat &mat, const std::vector<RotatedRect> &rect);
 
     private:
         string name;//EAN具体解码类别：EAN-13 / EAN-8
