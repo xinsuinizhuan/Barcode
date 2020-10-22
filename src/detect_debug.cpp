@@ -45,9 +45,9 @@ int main(int argc, char **argv) {
             rect.points(vertices);
             for (int j = 0; j < 4; j++)
                 line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0), 2);
-            imshow("bounding boxes", frame);
-            waitKey();
         }
+        imshow("bounding boxes", frame);
+        waitKey();
     }
     return 0;
 
