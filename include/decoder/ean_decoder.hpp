@@ -3,8 +3,6 @@
 
 #include "absdecoder.hpp"
 #include "opencv2/core/mat.hpp"
-#include <map>
-#include <set>
 
 namespace cv {
 //extern struct EncodePair;

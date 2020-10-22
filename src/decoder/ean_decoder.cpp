@@ -3,7 +3,23 @@
 #include <array>
 #include <opencv2/imgproc.hpp>
 // 三种编码方式 https://baike.baidu.com/item/EAN-13
+
+/**
+ * TODO 1. 多条
+ */
 namespace cv {
+
+    bool isValidCoordinate(Point2f point, const Mat &mat) {
+        //TODO fix <=
+        if ((point.x <= 0) || (point.y <= 0))
+            return false;
+
+        if ((point.x >= mat.cols - 1) || (point.y >= mat.rows - 1))
+            return false;
+
+        return true;
+    }
+
     // default thought that mat is a matrix after binary-transfer.
     vector<string> ean_decoder::rect_to_ucharlist(const Mat &mat, const vector<RotatedRect> &rects) {
         vector<string> will_return;
@@ -11,6 +27,8 @@ namespace cv {
 //        for (int i = 0; i < line.count; ++i, ++line) {
 //            std::cout << line.pos() << " " << (mat.at<uchar>(line.pos())) << std::endl;
 //        }
+        Mat grayMat;
+        cvtColor(mat, grayMat, COLOR_BGR2GRAY);
         for (const auto &rect : rects) {
             vector<uchar> middle;
             Point2f begin;
@@ -27,13 +45,14 @@ namespace cv {
                 begin = (vertices[0] + vertices[1]) / 2;
                 end = (vertices[2] + vertices[3]) / 2;
             }
-            LineIterator line = LineIterator(mat, begin, end);
+            LineIterator line = LineIterator(grayMat, begin, end);
             middle.reserve(line.count);
-            for (int i = 0; i < line.count; ++i, ++line) {
-                middle.push_back(mat.at<uchar>(line.pos()));
-                std::cout << line.pos() << " " << (mat.at<uchar>(line.pos())) << std::endl;
-            }
-            cv::threshold(middle,middle,0,255,THRESH_BINARY|THRESH_OTSU);
+            do {
+                ++line;
+                //std::cout << line.pos() << " " << (mat.at<uchar>(line.pos())) << std::endl;
+                middle.push_back(grayMat.at<uchar>(line.pos()));
+            } while (isValidCoordinate(line.pos(), grayMat));
+            cv::threshold(middle, middle, 0, 255, THRESH_BINARY | THRESH_OTSU);
             std::string result = this->decode(middle, 0);
             if (result.size() != 13) {
                 result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
@@ -41,8 +60,10 @@ namespace cv {
             will_return.push_back(result);
 
         }
+
         return will_return;
     }
+
 
     const vector<vector<int>> &get_A_or_C_Patterns() {
         static const vector<vector<int>> A_or_C_Patterns = {
@@ -107,12 +128,12 @@ namespace cv {
         // becuase the datasize is small,
         // use a hashmap or brute-force search 10 times both can not accept
         static const std::array<char, 32> pattern{
-                '\x00', '0', '0', '0', '0', '0',
-                '0', '\x06', '0', '0', '0', '\x09',
-                '0', '\x08', '\x03', '0', '0', '0',
-                '0', '\x05', '0', '\x07', '\x02', '0',
-                '0', '\x04', '\x01', '0', '0', '0',
-                '0', '0'
+                '\x00', '\x00', '\x00', '\x00', '\x00', '\x00',
+                '\x00', '\x06', '\x00', '\x00', '\x00', '\x09',
+                '\x00', '\x08', '\x03', '\x00', '\x00', '\x00',
+                '\x00', '\x05', '\x00', '\x07', '\x02', '\x00',
+                '\x00', '\x04', '\x01', '\x00', '\x00', '\x00',
+                '\x00', '\x00'
         };// length is 32 to ensure the security
         // 0x00000 -> 0  -> 0
         // 0x11010 -> 26 -> 1
