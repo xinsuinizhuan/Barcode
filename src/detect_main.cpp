@@ -7,20 +7,20 @@
 int main(int argc, char **argv) {
     using namespace cv;
     std::cout << __DATE__ << " " << __TIME__ << std::endl;
-    bool test_functions = true;
-    if (test_functions) {
-        string path = R"(../test/data/2.png)";
+    if (argc >= 2) {
+        string path = argv[1];
+        int number = atoi(argv[2]);
         Mat frame = cv::imread(path);
+        Size dst_sz(frame.cols, frame.rows);
+        cv::Point2f center(static_cast<float>(frame.cols / 2), static_cast<float>(frame.rows / 2));
+        Mat rorate = cv::getRotationMatrix2D(center, number, 1.0);
+        cv::warpAffine(frame, frame, rorate, dst_sz, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
         Mat grayframe;
-        cvtColor(frame,grayframe,COLOR_BGR2GRAY);
-        Mat binary;
-        cv::threshold(grayframe, binary, 5, 255, THRESH_BINARY | THRESH_OTSU);
+        cvtColor(frame, grayframe, COLOR_BGR2GRAY);
         BarcodeDetector bd;
         vector<RotatedRect> vec_rate;
         bd.detect(frame, vec_rate);
         ean_decoder decoder("");
-
-
         // TODO refactor in here, it seems that it need a binary-rafactored matrix to decode.
 //        int height = binary.rows;
 //        int center = height / 2;
@@ -31,7 +31,6 @@ int main(int argc, char **argv) {
         Point2f end;
         Point2f vertices[4];
         vec_rate[0].points(vertices);
-
         double distance1 = cv::norm(vertices[0] - vertices[1]);
         double distance2 = cv::norm(vertices[1] - vertices[2]);
         if (distance1 > distance2) {
@@ -61,31 +60,6 @@ int main(int argc, char **argv) {
                 waitKey();
             }
         }
-        exit(-1);
     }
-//    if (argc < 2) {
-//        std::cout << "need a VideoCapture" << std::endl;
-//        VideoCapture capture(0);
-//        capture.set(CAP_PROP_FRAME_WIDTH, 1920);
-//        capture.set(CAP_PROP_FRAME_HEIGHT, 1080);
-//        Detect bardet;
-//        Mat frame;
-//        clock_t start;
-//        float fps;
-//        while (true) {
-//            start = clock();
-//            capture.read(frame);
-//            bardet.init(frame);
-//            bardet.localization(true);
-//
-//            imshow("bounding boxes", bardet.getCandidatePicture());
-//            fps = 1.0f * CLOCKS_PER_SEC / (float) (clock() - start);
-//            std::cout << fps << " fps" << std::endl;
-////            for(int i = 0;i<bardet.rotated)
-//            if (waitKey(1) > 0) break;
-//
-//
-//        }
-//    }
     return 0;
 }

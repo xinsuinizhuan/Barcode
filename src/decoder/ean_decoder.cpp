@@ -45,12 +45,12 @@ namespace cv {
             }
             LineIterator line = LineIterator(mat, begin, end);
             middle.reserve(line.count);
-            do{
+            do {
                 ++line;
                 std::cout << line.pos() << " " << (mat.at<uchar>(line.pos())) << std::endl;
                 middle.push_back(mat.at<uchar>(line.pos()));
-            }while (isValidCoordinate(line.pos(),mat));
-            cv::threshold(middle,middle,0,255,THRESH_BINARY|THRESH_OTSU);
+            } while (isValidCoordinate(line.pos(), mat));
+            cv::threshold(middle, middle, 0, 255, THRESH_BINARY | THRESH_OTSU);
             std::string result = this->decode(middle, 0);
             if (result.size() != 13) {
                 result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
@@ -61,7 +61,6 @@ namespace cv {
 
         return will_return;
     }
-
 
 
     const vector<vector<int>> &get_A_or_C_Patterns() {
@@ -127,12 +126,12 @@ namespace cv {
         // becuase the datasize is small,
         // use a hashmap or brute-force search 10 times both can not accept
         static const std::array<char, 32> pattern{
-                '\x00', '0', '0', '0', '0', '0',
-                '0', '\x06', '0', '0', '0', '\x09',
-                '0', '\x08', '\x03', '0', '0', '0',
-                '0', '\x05', '0', '\x07', '\x02', '0',
-                '0', '\x04', '\x01', '0', '0', '0',
-                '0', '0'
+                '\x00', '\x00', '\x00', '\x00', '\x00', '\x00',
+                '\x00', '\x06', '\x00', '\x00', '\x00', '\x09',
+                '\x00', '\x08', '\x03', '\x00', '\x00', '\x00',
+                '\x00', '\x05', '\x00', '\x07', '\x02', '\x00',
+                '\x00', '\x04', '\x01', '\x00', '\x00', '\x00',
+                '\x00', '\x00'
         };// length is 32 to ensure the security
         // 0x00000 -> 0  -> 0
         // 0x11010 -> 26 -> 1
