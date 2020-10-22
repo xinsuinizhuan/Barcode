@@ -4,7 +4,7 @@ project(Barcode)
 include(cmake/OpenCVPath.cmake) #even opencv itself do not use cmake_module_path
 include(cmake/CMakeHelper.cmake)
 
-set(OPEN_DEBUG ON)
+set(OPEN_DEBUG OFF)
 if (OPEN_DEBUG)
     set(CMAKE_BUILD_TYPE "Debug")
     #set it to Debug, it will auto choose *d.dll
