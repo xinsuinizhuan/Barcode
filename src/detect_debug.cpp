@@ -17,6 +17,8 @@ int main(int argc, char **argv) {
     Point2f vertices[4];
     clock_t start;
     std::vector<RotatedRect> rects;
+    std::vector<string> decoded_info;
+
     if (strcmp(argv[1], "--webcam") == 0) {
         VideoCapture capture(0);
 //        capture.set(CAP_PROP_FRAME_WIDTH, 1920);
@@ -26,7 +28,10 @@ int main(int argc, char **argv) {
         while (true) {
             start = clock();
             capture.read(frame);
-            bardet.detect(frame, rects);
+            bardet.detectAndDecode(frame, decoded_info, rects);
+            for (auto &info:decoded_info) {
+                std::cout << info << std::endl;
+            }
             for (auto &rect : rects) {
                 rect.points(vertices);
                 for (int j = 0; j < 4; j++)

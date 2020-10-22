@@ -447,8 +447,32 @@ namespace cv {
         }
         CV_Assert(!rects.empty());
         ean_decoder decoder("");
-        // TODO, need fix and reafactor
-        decoded_info = decoder.rect_to_ucharlist((Mat &&) img, rects);
+        vector<std::string> _decoded_info = decoder.rect_to_ucharlist(inarr, rects);
+        decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
+
+        return true;
+    }
+
+    bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT vector<std::string> &decoded_info, CV_OUT
+                                          vector<RotatedRect> &rects) const {
+        Mat inarr;
+        if (!checkBarInputImage(img, inarr)) {
+            return false;
+        }
+
+        Detect bardet;
+        bardet.init(inarr);
+        bardet.localization();
+        vector<RotatedRect> _rects = bardet.getLocalizationRects();
+        rects.assign(_rects.begin(), _rects.end());
+        if (_rects.empty()) {
+            return false;
+        }
+        ean_decoder decoder("");
+
+        vector<std::string> _decoded_info = decoder.rect_to_ucharlist(inarr, _rects);
+        decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
+
         return true;
     }
 }
