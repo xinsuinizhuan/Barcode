@@ -5,7 +5,7 @@
 // 三种编码方式 https://baike.baidu.com/item/EAN-13
 
 /**
- * TODO 1. 多条
+ * TODO 1.
  */
 namespace cv {
 
@@ -21,12 +21,11 @@ namespace cv {
     }
 
     // default thought that mat is a matrix after binary-transfer.
-    vector<string> ean_decoder::rect_to_ucharlist(const Mat &mat, const vector<RotatedRect> &rects) {
+    vector<string> ean_decoder::rect_to_ucharlist(Mat &mat, const vector<RotatedRect> &rects) {
+        Mat grey;
+        cvtColor(mat, grey, COLOR_BGR2GRAY);
         vector<string> will_return;
-//        LineIterator line = LineIterator(mat,Point2f{100,500}, Point2f{1000,500});
-//        for (int i = 0; i < line.count; ++i, ++line) {
-//            std::cout << line.pos() << " " << (mat.at<uchar>(line.pos())) << std::endl;
-//        }
+        int PART = 16;
         for (const auto &rect : rects) {
             vector<uchar> middle;
             Point2f begin;
@@ -36,27 +35,44 @@ namespace cv {
 
             double distance1 = cv::norm(vertices[0] - vertices[1]);
             double distance2 = cv::norm(vertices[1] - vertices[2]);
-            if (distance1 > distance2) {
-                begin = (vertices[0] + vertices[3]) / 2;
-                end = (vertices[1] + vertices[2]) / 2;
-            } else {
-                begin = (vertices[0] + vertices[1]) / 2;
-                end = (vertices[2] + vertices[3]) / 2;
-            }
-            LineIterator line = LineIterator(mat, begin, end);
-            middle.reserve(line.count);
-            do{
-                ++line;
-                std::cout << line.pos() << " " << (mat.at<uchar>(line.pos())) << std::endl;
-                middle.push_back(mat.at<uchar>(line.pos()));
-            }while (isValidCoordinate(line.pos(),mat));
-            cv::threshold(middle,middle,0,255,THRESH_BINARY|THRESH_OTSU);
-            std::string result = this->decode(middle, 0);
-            if (result.size() != 13) {
-                result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
+            std::string result;
+            for(int i = 1,direction = 1;i <= PART/2;direction = -1* direction) {
+
+                if (distance1 > distance2) {
+                    double stepx = abs(vertices[0].x - vertices[3].x)/PART;
+                    double stepy = abs(vertices[0].y - vertices[3].y)/PART;
+                    Point2f step(stepx,stepy);
+                    begin = (vertices[0] + vertices[3]) / 2 + step*i * direction;
+                    end = (vertices[1] + vertices[2]) / 2 + step * i * direction;
+                } else {
+                    double stepx = abs(vertices[0].x - vertices[1].x)/PART;
+                    double stepy = abs(vertices[0].y - vertices[1].y)/PART;
+                    Point2f step(stepx,stepy);
+                    begin = (vertices[0] + vertices[1]) / 2 + step * i * direction;
+                    end = (vertices[2] + vertices[3]) / 2 + step * i * direction;
+                }
+                LineIterator line = LineIterator(grey, begin, end);
+                middle.reserve(line.count);
+                for(int i = 0;i < line.count;i ++,line++) {
+                    middle.push_back(grey.at<uchar>(line.pos()));
+                    cv::circle(mat,line.pos(),1,Scalar(0,0,255),1);
+                }
+                cv::threshold(middle,middle,0,255,THRESH_BINARY|THRESH_OTSU);
+                result = this->decode(middle, 0);
+                if (result.size() != 13) {
+                    result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
+                }
+                //cv::line(mat,begin,end,Scalar(0,0,255),2);
+                cv::circle(mat,begin,4,Scalar(255,0,0),2);
+                cv::circle(mat,end,4,Scalar(0,0,255),2);
+                if (result.size() == 13) {
+                    break;
+                }
+                if(direction == -1){
+                    i++;
+                }
             }
             will_return.push_back(result);
-
         }
 
         return will_return;
