@@ -386,4 +386,3 @@ namespace cv {
 
         return true;
     }
-}
