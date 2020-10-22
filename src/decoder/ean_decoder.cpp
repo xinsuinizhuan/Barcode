@@ -5,7 +5,7 @@
 // 三种编码方式 https://baike.baidu.com/item/EAN-13
 
 /**
- * TODO 1.
+ * TODO 1. 多条
  */
 namespace cv {
 
@@ -73,6 +73,7 @@ namespace cv {
                 }
             }
             will_return.push_back(result);
+
         }
 
         return will_return;
@@ -143,12 +144,12 @@ namespace cv {
         // becuase the datasize is small,
         // use a hashmap or brute-force search 10 times both can not accept
         static const std::array<char, 32> pattern{
-                '\x00', '0', '0', '0', '0', '0',
-                '0', '\x06', '0', '0', '0', '\x09',
-                '0', '\x08', '\x03', '0', '0', '0',
-                '0', '\x05', '0', '\x07', '\x02', '0',
-                '0', '\x04', '\x01', '0', '0', '0',
-                '0', '0'
+                '\x00', '\x00', '\x00', '\x00', '\x00', '\x00',
+                '\x00', '\x06', '\x00', '\x00', '\x00', '\x09',
+                '\x00', '\x08', '\x03', '\x00', '\x00', '\x00',
+                '\x00', '\x05', '\x00', '\x07', '\x02', '\x00',
+                '\x00', '\x04', '\x01', '\x00', '\x00', '\x00',
+                '\x00', '\x00'
         };// length is 32 to ensure the security
         // 0x00000 -> 0  -> 0
         // 0x11010 -> 26 -> 1
