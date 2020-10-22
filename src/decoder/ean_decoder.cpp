@@ -39,14 +39,14 @@ namespace cv {
             for(int i = 1,direction = 1;i <= PART/2;direction = -1* direction) {
 
                 if (distance1 > distance2) {
-                    double stepx = abs(vertices[0].x - vertices[3].x)/PART;
-                    double stepy = abs(vertices[0].y - vertices[3].y)/PART;
+                    double stepx = (vertices[0].x - vertices[3].x)/PART;
+                    double stepy = (vertices[0].y - vertices[3].y)/PART;
                     Point2f step(stepx,stepy);
                     begin = (vertices[0] + vertices[3]) / 2 + step*i * direction;
                     end = (vertices[1] + vertices[2]) / 2 + step * i * direction;
                 } else {
-                    double stepx = abs(vertices[0].x - vertices[1].x)/PART;
-                    double stepy = abs(vertices[0].y - vertices[1].y)/PART;
+                    double stepx = (vertices[0].x - vertices[1].x)/PART;
+                    double stepy = (vertices[0].y - vertices[1].y)/PART;
                     Point2f step(stepx,stepy);
                     begin = (vertices[0] + vertices[1]) / 2 + step * i * direction;
                     end = (vertices[2] + vertices[3]) / 2 + step * i * direction;
