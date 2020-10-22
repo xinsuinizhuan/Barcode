@@ -1,10 +1,10 @@
 #ifndef ABSDECODER_H
 #define ABSDECODER_H
 
-#include <string>
 #include "opencv2/core/mat.hpp"
 #include <utility>
 #include <vector>
+#include <string>
 #include "barcode_data.hpp"
 #include "patternmatch.hpp"
 /*

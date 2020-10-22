@@ -7,8 +7,9 @@
 
 #include "opencv2/opencv.hpp"
 #include "opencv2/imgproc/types_c.h"
-#include "vector"
-#include<ctime>
+#include "decoder/ean_decoder.hpp"
+#include <vector>
+#include <ctime>
 
 namespace cv {
 

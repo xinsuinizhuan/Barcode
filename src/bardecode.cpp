@@ -2,13 +2,12 @@
 #include <iostream>
 #include <opencv2/imgproc/types_c.h>
 #include "decoder/ean_decoder.hpp"
-#include "picture_path.hpp"
 
 namespace cv {
     void test() {
         std::cout << __DATE__ << " " << __TIME__ << '\n';
         std::cout.flush();
-        std::string imgPath = test_picture_path;
+        std::string imgPath = R"(..\test\data\K71NM_45.jpg)";
         cv::Mat greyImg = cv::imread(imgPath, IMREAD_GRAYSCALE);
 
         cv::Mat thresholdImg;
@@ -24,7 +23,7 @@ namespace cv {
         //cv::imshow("center line", centerLine);
         //cv::waitKey();
         ean_decoder decoder = ean_decoder(EAN13);
-        decoder.rect_to_ucharlist(greyImg, RotatedRect());
+        decoder.rect_to_ucharlist(greyImg, vector<RotatedRect>());
         std::cout << decoder.decode(middle_array, 0) << std::endl;
         cv::waitKey();
     }

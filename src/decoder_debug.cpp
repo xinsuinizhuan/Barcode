@@ -12,7 +12,6 @@ int main(int argc, char **argv) {
         for (int i = 0; i < 15; ++i) {
             int number = 20 * i;
             Mat frame = cv::imread(path);
-            Mat grayframe;
             {
                 // rorate
                 Size dst_sz(frame.cols, frame.rows);
@@ -20,7 +19,6 @@ int main(int argc, char **argv) {
                 Mat rorate = cv::getRotationMatrix2D(center, number, 1.0);
                 cv::warpAffine(frame, frame, rorate, dst_sz, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
             }
-            cvtColor(frame, grayframe, COLOR_BGR2GRAY);
             BarcodeDetector bd;
             vector<RotatedRect> vec_rate;
             bd.detect(frame, vec_rate);
@@ -39,7 +37,7 @@ int main(int argc, char **argv) {
                 end = (vertices[2] + vertices[3]) / 2;
             }
             // TODO refactor in here, it seems that it need a binary-rafactored matrix to decode.
-            for (const auto &i : decoder.rect_to_ucharlist(grayframe, vec_rate)) {
+            for (const auto &i : decoder.rect_to_ucharlist(frame, vec_rate)) {
                 std::cout << i << std::endl;
                 Point2f vertices[4];
                 for (auto &rect : vec_rate) {
