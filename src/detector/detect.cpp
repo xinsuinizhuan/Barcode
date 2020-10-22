@@ -38,14 +38,12 @@ namespace cv {
 
         vector<RotatedRect> getLocalizationRects() { return localization_rects; }
 
-        Mat getCandidatePicture();
-
 
     protected:
         enum resize_direction {
             ZOOMING, SHRINKING, UNCHANGED
-        } purpose;
-        double coeff_expansion;
+        } purpose = UNCHANGED;
+        double coeff_expansion = 1.0;
         int height, width;
         Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, integral_gradient_directions, processed_barcode;
         vector<RotatedRect> localization_rects;
@@ -84,6 +82,8 @@ namespace cv {
     void Detect::init(const Mat &src) {
         barcode = src.clone();
         const double min_side = std::min(src.size().width, src.size().height);
+//        const double max_side = std::max(src.size().width, src.size().height);
+
 //        if (barcode.rows > 512) {
 //            width = (int) (barcode.cols * (512 * 1.0 / barcode.rows));
 //            height = 512;
@@ -97,14 +97,15 @@ namespace cv {
 //            resized_barcode = barcode.clone();
 //            coeff_expansion = 1.0;
 //        }
-        if (min_side < 320.0) {
-            purpose = ZOOMING;
-            coeff_expansion = 320.0 / min_side;
-            width = cvRound(src.size().width * coeff_expansion);
-            height = cvRound(src.size().height * coeff_expansion);
-            Size new_size(width, height);
-            resize(src, resized_barcode, new_size, 0, 0, INTER_LINEAR);
-        } else if (min_side > 320.0) {
+//        if (max_side < 320.0) {
+//            purpose = ZOOMING;
+//            coeff_expansion = 320.0 / max_side;
+//            width = cvRound(src.size().width * coeff_expansion);
+//            height = cvRound(src.size().height * coeff_expansion);
+//            Size new_size(width, height);
+//            resize(src, resized_barcode, new_size, 0, 0, INTER_LINEAR);
+//        } else
+        if (min_side > 320.0) {
             purpose = SHRINKING;
             coeff_expansion = min_side / 320.0;
             width = cvRound(src.size().width / coeff_expansion);
@@ -159,13 +160,13 @@ namespace cv {
         double bounding_rect_area = 0;
         RotatedRect minRect;
         double THRESHOLD_MIN_AREA = height * width * 0.005;
-        for (size_t i = 0; i < contours.size(); i++) {
-            double area = contourArea(contours[i]);
+        for (auto &contour : contours) {
+            double area = contourArea(contour);
             if (area < THRESHOLD_MIN_AREA) // ignore contour if it is of too small a region
                 continue;
-            minRect = minAreaRect(contours[i]);
+            minRect = minAreaRect(contour);
             bounding_rect_area = minRect.size.width * minRect.size.height;
-            if ((area / bounding_rect_area) > 0.6) // check if contour is of a rectangular object
+            if ((area / bounding_rect_area) > 0.7) // check if contour is of a rectangular object
             {
 
 //                double angle = getBarcodeOrientation(contours, i);
@@ -177,12 +178,13 @@ namespace cv {
 //                        angle-=90;
 //                    minRect.angle = angle;
 //                }
+
                 if (purpose == ZOOMING) {
                     minRect.center.x /= coeff_expansion;
                     minRect.center.y /= coeff_expansion;
                     minRect.size.height /= coeff_expansion;
                     minRect.size.width /= coeff_expansion;
-                } else if (purpose = SHRINKING) {
+                } else if (purpose == SHRINKING) {
                     minRect.center.x *= coeff_expansion;
                     minRect.center.y *= coeff_expansion;
                     minRect.size.height *= coeff_expansion;
@@ -253,9 +255,9 @@ namespace cv {
 
     void Detect::connectComponents() {
         // connect large components by doing morph close followed by morph open
-        // use larger element size for erosion to remove small elements joined by dilation
+        // use larger element size for erosion to remove small elements joined by dilation, element size is experimentally determined
         Mat small_elemSE, large_elemSE;
-        int small = cvRound(sqrt(width * height) * 0.025), large = cvRound(sqrt(width * height) * 0.030);
+        int small = 10, large = 12;
         small_elemSE = getStructuringElement(MorphShapes::MORPH_ELLIPSE,
                                              Size(small, small));
         large_elemSE = getStructuringElement(MorphShapes::MORPH_ELLIPSE,
@@ -264,8 +266,8 @@ namespace cv {
         dilate(processed_barcode, processed_barcode, small_elemSE);
         erode(processed_barcode, processed_barcode, large_elemSE);
 
-        erode(processed_barcode, processed_barcode, small_elemSE);
-        dilate(processed_barcode, processed_barcode, large_elemSE);
+        erode(processed_barcode, processed_barcode, large_elemSE);
+        dilate(processed_barcode, processed_barcode, small_elemSE);
     }
 
     double Detect::getBarcodeOrientation(const vector<vector<Point> > &contours, int i) {
