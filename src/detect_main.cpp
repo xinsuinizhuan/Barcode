@@ -9,8 +9,10 @@ int main(int argc, char **argv) {
     std::cout << __DATE__ << " " << __TIME__ << std::endl;
     bool test_functions = true;
     if (test_functions) {
-        Mat frame = cv::imread(R"(../test/data/3.jpg)");
-        Mat grayframe = cv::imread(R"(../test/data/2.png)", IMREAD_GRAYSCALE);
+        string path = R"(../test/data/2.png)";
+        Mat frame = cv::imread(path);
+        Mat grayframe;
+        cvtColor(frame,grayframe,COLOR_BGR2GRAY);
         Mat binary;
         cv::threshold(grayframe, binary, 5, 255, THRESH_BINARY | THRESH_OTSU);
         BarcodeDetector bd;
@@ -51,7 +53,7 @@ int main(int argc, char **argv) {
 
                 //cv::putText(frame, "begin", (vertices[0] + vertices[1]) / 2, cv::FONT_HERSHEY_PLAIN, 2, 0x0);
                 //resize(frame, frame, {frame.size().width >> 1, frame.size().height >> 1},0,0,INTER_AREA);
-                line(frame,begin,end,Scalar(255,0,0));
+                line(frame, begin, end, Scalar(255, 0, 0));
                 imshow("origin", frame);
                 //imshow("bounding boxes", frame);
                 //imshow("binary graph", binary);
