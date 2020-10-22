@@ -24,8 +24,6 @@ namespace cv {
         return true;
     }
 
-//    static void updateRectsResult(vector<RotatedRect> &rects_, const vector<RotatedRect> &rects) {
-//    }
 
     class Detect {
     private:
@@ -45,7 +43,7 @@ namespace cv {
         } purpose = UNCHANGED;
         double coeff_expansion = 1.0;
         int height, width;
-        Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, integral_gradient_directions, processed_barcode;
+        Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, integral_gradient_directions, processed_barcode, variance;
         vector<RotatedRect> localization_rects;
 
         void findCandidates();
@@ -57,6 +55,64 @@ namespace cv {
 
         void connectComponents();
 
+        inline bool isValidCoord(const Point2f &coord) const {
+            if ((coord.x < 0) || (coord.y < 0))
+                return false;
+
+            if ((coord.x > width - 1.0) || (coord.y > height - 1.0))
+                return false;
+
+            return true;
+        }
+
+        void normalizeRegion(RotatedRect &rect) {
+            Point2f start, p, adjust;
+            float barcode_orientation = rect.angle + 90;
+            if (rect.size.width < rect.size.height)
+                barcode_orientation += 90;
+            float long_axis = max(rect.size.width, rect.size.height);
+            double x_increment = sin(barcode_orientation * 3.1415926 / 180.0);
+            double y_increment = cos(barcode_orientation * 3.1415926 / 180.0);
+
+            adjust.x = x_increment > 0 ? 1.0 : (x_increment < 0 ? -1.0 : 0);
+            adjust.y = y_increment > 0 ? 1.0 : (y_increment < 0 ? -1.0 : 0);
+
+            int num_blanks = 0;
+            //计算条形码中最长连续条的长度，作为threshold
+            int threshold = cvRound(long_axis * 4.0 / 95.0);
+            p.y = adjust.y + rect.center.y + (long_axis / 2.0) * y_increment;
+            p.x = adjust.x + rect.center.x + (long_axis / 2.0) * x_increment;
+            int val;
+            while (isValidCoord(p) && (num_blanks < threshold)) {
+                val = variance.at<uint8_t>(p);
+                if (val == 255)
+                    num_blanks = 0;
+                else
+                    num_blanks++;
+                p.x += x_increment;
+                p.y += y_increment;
+            }
+            start.x = p.x;
+            start.y = p.y;
+            p.x = rect.center.x - (long_axis / 2.0) * x_increment - adjust.x;
+            p.y = rect.center.y - (long_axis / 2.0) * y_increment - adjust.y;
+            num_blanks = 0;
+            while (isValidCoord(p) && (num_blanks < threshold)) {
+                val = variance.at<uint8_t>(p);
+                if (val == 255)
+                    num_blanks = 0;
+                else
+                    num_blanks++;
+                p.x -= x_increment;
+                p.y -= y_increment;
+            }
+            rect.center = (start + p) / 2.0;
+            if (long_axis == rect.size.width)
+                rect.size.width = norm(p - start);
+            else
+                rect.size.height = norm(p - start);
+
+        }
 
         void locateBarcodes();
     };
@@ -157,7 +213,7 @@ namespace cv {
         std::vector<std::vector<Point> > contours;
         std::vector<Vec4i> hierarchy;
         findContours(processed_barcode, contours, hierarchy, RETR_LIST, CHAIN_APPROX_SIMPLE);
-        double bounding_rect_area = 0;
+        double bounding_rect_area;
         RotatedRect minRect;
         double THRESHOLD_MIN_AREA = height * width * 0.005;
         for (auto &contour : contours) {
@@ -166,7 +222,7 @@ namespace cv {
                 continue;
             minRect = minAreaRect(contour);
             bounding_rect_area = minRect.size.width * minRect.size.height;
-            if ((area / bounding_rect_area) > 0.7) // check if contour is of a rectangular object
+            if ((area / bounding_rect_area) > 0.66) // check if contour is of a rectangular object
             {
 
 //                double angle = getBarcodeOrientation(contours, i);
@@ -178,6 +234,11 @@ namespace cv {
 //                        angle-=90;
 //                    minRect.angle = angle;
 //                }
+//                normalizeRegion(minRect);
+                if (minRect.size.width > minRect.size.height)
+                    minRect.size.width = cvRound(minRect.size.width * 103.0 / 95.0);
+                else minRect.size.height = cvRound(minRect.size.height * 103.0 / 95.0);
+
 
                 if (purpose == ZOOMING) {
                     minRect.center.x /= coeff_expansion;
@@ -200,7 +261,7 @@ namespace cv {
 
     void Detect::findCandidates() {
         gradient_direction = Mat::zeros(resized_barcode.size(), CV_32F);
-        Mat scharr_x(resized_barcode.size(), CV_32F), scharr_y(resized_barcode.size(), CV_32F), variance, mask;
+        Mat scharr_x(resized_barcode.size(), CV_32F), scharr_y(resized_barcode.size(), CV_32F), mask;
         Scharr(resized_barcode, scharr_x, CV_32F, 1, 0);
         Scharr(resized_barcode, scharr_y, CV_32F, 0, 1);
 
@@ -221,7 +282,7 @@ namespace cv {
         gradient_magnitude = Mat::zeros(gradient_direction.size(), gradient_direction.type());
         magnitude(scharr_x, scharr_y, gradient_magnitude);
         normalize(gradient_magnitude, gradient_magnitude, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
-        threshold(gradient_magnitude, gradient_magnitude, 50, 255, THRESH_BINARY | THRESH_OTSU);
+        threshold(gradient_magnitude, gradient_magnitude, 50, 255, THRESH_BINARY + THRESH_OTSU);
         // calculate variances, normalize and threshold so that low-variance areas are bright(255) and
         // high-variance areas are dark(0)
         Mat raw_variance = calVariance();
@@ -301,8 +362,8 @@ namespace cv {
         int right_col, left_col, top_row, bottom_row;
         float sum, sum_sq, data;
         integral_gradient_directions = Mat(resized_barcode.size(), CV_32F);
-        Mat integral_sum_sq(resized_barcode.size(), CV_32F), variance(resized_barcode.size(),
-                                                                      CV_32F), gradient_density, temp;
+        Mat integral_sum_sq(resized_barcode.size(), CV_32F), raw_variance(resized_barcode.size(),
+                                                                          CV_32F), gradient_density, temp;
 
         int width_offset = cvRound(0.05 * width / 2);
         int height_offset = cvRound(0.05 * height / 2);
@@ -319,7 +380,7 @@ namespace cv {
         for (int y = 0; y < height; y++) {
             //pixels_position.clear();
             const uint8_t *gradient_magnitude_row = gradient_magnitude.ptr<uint8_t>(y);
-            auto *variance_row = variance.ptr<float_t>(y);
+            auto *variance_row = raw_variance.ptr<float_t>(y);
 
             top_row = ((y - height_offset - 1) < 0) ? -1 : (y - height_offset - 1);
             bottom_row = ((y + height_offset) > height) ? height : (y + height_offset);
@@ -356,7 +417,7 @@ namespace cv {
             }
 
         }
-        return variance;
+        return raw_variance;
 
     }
 
@@ -398,6 +459,7 @@ namespace cv {
         if (!checkBarInputImage(img, inarr)) {
             return false;
         }
+
         Detect bardet;
         bardet.init(inarr);
         bardet.localization();
@@ -407,6 +469,7 @@ namespace cv {
             return false;
         }
         ean_decoder decoder("");
+
         vector<std::string> _decoded_info = decoder.rect_to_ucharlist(inarr, _rects);
         decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
 

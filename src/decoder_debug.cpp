@@ -20,10 +20,9 @@ int main(int argc, char **argv) {
             }
             BarcodeDetector bd;
             vector<RotatedRect> vec_rate;
-            //bd.detect(frame, vec_rate);
-            vector<string> result_strings;
-            //bd.decode(frame, vec_rate, result_strings);
-            bd.detectAndDecode(frame, result_strings, vec_rate);
+            vector<string> decode_resutls;
+            bd.detect(frame,  vec_rate);
+            bd.decode(frame,vec_rate,decode_resutls);
             Point2f begin;
             Point2f end;
             Point2f vertices[4];
@@ -37,10 +36,9 @@ int main(int argc, char **argv) {
                 begin = (vertices[0] + vertices[1]) / 2;
                 end = (vertices[2] + vertices[3]) / 2;
             }
-            for (const auto &item : result_strings) {
+            for (const auto &item : decode_resutls) {
                 std::cout << item << std::endl;
 //                Point2f vertices[4];
-
             }
             for (auto &rect : vec_rate) {
                 rect.points(vertices);
