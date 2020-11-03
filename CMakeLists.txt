@@ -35,7 +35,7 @@ link_directories(${OpenCV_LIBS})
 #add_executable(${PROJECT_NAME}_main Main.cpp)
 #target_link_libraries(${PROJECT_NAME}_main ${OpenCV_LIBS})
 
-add_executable(${PROJECT_NAME}_bardecoder src/bardecode.cpp
+add_executable(${PROJECT_NAME}_bardecoder
         src/decoder/absdecoder.cpp src/decoder/ean_decoder.cpp
         src/decoder/patternmatch.cpp
         Main.cpp)
@@ -44,7 +44,6 @@ target_link_libraries(${PROJECT_NAME}_bardecoder ${OpenCV_LIBS})
 
 
 add_executable(${PROJECT_NAME}_Decodedebug src/detector/detect.cpp
-        src/decoder_debug.cpp
         src/decoder/ean_decoder.cpp
         src/decoder/patternmatch.cpp
         src/decoder/absdecoder.cpp
@@ -52,11 +51,12 @@ add_executable(${PROJECT_NAME}_Decodedebug src/detector/detect.cpp
 
 target_link_libraries(${PROJECT_NAME}_Decodedebug ${OpenCV_LIBS})
 
-add_executable(${PROJECT_NAME}_Detect src/detector/detect.cpp
-        src/detect_debug.cpp
+add_executable(${PROJECT_NAME}_main_debug src/detector/detect.cpp
+        src/main_debug.cpp
         src/decoder/ean_decoder.cpp
         src/decoder/patternmatch.cpp
         src/decoder/absdecoder.cpp
+        src/barcode.cpp
         )
 
-target_link_libraries(${PROJECT_NAME}_Detect ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME}_main_debug ${OpenCV_LIBS})
