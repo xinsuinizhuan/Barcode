@@ -31,7 +31,6 @@ namespace cv {
             Point2f end;
             Point2f vertices[4];
             rect.points(vertices);
-
             double distance1 = cv::norm(vertices[0] - vertices[1]);
             double distance2 = cv::norm(vertices[1] - vertices[2]);
             std::string result;
