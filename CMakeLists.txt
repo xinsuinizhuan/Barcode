@@ -4,6 +4,10 @@ project(Barcode)
 include(cmake/OpenCVPath.cmake) #even opencv itself do not use cmake_module_path
 include(cmake/CMakeHelper.cmake)
 
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
+
 set(OPEN_DEBUG OFF)
 if (OPEN_DEBUG)
     set(CMAKE_BUILD_TYPE "Debug")
@@ -14,6 +18,8 @@ else ()
 endif ()
 Output_variable(CMAKE_BUILD_TYPE)
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS_RELEASE "/MT")
+set(CMAKE_CXX_FLAGS_DEBUG "$/MTd")
 add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 
@@ -27,6 +33,7 @@ Output_Paths()
 include_directories(include)
 include_directories(${OpenCV_INCLUDE_DIRS})
 link_directories(${OpenCV_LIBS})
+add_subdirectory(src)
 
 #add_executable(${PROJECT_NAME}_Detect src/Detect.cpp)
 #target_link_libraries(${PROJECT_NAME}_Detect ${OpenCV_LIBS})
@@ -34,29 +41,13 @@ link_directories(${OpenCV_LIBS})
 
 #add_executable(${PROJECT_NAME}_main Main.cpp)
 #target_link_libraries(${PROJECT_NAME}_main ${OpenCV_LIBS})
+include(cmake/googletest.cmake)
+fetch_googletest(
+        ${PROJECT_SOURCE_DIR}/cmake
+        ${PROJECT_BINARY_DIR}/googletest
+)
 
-add_executable(${PROJECT_NAME}_bardecoder src/bardecode.cpp
-        src/decoder/absdecoder.cpp src/decoder/ean_decoder.cpp
-        src/decoder/patternmatch.cpp
-        Main.cpp)
-
-target_link_libraries(${PROJECT_NAME}_bardecoder ${OpenCV_LIBS})
+enable_testing()
+add_subdirectory(test)
 
 
-add_executable(${PROJECT_NAME}_Decodedebug src/detector/detect.cpp
-        src/decoder_debug.cpp
-        src/decoder/ean_decoder.cpp
-        src/decoder/patternmatch.cpp
-        src/decoder/absdecoder.cpp
-        )
-
-target_link_libraries(${PROJECT_NAME}_Decodedebug ${OpenCV_LIBS})
-
-add_executable(${PROJECT_NAME}_Detect src/detector/detect.cpp
-        src/detect_debug.cpp
-        src/decoder/ean_decoder.cpp
-        src/decoder/patternmatch.cpp
-        src/decoder/absdecoder.cpp
-        )
-
-target_link_libraries(${PROJECT_NAME}_Detect ${OpenCV_LIBS})

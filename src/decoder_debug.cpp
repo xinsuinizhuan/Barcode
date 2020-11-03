@@ -5,7 +5,6 @@
 
 int main(int argc, char **argv) {
     using namespace cv;
-    std::cout << __DATE__ << " " << __TIME__ << std::endl;
 
     if (argc < 2) {
         VideoCapture capture(0);
