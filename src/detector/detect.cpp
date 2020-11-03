@@ -445,7 +445,12 @@ namespace cv {
         if (!checkBarInputImage(img, inarr)) {
             return false;
         }
+#ifdef CV_DEBUG
         CV_Assert(!rects.empty());
+#endif
+        if (rects.empty()) {
+            return false;
+        }
         ean_decoder decoder("");
         vector<std::string> _decoded_info = decoder.rect_to_ucharlist(inarr, rects);
         decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
