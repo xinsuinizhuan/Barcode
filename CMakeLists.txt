@@ -4,7 +4,6 @@ project(Barcode)
 include(cmake/OpenCVPath.cmake) #even opencv itself do not use cmake_module_path
 include(cmake/CMakeHelper.cmake)
 
-set(OPEN_DEBUG OFF)
 if (OPEN_DEBUG)
     set(CMAKE_BUILD_TYPE "Debug")
     #set it to Debug, it will auto choose *d.dll
@@ -35,21 +34,6 @@ link_directories(${OpenCV_LIBS})
 #add_executable(${PROJECT_NAME}_main Main.cpp)
 #target_link_libraries(${PROJECT_NAME}_main ${OpenCV_LIBS})
 
-add_executable(${PROJECT_NAME}_bardecoder
-        src/decoder/absdecoder.cpp src/decoder/ean_decoder.cpp
-        src/decoder/patternmatch.cpp
-        Main.cpp)
-
-target_link_libraries(${PROJECT_NAME}_bardecoder ${OpenCV_LIBS})
-
-
-add_executable(${PROJECT_NAME}_Decodedebug src/detector/detect.cpp
-        src/decoder/ean_decoder.cpp
-        src/decoder/patternmatch.cpp
-        src/decoder/absdecoder.cpp
-        )
-
-target_link_libraries(${PROJECT_NAME}_Decodedebug ${OpenCV_LIBS})
 
 add_executable(${PROJECT_NAME}_main_debug src/detector/detect.cpp
         src/main_debug.cpp
