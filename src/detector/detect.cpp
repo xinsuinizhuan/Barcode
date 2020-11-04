@@ -5,117 +5,66 @@
 
 
 namespace cv {
-    using std::vector;
 
-    static bool checkBarInputImage(InputArray img, Mat &gray) {
-        CV_Assert(!img.empty());
-        CV_CheckDepthEQ(img.depth(), CV_8U, "");
 
-        if (img.cols() <= 20 || img.rows() <= 20) {
-            return false;  // image data is not enough for providing reliable results
+    void Detect::normalizeRegion(RotatedRect &rect) {
+        Point2f start, p, adjust;
+        float barcode_orientation = rect.angle + 90;
+        if (rect.size.width < rect.size.height)
+            barcode_orientation += 90;
+        float long_axis = max(rect.size.width, rect.size.height);
+        double x_increment = sin(barcode_orientation * 3.1415926 / 180.0);
+        double y_increment = cos(barcode_orientation * 3.1415926 / 180.0);
+
+        adjust.x = x_increment > 0 ? 1.0 : (x_increment < 0 ? -1.0 : 0);
+        adjust.y = y_increment > 0 ? 1.0 : (y_increment < 0 ? -1.0 : 0);
+
+        int num_blanks = 0;
+        //计算条形码中最长连续条的长度，作为threshold
+        int threshold = cvRound(long_axis * 4.0 / 95.0);
+        p.y = adjust.y + rect.center.y + (long_axis / 2.0) * y_increment;
+        p.x = adjust.x + rect.center.x + (long_axis / 2.0) * x_increment;
+        int val;
+        while (isValidCoord(p) && (num_blanks < threshold)) {
+            val = variance.at<uint8_t>(p);
+            if (val == 255)
+                num_blanks = 0;
+            else
+                num_blanks++;
+            p.x += x_increment;
+            p.y += y_increment;
         }
-        int incn = img.channels();
-        CV_Check(incn, incn == 1 || incn == 3 || incn == 4, "");
-        if (incn == 3 || incn == 4) {
-            cvtColor(img, gray, COLOR_BGR2GRAY);
-        } else {
-            gray = img.getMat();
+        start.x = p.x;
+        start.y = p.y;
+        p.x = rect.center.x - (long_axis / 2.0) * x_increment - adjust.x;
+        p.y = rect.center.y - (long_axis / 2.0) * y_increment - adjust.y;
+        num_blanks = 0;
+        while (isValidCoord(p) && (num_blanks < threshold)) {
+            val = variance.at<uint8_t>(p);
+            if (val == 255)
+                num_blanks = 0;
+            else
+                num_blanks++;
+            p.x -= x_increment;
+            p.y -= y_increment;
         }
-        return true;
+        rect.center = (start + p) / 2.0;
+        if (long_axis == rect.size.width)
+            rect.size.width = norm(p - start);
+        else
+            rect.size.height = norm(p - start);
+
     }
 
+    inline bool Detect::isValidCoord(const Point2f &coord) const {
+        if ((coord.x < 0) || (coord.y < 0))
+            return false;
 
-    class Detect {
-    private:
-        const int USE_ROTATED_RECT_ANGLE = 361;
+        if ((coord.x > width - 1.0) || (coord.y > height - 1.0))
+            return false;
 
-    public:
-        void init(const Mat &src);
-
-        void localization(bool debug = false);
-
-        vector<RotatedRect> getLocalizationRects() { return localization_rects; }
-
-
-    protected:
-        enum resize_direction {
-            ZOOMING, SHRINKING, UNCHANGED
-        } purpose = UNCHANGED;
-        double coeff_expansion = 1.0;
-        int height, width;
-        Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, integral_gradient_directions, processed_barcode, variance;
-        vector<RotatedRect> localization_rects;
-
-        void findCandidates();
-
-
-        double getBarcodeOrientation(const vector<vector<Point> > &contours, int i);
-
-        Mat calVariance();
-
-        void connectComponents();
-
-        inline bool isValidCoord(const Point2f &coord) const {
-            if ((coord.x < 0) || (coord.y < 0))
-                return false;
-
-            if ((coord.x > width - 1.0) || (coord.y > height - 1.0))
-                return false;
-
-            return true;
-        }
-
-        void normalizeRegion(RotatedRect &rect) {
-            Point2f start, p, adjust;
-            float barcode_orientation = rect.angle + 90;
-            if (rect.size.width < rect.size.height)
-                barcode_orientation += 90;
-            float long_axis = max(rect.size.width, rect.size.height);
-            double x_increment = sin(barcode_orientation * 3.1415926 / 180.0);
-            double y_increment = cos(barcode_orientation * 3.1415926 / 180.0);
-
-            adjust.x = x_increment > 0 ? 1.0 : (x_increment < 0 ? -1.0 : 0);
-            adjust.y = y_increment > 0 ? 1.0 : (y_increment < 0 ? -1.0 : 0);
-
-            int num_blanks = 0;
-            //计算条形码中最长连续条的长度，作为threshold
-            int threshold = cvRound(long_axis * 4.0 / 95.0);
-            p.y = adjust.y + rect.center.y + (long_axis / 2.0) * y_increment;
-            p.x = adjust.x + rect.center.x + (long_axis / 2.0) * x_increment;
-            int val;
-            while (isValidCoord(p) && (num_blanks < threshold)) {
-                val = variance.at<uint8_t>(p);
-                if (val == 255)
-                    num_blanks = 0;
-                else
-                    num_blanks++;
-                p.x += x_increment;
-                p.y += y_increment;
-            }
-            start.x = p.x;
-            start.y = p.y;
-            p.x = rect.center.x - (long_axis / 2.0) * x_increment - adjust.x;
-            p.y = rect.center.y - (long_axis / 2.0) * y_increment - adjust.y;
-            num_blanks = 0;
-            while (isValidCoord(p) && (num_blanks < threshold)) {
-                val = variance.at<uint8_t>(p);
-                if (val == 255)
-                    num_blanks = 0;
-                else
-                    num_blanks++;
-                p.x -= x_increment;
-                p.y -= y_increment;
-            }
-            rect.center = (start + p) / 2.0;
-            if (long_axis == rect.size.width)
-                rect.size.width = norm(p - start);
-            else
-                rect.size.height = norm(p - start);
-
-        }
-
-        void locateBarcodes();
-    };
+        return true;
+    }
 
     static float calcRectSum(const Mat &integral, int right_col, int left_col, int top_row, int bottom_row) {
         // calculates sum of values within a rectangle from a given integral image
@@ -419,65 +368,5 @@ namespace cv {
         }
         return raw_variance;
 
-    }
-
-    BarcodeDetector::BarcodeDetector() = default;
-
-    BarcodeDetector::~BarcodeDetector() = default;
-
-    bool BarcodeDetector::detect(InputArray img, CV_OUT std::vector<RotatedRect> &rects, bool debug) const {
-        Mat inarr;
-        if (!checkBarInputImage(img, inarr)) {
-            return false;
-        }
-
-        Detect bardet;
-        bardet.init(inarr);
-        bardet.localization(debug);
-        vector<RotatedRect> _rects = bardet.getLocalizationRects();
-        rects.assign(_rects.begin(), _rects.end());
-        return true;
-    }
-
-    bool BarcodeDetector::decode(InputArray img, const std::vector<RotatedRect> &rects, CV_OUT
-                                 vector<std::string> &decoded_info) const {
-        Mat inarr;
-        if (!checkBarInputImage(img, inarr)) {
-            return false;
-        }
-#ifdef CV_DEBUG
-        CV_Assert(!rects.empty());
-#endif
-        if (rects.empty()) {
-            return false;
-        }
-        ean_decoder decoder("");
-        vector<std::string> _decoded_info = decoder.rect_to_ucharlist(inarr, rects);
-        decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
-
-        return true;
-    }
-
-    bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT vector<std::string> &decoded_info, CV_OUT
-                                          vector<RotatedRect> &rects) const {
-        Mat inarr;
-        if (!checkBarInputImage(img, inarr)) {
-            return false;
-        }
-
-        Detect bardet;
-        bardet.init(inarr);
-        bardet.localization();
-        vector<RotatedRect> _rects = bardet.getLocalizationRects();
-        rects.assign(_rects.begin(), _rects.end());
-        if (_rects.empty()) {
-            return false;
-        }
-        ean_decoder decoder("");
-
-        vector<std::string> _decoded_info = decoder.rect_to_ucharlist(inarr, _rects);
-        decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
-
-        return true;
     }
 }

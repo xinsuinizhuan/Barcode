@@ -1,3 +1,7 @@
+Output_variable(INCLUDE_DIRECTORIES)
+set(INCLUDE_DIRECTORIES "${INCLUDE_DIRECTORIES};./test_precomp.hpp")
+Output_variable(INCLUDE_DIRECTORIES)
+
 add_executable(
         unit_tests
         basic_test.cpp

@@ -1,5 +1,4 @@
-#include "gtest/gtest.h"
-#include "detector/detect.hpp"
+#include "test_precomp.hpp"
 
 TEST(basic_test, build_objects) {
     using namespace cv;
@@ -34,7 +33,13 @@ TEST(basic_test, BarcodeDetectorPic_1) {
         std::cout << i << '\n';
         cv::Mat frame = cv::imread(R"(./../../test/data/)" + i);
         std::vector<cv::RotatedRect> rects;
-        bardet.detect(frame, rects);
+        try {
+            bardet.detect(frame, rects);
+        }
+        catch (cv::Exception &ex) {
+            std::cerr << ex.what() << "No detect pictures\n";
+            continue;
+        }
         for (const auto &rect : rects) {
             rect.points(points);
             for (int j = 0; j < 4; j++) {
@@ -44,7 +49,13 @@ TEST(basic_test, BarcodeDetectorPic_1) {
             }
         }
         std::vector<std::string> results;
-        bardet.decode(frame, rects, results);
+        try {
+            bardet.decode(frame, rects, results);
+        }
+        catch (cv::Exception &ex) {
+            std::cerr << ex.what() << "No detect results\n";
+            continue;
+        }
         for (const auto &result : results) {
             std::cout << result << std::endl;
         }
