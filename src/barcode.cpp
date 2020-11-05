@@ -22,11 +22,18 @@ namespace cv {
         return true;
     }
 
-    BarcodeDetector::BarcodeDetector() = default;
+    struct BarcodeDetector::Impl {
+    public:
+        Impl() = default;
+
+        ~Impl() = default;
+    };
+
+    BarcodeDetector::BarcodeDetector() : p(new Impl) {}
 
     BarcodeDetector::~BarcodeDetector() = default;
 
-    bool BarcodeDetector::detect(InputArray img, CV_OUT std::vector<RotatedRect> &rects, bool debug) {
+    bool BarcodeDetector::detect(InputArray img, CV_OUT std::vector<RotatedRect> &rects, bool debug) const {
         Mat inarr;
         if (!checkBarInputImage(img, inarr)) {
             return false;

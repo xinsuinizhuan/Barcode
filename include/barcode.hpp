@@ -20,7 +20,7 @@ namespace cv {
          @param img grayscale or color (BGR) image containing (or not) QR code.
          @param points Output vector of vertices of the minimum-area quadrangle containing the code.
          */
-        CV_WRAP static bool detect(InputArray img, CV_OUT std::vector<RotatedRect> &rects, bool debug = false) ;
+        CV_WRAP bool detect(InputArray img, CV_OUT std::vector<RotatedRect> &rects, bool debug = false) const;
 
         /** @brief Decodes barcode in image once it's found by the detect() method.
 
@@ -42,9 +42,12 @@ namespace cv {
         detectAndDecode(InputArray img, CV_OUT std::vector<std::string> &decoded_info, CV_OUT
                         std::vector<RotatedRect> &rects) const;
 
+    protected:
+        struct Impl;
+        Ptr<Impl> p;
+
+
     };
-
-
 }
 
 
