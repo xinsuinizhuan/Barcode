@@ -4,13 +4,7 @@ project(Barcode)
 include(cmake/OpenCVPath.cmake) #even opencv itself do not use cmake_module_path
 include(cmake/CMakeHelper.cmake)
 
-if (OPEN_DEBUG)
-    set(CMAKE_BUILD_TYPE "Debug")
-    #set it to Debug, it will auto choose *d.dll
-else ()
-    set(CMAKE_BUILD_TYPE "Release")
-    #set it to Release, it will auto choose *.dll
-endif ()
+
 Output_variable(CMAKE_BUILD_TYPE)
 set(CMAKE_CXX_STANDARD 11)
 add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
