@@ -4,12 +4,9 @@
 #include <opencv2/imgproc.hpp>
 // 三种编码方式 https://baike.baidu.com/item/EAN-13
 
-/**
- * TODO 1. 多条
- */
 namespace cv {
 
-    bool isValidCoordinate(Point2f point, const Mat &mat) {
+    bool isValidCoordinate(const Point2f &point, const Mat &mat) {
         //TODO fix <=
         if ((point.x <= 0) || (point.y <= 0))
             return false;
@@ -24,7 +21,7 @@ namespace cv {
     vector<string> ean_decoder::rect_to_ucharlist(Mat &mat, const vector<RotatedRect> &rects) {
         vector<string> will_return;
         Mat grey = mat.clone();
-        int PART = 16;
+        constexpr int PART = 16;
         for (const auto &rect : rects) {
             vector<uchar> middle;
             Point2f begin;
@@ -34,39 +31,43 @@ namespace cv {
             double distance1 = cv::norm(vertices[0] - vertices[1]);
             double distance2 = cv::norm(vertices[1] - vertices[2]);
             std::string result;
-            for(int i = 1,direction = 1;i <= PART/2;direction = -1* direction) {
-
+            for (int i = 1, direction = 1; i <= PART / 2; direction = -1 * direction) {
                 if (distance1 > distance2) {
-                    double stepx = (vertices[0].x - vertices[3].x)/PART;
-                    double stepy = (vertices[0].y - vertices[3].y)/PART;
-                    Point2f step(stepx,stepy);
-                    begin = (vertices[0] + vertices[3]) / 2 + step*i * direction;
+                    double stepx = (vertices[0].x - vertices[3].x) / PART;
+                    double stepy = (vertices[0].y - vertices[3].y) / PART;
+                    Point2f step(stepx, stepy);
+                    begin = (vertices[0] + vertices[3]) / 2 + step * i * direction;
                     end = (vertices[1] + vertices[2]) / 2 + step * i * direction;
                 } else {
-                    double stepx = (vertices[0].x - vertices[1].x)/PART;
-                    double stepy = (vertices[0].y - vertices[1].y)/PART;
-                    Point2f step(stepx,stepy);
+                    double stepx = (vertices[0].x - vertices[1].x) / PART;
+                    double stepy = (vertices[0].y - vertices[1].y) / PART;
+                    Point2f step(stepx, stepy);
                     begin = (vertices[0] + vertices[1]) / 2 + step * i * direction;
                     end = (vertices[2] + vertices[3]) / 2 + step * i * direction;
                 }
                 LineIterator line = LineIterator(grey, begin, end);
                 middle.reserve(line.count);
-                for(int i = 0;i < line.count;i ++,line++) {
+                for (int cnt = 0; cnt < line.count; cnt++, line++) {
                     middle.push_back(grey.at<uchar>(line.pos()));
-                    cv::circle(mat,line.pos(),1,Scalar(0,0,255),1);
+#ifdef CV_DEBUG
+                    cv::circle(mat, line.pos(), 1, Scalar(0, 0, 255), 1);
+#endif
                 }
-                cv::threshold(middle,middle,0,255,THRESH_BINARY|THRESH_OTSU);
+                cv::threshold(middle, middle, 0, 255, THRESH_BINARY | THRESH_OTSU);
                 result = this->decode(middle, 0);
                 if (result.size() != 13) {
                     result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
                 }
+#ifdef CV_DEBUG
+                cv::line(mat, begin, end, cv::Scalar(0, 255, 0));
                 //cv::line(mat,begin,end,Scalar(0,0,255),2);
-                cv::circle(mat,begin,4,Scalar(255,0,0),2);
-                cv::circle(mat,end,4,Scalar(0,0,255),2);
+                cv::circle(mat, begin, 4, Scalar(255, 0, 0), 2);
+                cv::circle(mat, end, 4, Scalar(0, 0, 255), 2);
+#endif
                 if (result.size() == 13) {
                     break;
                 }
-                if(direction == -1){
+                if (direction == -1) {
                     i++;
                 }
             }

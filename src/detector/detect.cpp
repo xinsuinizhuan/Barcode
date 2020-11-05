@@ -369,6 +369,4 @@ namespace cv {
         return raw_variance;
 
     }
-
-
 }
