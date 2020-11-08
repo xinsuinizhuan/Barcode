@@ -5,26 +5,40 @@
 // 三种编码方式 https://baike.baidu.com/item/EAN-13
 
 /**
- * TODO 1. 多条
+ * TODO
+ * 1. 灰度归一化
+ * 2. 二值化优化
+ * 3. 读相似度计算
  */
 namespace cv {
-
-    bool isValidCoordinate(Point2f point, const Mat &mat) {
-        //TODO fix <=
-        if ((point.x <= 0) || (point.y <= 0))
-            return false;
-
-        if ((point.x >= mat.cols - 1) || (point.y >= mat.rows - 1))
-            return false;
-
-        return true;
+    /**
+     *
+     * @param grey_img gray scale image
+     * @param rects barcodes rectangle window
+     * @return images of barcode
+     */
+    vector<Mat> getBarcodeImgs(Mat gray_img, const vector<RotatedRect> &rects) {
+        vector<Mat> results;
+        for(const auto &rect: rects) {
+            Mat img = gray_img.clone();
+            Point2f center = rect.center;
+            Mat rot_mat = getRotationMatrix2D(center, rect.angle, 1.0);//求旋转矩阵
+            Mat rot_image;
+            Size dst_sz(img.size());
+            warpAffine(img, rot_image, rot_mat, dst_sz);//原图像旋转
+            Mat result = rot_image(Rect(center.x - (rect.size.width / 2), center.y - (rect.size.height/2), rect.size.width, rect.size.height));
+            results.push_back(result);
+        }
+        return results;
     }
 
     // default thought that mat is a matrix after binary-transfer.
     vector<string> ean_decoder::rect_to_ucharlist(Mat &mat, const vector<RotatedRect> &rects) {
         vector<string> will_return;
         Mat grey = mat.clone();
-        int PART = 16;
+        //提取矩形内图片
+
+        int PART = 16; //扫描的行数
         for (const auto &rect : rects) {
             vector<uchar> middle;
             Point2f begin;
@@ -55,12 +69,13 @@ namespace cv {
                     middle.push_back(grey.at<uchar>(line.pos()));
                     cv::circle(mat,line.pos(),1,Scalar(0,0,255),1);
                 }
-                cv::threshold(middle,middle,0,255,THRESH_BINARY|THRESH_OTSU);
+                //预处理
+
+                adaptBinaryzation(middle,middle);
                 result = this->decode(middle, 0);
                 if (result.size() != 13) {
                     result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
                 }
-                //cv::line(mat,begin,end,Scalar(0,0,255),2);
                 cv::circle(mat,begin,4,Scalar(255,0,0),2);
                 cv::circle(mat,end,4,Scalar(0,0,255),2);
                 if (result.size() == 13) {
@@ -243,36 +258,6 @@ namespace cv {
         }
         return checkDigit == (10 - (sum % 10)) % 10;
     }
-
-
-
-//    std::pair<int, int> ean_decoder::find_start_end_patterns(const vector<uchar> &row) {
-//        bool foundStart = false;
-//        std::pair<int, int> startRange{};
-//        int nextStart = 0;
-//        vector<int> counters{0, 0, 0};
-//        while (!foundStart) {
-//            std::fill(std::begin(counters), std::end(counters), 0);
-//            startRange = find_gurad_patterns(row, nextStart, false, BEGIN_PATTERN(), counters);
-//            int start = startRange.first;
-//            nextStart = startRange.second;
-//            // Make sure there is a quiet zone at least as big as the start pattern before the barcode.
-//            // If this check would run off the left edge of the image, do not accept this barcode,
-//            // as it is very likely to be a false positive.
-//            int quietStart = start - (nextStart - start);
-//            if (quietStart >= 0) {
-//                // TODO ,后续二值化之后用bitarray,这里要做优化.
-//                foundStart = true;
-//                for (int i = quietStart; i < start; i++) {
-//                    if (row[i] != WHITE) {
-//                        foundStart = false;
-//                    }
-//                }
-//                //foundStart = row.isRange(quietStart, start, false);
-//            }
-//        }
-//        return startRange;
-//    }
 
     std::pair<int, int> ean_decoder::find_gurad_patterns(const vector<uchar> &row,
                                                          int rowOffset,

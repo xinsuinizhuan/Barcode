@@ -38,3 +38,13 @@ add_executable(${PROJECT_NAME}_main_debug src/detector/detect.cpp
         )
 
 target_link_libraries(${PROJECT_NAME}_main_debug ${OpenCV_LIBS})
+
+add_executable(${PROJECT_NAME}_pretest
+        src/detector/detect.cpp
+        src/decoder/ean_decoder.cpp
+        src/decoder/absdecoder.cpp
+        src/decoder/patternmatch.cpp
+        src/barcode.cpp
+        src/preprocess_test.cpp
+        )
+target_link_libraries(${PROJECT_NAME}_pretest ${OpenCV_LIBS})

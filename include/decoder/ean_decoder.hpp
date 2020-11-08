@@ -55,7 +55,8 @@ namespace cv {
                                                        const vector<int> &pattern,
                                                        vector<int> counters);
     };
-
+    Mat grayNomalization(Mat mat, const double M0, const double VAR0);
+    vector<Mat> getBarcodeImgs(Mat gray_img, const vector<RotatedRect> &rects);
 }
 #endif // !EANDECODER_H
 

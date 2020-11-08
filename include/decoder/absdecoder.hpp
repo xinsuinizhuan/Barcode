@@ -31,6 +31,7 @@ namespace cv {
 
 
     void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters);
+    void adaptBinaryzation(InputArray src, OutputArray& dst);
 
     struct EncodePair {
         std::string content;
