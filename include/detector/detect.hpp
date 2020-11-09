@@ -30,7 +30,7 @@ namespace cv {
         } purpose = UNCHANGED;
         double coeff_expansion = 1.0;
         int height, width;
-        Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, integral_gradient_directions, processed_barcode, consistency, integral_x_sq, integral_y_sq, integral_xy;
+        Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, processed_barcode, consistency, integral_x_sq, integral_y_sq, integral_xy;
         vector<RotatedRect> localization_rects;
 
         void findCandidates();
