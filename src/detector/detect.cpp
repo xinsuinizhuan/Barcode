@@ -240,38 +240,24 @@ namespace cv {
         integral(scharr_x.mul(scharr_y), integral_xy, temp, CV_32F, CV_32F);
 
 
-
-
-
         // calculate magnitude of gradient, normalize and threshold
         gradient_magnitude = Mat::zeros(gradient_direction.size(), gradient_direction.type());
         magnitude(scharr_x, scharr_y, gradient_magnitude);
         normalize(gradient_magnitude, gradient_magnitude, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
-        threshold(gradient_magnitude, gradient_magnitude, 50, 255, THRESH_BINARY + THRESH_OTSU);
+        threshold(gradient_magnitude, gradient_magnitude, 50, 1, THRESH_BINARY);
         // calculate variances, normalize and threshold so that low-variance areas are bright(255) and
         // high-variance areas are dark(0)
         Mat raw_consistency = calConsistency();
-        // replaces every instance of -1 with the max variance
-        // this prevents a situation where areas with no edges show up as low variance bec their angles are 0
-        // if the value in these cells are set to double.maxval, all the real variances get normalized to 0
-        consistency = raw_consistency * 255;
-        consistency.convertTo(consistency, CV_8U);
-        imshow("consistency", consistency);
+
+        imshow("consistency", raw_consistency);
+//        adaptiveThreshold(raw_consistency,consistency,255,ADAPTIVE_THRESH_MEAN_C,THRESH_BINARY,11,0);
+        threshold(raw_consistency, consistency, 150, 255, THRESH_BINARY);
 
 //        normalize(consistency, consistency, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
 
-        threshold(consistency, consistency, 75, 255, THRESH_BINARY);
+//        threshold(consistency, consistency, 75, 255, THRESH_BINARY);
 
-        //adjusted_variance = variance.clone();
-        //inRange(raw_variance, Scalar(-1), Scalar(-1), mask);
-        //adjusted_variance.setTo(Scalar(127), mask);
 
-        //-5没有设置过，以后再删
-        //inRange(raw_variance, Scalar(-5), Scalar(-5), mask);
-        //adjusted_variance.setTo(Scalar(63), mask);
-        //imshow("梯度大小图", gradient_magnitude);
-        //imshow("调整后方差图", adjusted_variance);
-        //imshow("variance before adjusted", raw_variance);
 
         processed_barcode = consistency;
     }
@@ -322,12 +308,14 @@ namespace cv {
         in the img_details.gradient_directions matrix
         */
         int right_col, left_col, top_row, bottom_row;
-        float xy, x_sq, y_sq, d;
-        Mat raw_consistency(resized_barcode.size(), CV_32F);
+        float xy, x_sq, y_sq, d, rect_area;
+        Mat raw_consistency(resized_barcode.size(), CV_8U), gradient_density;
 
         int width_offset = cvRound(0.05 * width / 2);
         int height_offset = cvRound(0.05 * height / 2);
-//        float THRESHOLD_AREA = float(width_offset * height_offset) * 1.2f;
+        float THRESHOLD_AREA = float(width_offset * height_offset) * 1.5f;
+        integral(gradient_magnitude, gradient_density, CV_32F);
+
 
 
         // set angle to 0 at all points where gradient magnitude is 0 i.e. where there are no edges
@@ -335,22 +323,23 @@ namespace cv {
         //imshow("非零积分图", gradient_magnitude);
         for (int y = 0; y < height; y++) {
             //pixels_position.clear();
-            const uint8_t *gradient_magnitude_row = gradient_magnitude.ptr<uint8_t>(y);
-            auto *consistency_row = raw_consistency.ptr<float_t>(y);
+            auto *consistency_row = raw_consistency.ptr<uint8_t>(y);
 
             top_row = ((y - height_offset - 1) < 0) ? -1 : (y - height_offset - 1);
             bottom_row = ((y + height_offset) > height) ? height : (y + height_offset);
             int pos = 0;
             for (; pos < width; pos++) {
-                if (gradient_magnitude_row[pos] == 0) {
-                    consistency_row[pos] = 0;
-                    // used as marker number in variance grid at points with no gradient
-                    continue;
-                }
+
                 // then calculate the column locations of the rectangle and set them to -1
                 // if they are outside the matrix bounds
                 left_col = ((pos - width_offset - 1) < 0) ? -1 : (pos - width_offset - 1);
                 right_col = ((pos + width_offset) > width) ? width : (pos + width_offset);
+                rect_area = calcRectSum(gradient_density, right_col, left_col, top_row, bottom_row);
+                if (rect_area < THRESHOLD_AREA) {
+                    // 有梯度的点占比小于阈值则视为平滑区域
+                    consistency_row[pos] = 0;
+                    continue;
+                }
                 //we had an integral image to count non-zero elements
                 x_sq = calcRectSum(integral_x_sq, right_col, left_col, top_row, bottom_row);
                 y_sq = calcRectSum(integral_y_sq, right_col, left_col, top_row, bottom_row);
@@ -364,7 +353,7 @@ namespace cv {
 //                }
                 // get the values of the rectangle corners from the integral image - 0 if outside bounds
                 d = sqrt((x_sq - y_sq) * (x_sq - y_sq) + 4 * xy * xy) / (x_sq + y_sq);
-                consistency_row[pos] = d;
+                consistency_row[pos] = cvRound(d * 255);
 
 //                variance.at<float_t>(y, pos) = data;
             }
