@@ -2,17 +2,11 @@
 // Created by nanos on 2020/10/1.
 //
 
+#include <iostream>
 #include "decoder/patternmatch.hpp"
 
 namespace cv {
-    // TODO
-    // ADD more functions
-    int patternMatch(std::vector<int> counters,
-                     const std::vector<int> &pattern,
-                     int maxIndividual) {
-        return patternMatchVariance(std::move(counters), pattern, maxIndividual);
-    }
-
+    // TODO: ADD more functions
     /**
      * Determines how closely a set of observed counts of runs of black/white values matches a given
      * target pattern. This is reported as the ratio of the total variance from the expected pattern
@@ -26,6 +20,30 @@ namespace cv {
      *  the total variance between counters and patterns equals the pattern length, higher values mean
      *  even more variance
      */
+    int patternMatch(std::vector<int> counters,
+                     const std::vector<int> &pattern,
+                     uint maxIndividual) {
+        CV_Assert(counters.size() == pattern.size());
+        return patternMatchConsieDistance(std::move(counters), pattern, maxIndividual);
+        //    return patternMatchVariance(std::move(counters), pattern, maxIndividual);
+    }
+
+    inline int patternMatchConsieDistance(std::vector<int> counters,
+                                          const std::vector<int> &pattern,
+                                          uint maxIndividualVariance) {
+        uint total = std::accumulate(counters.cbegin(), counters.cend(), 0);
+        uint pattern_length = std::accumulate(pattern.cbegin(), pattern.cend(), 0);
+        if (total < pattern_length) {
+            return std::numeric_limits<int32_t>::max();
+        }
+        int inner_result =
+                static_cast<uint>(std::inner_product(std::cbegin(counters), std::cend(counters), std::cbegin(pattern),
+                                                     0)) << INTEGER_MATH_SHIFT;
+        int divide_first = std::inner_product(std::cbegin(counters), std::cend(counters), std::cbegin(counters), 0);
+        int divide_second = std::inner_product(std::cbegin(pattern), std::cend(pattern), std::cbegin(pattern), 0);
+        return (1 << INTEGER_MATH_SHIFT) - static_cast<int>(inner_result / std::sqrt(divide_first * divide_second));
+    }
+
     inline int patternMatchVariance(std::vector<int> counters,
                                     const std::vector<int> &pattern,
                                     int maxIndividualVariance) {
@@ -41,9 +59,9 @@ namespace cv {
         // We're going to fake floating-point math in integers. We just need to use more bits.
         // Scale up patternLength so that intermediate values below like scaledCounter will have
         // more "significant digits"
+
         uint unitBarWidth = (total << INTEGER_MATH_SHIFT) / patternLength;
         maxIndividualVariance = (maxIndividualVariance * unitBarWidth) >> INTEGER_MATH_SHIFT;
-
         int totalVariance = 0;
         for (int x = 0; x < numCounters; x++) {
             int counter = counters[x] << INTEGER_MATH_SHIFT;

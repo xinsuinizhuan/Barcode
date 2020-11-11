@@ -5,6 +5,7 @@ Output_variable(INCLUDE_DIRECTORIES)
 add_executable(
         unit_tests
         basic_test.cpp
+        patternMatchTest.cpp
 )
 
 target_link_libraries(

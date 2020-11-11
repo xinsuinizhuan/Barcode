@@ -16,12 +16,12 @@ TEST(basic_test, BarcodeDetectorPic_1) {
     cv::BarcodeDetector bardet;
     cv::ean_decoder decoder("");
     std::string graphs[] = {
-            "1.jpg", "1.png",
+            "ZXing2.png", "1.jpg", "1.png",
             "2.png", "20200325170404705.png",
             "3.jpg", "EAN2.jpg",
             "EAN3.jpg", "EAN.jpg",
             "K71NM_45.jpg",
-            "TB20.jpg", "ZXing2.png",
+            "TB20.jpg",
             "utf-8download_45.png", "download.jpg",
             "downloads.webp", "example.jpg",
             "k71n1.png", "multi-barcodes.jpg",
