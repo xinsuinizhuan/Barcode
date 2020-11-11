@@ -1,5 +1,17 @@
 #include "test_precomp.hpp"
 
+std::string ean13_graphs[] = {
+        "1_normal.jpg", "2_normal.png",
+        "3_normal.jpg", "4_normal.png",
+        "5_corner_small.jpg", "6_vertical_corner_small.jpg",
+        "7_tilt45.png", "8_tilt330.jpg", "9_dirty_tilt30.jpg",
+        "10_dirty_graph.jpg", "11_tilt45.png",
+        "12_middle.png",
+};
+std::string public_graphs[] = {
+        "1_detect.png", "2_tilt.jpg", "3_tilt.webp",
+        "4_tilt45.jpg", "5_many.jpg", "6_multi_barcodes.jpg"
+};
 TEST(basic_test, build_objects) {
     using namespace cv;
     BarcodeDetector bardet;
@@ -12,34 +24,57 @@ TEST(basic_test, get_path) {
     std::cout << "current working directory" << buf << '\n';
 }
 
-TEST(basic_test, BarcodeDetectorPic_1) {
-    cv::BarcodeDetector bardet;
-    cv::ean_decoder decoder("");
-    std::string graphs[] = {
-            "1.jpg", "1.png",
-            "2.png", "20200325170404705.png",
-            "3.jpg", "EAN2.jpg",
-            "EAN3.jpg", "EAN.jpg",
-            "K71NM_45.jpg",
-            "TB20.jpg", "ZXing2.png",
-            "utf-8download_45.png", "download.jpg",
-            "downloads.webp", "example.jpg",
-            "k71n1.png", "multi-barcodes.jpg",
-            "slope.jpg", "tail_ean13_2.jpg"
-    };
-    cv::Point2f points[4];
-    //
-    for (const auto &i: graphs) {
-        std::cout << i << '\n';
-        cv::Mat frame = cv::imread(R"(./../../test/data/)" + i);
+
+TEST(basic_test, Detects) {
+    for (const auto &item : public_graphs) {
+        const std::string &name_current_image = item;
+        const std::string path = R"(./../../test/data/)";
+        cv::Mat frame = cv::imread(path + name_current_image);
+        ASSERT_FALSE(frame.empty()) << "Can't read image: " << name_current_image;
+
+        cv::BarcodeDetector barcodeDetector;
+        cv::Point2f points[4];
         std::vector<cv::RotatedRect> rects;
         try {
-            bardet.detect(frame, rects);
+            barcodeDetector.detect(frame, rects);
+        }
+        catch (cv::Exception &ex) {
+            std::cerr << ex.what() << "No detect pictures\n";
+        }
+        for (const auto &rect : rects) {
+            rect.points(points);
+            for (int j = 0; j < 4; j++) {
+#ifdef CV_DEBUG
+                cv::line(frame, points[j % 4], points[(j + 1) % 4], cv::Scalar(0, 255, 0));
+#endif
+            }
+        }
+        std::cout << name_current_image << " " << rects.size() << std::endl;
+        EXPECT_GT(rects.size(),0);
+#ifdef CV_DEBUG
+        cv::imshow(name_current_image, frame);
+        cv::waitKey(0);
+#endif
+    }
+}
+
+
+TEST(basic_test, Ean13Decodes) {
+    cv::BarcodeDetector barcodeDetector;
+    cv::Point2f points[4];
+    auto count = 0;
+    for (const auto &i: ean13_graphs) {
+        std::cout << i << ':' << std::endl;
+        cv::Mat frame = cv::imread(R"(./../../test/ean13/)" + i);
+        std::vector<cv::RotatedRect> rects;
+        try {
+            barcodeDetector.detect(frame, rects);
         }
         catch (cv::Exception &ex) {
             std::cerr << ex.what() << "No detect pictures\n";
             continue;
         }
+
         for (const auto &rect : rects) {
             rect.points(points);
             for (int j = 0; j < 4; j++) {
@@ -50,19 +85,27 @@ TEST(basic_test, BarcodeDetectorPic_1) {
         }
         std::vector<std::string> results;
         try {
-            bardet.decode(frame, rects, results);
+            barcodeDetector.decode(frame, rects, results);
         }
         catch (cv::Exception &ex) {
-            std::cerr << ex.what() << "No detect results\n";
+            std::cerr << std::string(2, ' ') << ex.what() << "No detect results\n";
             continue;
         }
+        bool judge = false;
+        int exist_number = 0;
         for (const auto &result : results) {
-            std::cout << result << std::endl;
+            if (result.size() == 13) {
+                std::cout << result << std::endl;
+                exist_number++;
+                judge = true;
+            }
         }
+        std::cout << std::string(2, ' ') << results.size() << " exists " << exist_number << " Barcodes" << std::endl;
+        count += judge;
 #ifdef CV_DEBUG
         cv::imshow(i, frame);
         cv::waitKey(0);
 #endif
-
     }
+    std::cout << std::end(ean13_graphs) - std::begin(ean13_graphs) << " " << count << std::endl;
 }
