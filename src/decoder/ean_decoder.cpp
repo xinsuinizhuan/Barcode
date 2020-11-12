@@ -2,9 +2,7 @@
 #include <iostream>
 #include <array>
 #include <opencv2/imgproc.hpp>
-#ifdef CV_DEBUG
 #include <opencv2/opencv.hpp>
-#endif
 // 三种编码方式 https://baike.baidu.com/item/EAN-13
 
 namespace cv {
@@ -17,9 +15,11 @@ namespace cv {
         equalizeHist(gray, gray);
         cv::medianBlur(gray,gray,3);
         adaptiveThreshold(gray,gray, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 9, 1);
-
+        imshow("binary", gray);
         constexpr int PART = 16;
         for (const auto &rect : rects) {
+            std::map<std::string, int> result_vote;
+            std::string max_result = "ERROR";
             Point2f begin;
             Point2f end;
             Point2f vertices[4];
@@ -60,14 +60,25 @@ namespace cv {
                 cv::circle(mat, begin, 4, Scalar(255, 0, 0), 2);
                 cv::circle(mat, end, 4, Scalar(0, 0, 255), 2);
 #endif
+
+                int vote_cnt = 0;
                 if (result.size() == 13) {
-                    break;
+                    if(result_vote.find(result) == result_vote.end()) {
+                        result_vote.insert(std::pair<std::string,int>(result, 1));
+                    } else {
+                        result_vote[result] += 1;
+                    }
+
+                    if(result_vote[result] > vote_cnt) {
+                        vote_cnt = result_vote[result];
+                        max_result = result;
+                    }
                 }
                 if (direction == -1) {
                     i++;
                 }
             }
-            will_return.push_back(result);
+            will_return.push_back(max_result);
 
         }
 

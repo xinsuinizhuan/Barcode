@@ -20,8 +20,8 @@ int main(int argc, char **argv) {
 
     if (strcmp(argv[1], "--webcam") == 0) {
         VideoCapture capture(0);
-//        capture.set(CAP_PROP_FRAME_WIDTH, 1920);
-//        capture.set(CAP_PROP_FRAME_HEIGHT, 1080);
+        //capture.set(CAP_PROP_FRAME_WIDTH, 1920);
+        //capture.set(CAP_PROP_FRAME_HEIGHT, 1080);
 
         float fps;
         while (true) {

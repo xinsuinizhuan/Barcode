@@ -24,8 +24,8 @@ namespace cv {
                      const std::vector<int> &pattern,
                      uint maxIndividual) {
         CV_Assert(counters.size() == pattern.size());
-        return patternMatchConsieDistance(std::move(counters), pattern, maxIndividual);
-        //    return patternMatchVariance(std::move(counters), pattern, maxIndividual);
+        //return patternMatchConsieDistance(std::move(counters), pattern, maxIndividual);
+        return patternMatchVariance(std::move(counters), pattern, maxIndividual);
     }
 
     inline int patternMatchConsieDistance(std::vector<int> counters,
