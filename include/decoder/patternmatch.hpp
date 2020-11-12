@@ -14,7 +14,11 @@
 namespace cv {
     int patternMatch(std::vector<int> counters,
                      const std::vector<int> &pattern,
-                     int maxIndividual);
+                     uint maxIndividual);
+
+    inline int patternMatchConsieDistance(std::vector<int> counters,
+                                          const std::vector<int> &pattern,
+                                          uint maxIndividualVariance);
 
     inline int patternMatchVariance(std::vector<int> counters,
                                     const std::vector<int> &pattern,

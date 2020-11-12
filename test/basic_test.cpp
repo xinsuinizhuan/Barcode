@@ -50,7 +50,7 @@ TEST(basic_test, Detects) {
             }
         }
         std::cout << name_current_image << " " << rects.size() << std::endl;
-        EXPECT_GT(rects.size(),0);
+        EXPECT_GT(rects.size(), 0);
 #ifdef CV_DEBUG
         cv::imshow(name_current_image, frame);
         cv::waitKey(0);
@@ -64,6 +64,7 @@ TEST(basic_test, Ean13Decodes) {
     cv::Point2f points[4];
     auto count = 0;
     for (const auto &i: ean13_graphs) {
+
         std::cout << i << ':' << std::endl;
         cv::Mat frame = cv::imread(R"(./../../test/ean13/)" + i);
         std::vector<cv::RotatedRect> rects;
@@ -94,7 +95,7 @@ TEST(basic_test, Ean13Decodes) {
         bool judge = false;
         int exist_number = 0;
         for (const auto &result : results) {
-            if (result.size() == 13) {
+            if (result.size() == 13 && isdigit(result[0])) {
                 std::cout << result << std::endl;
                 exist_number++;
                 judge = true;
