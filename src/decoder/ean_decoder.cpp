@@ -2,45 +2,24 @@
 #include <iostream>
 #include <array>
 #include <opencv2/imgproc.hpp>
+#ifdef CV_DEBUG
+#include <opencv2/opencv.hpp>
+#endif
 // 三种编码方式 https://baike.baidu.com/item/EAN-13
 
-/**
- * TODO
- * 1. 灰度归一化
- * 2. 二值化优化
- * 3. 读相似度计算
- */
 namespace cv {
-    /**
-     *
-     * @param grey_img gray scale image
-     * @param rects barcodes rectangle window
-     * @return images of barcode
-     */
-    vector<Mat> getBarcodeImgs(Mat gray_img, const vector<RotatedRect> &rects) {
-        vector<Mat> results;
-        for(const auto &rect: rects) {
-            Mat img = gray_img.clone();
-            Point2f center = rect.center;
-            Mat rot_mat = getRotationMatrix2D(center, rect.angle, 1.0);//求旋转矩阵
-            Mat rot_image;
-            Size dst_sz(img.size());
-            warpAffine(img, rot_image, rot_mat, dst_sz);//原图像旋转
-            Mat result = rot_image(Rect(center.x - (rect.size.width / 2), center.y - (rect.size.height/2), rect.size.width, rect.size.height));
-            results.push_back(result);
-        }
-        return results;
-    }
 
     // default thought that mat is a matrix after binary-transfer.
     vector<string> ean_decoder::rect_to_ucharlist(Mat &mat, const vector<RotatedRect> &rects) {
+        CV_Assert(mat.channels() == 1);
         vector<string> will_return;
-        Mat grey = mat.clone();
-        //提取矩形内图片
+        Mat gray = mat.clone();
+        equalizeHist(gray, gray);
+        cv::medianBlur(gray,gray,3);
+        adaptiveThreshold(gray,gray, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 9, 1);
 
-        int PART = 16; //扫描的行数
+        constexpr int PART = 16;
         for (const auto &rect : rects) {
-            vector<uchar> middle;
             Point2f begin;
             Point2f end;
             Point2f vertices[4];
@@ -48,40 +27,43 @@ namespace cv {
             double distance1 = cv::norm(vertices[0] - vertices[1]);
             double distance2 = cv::norm(vertices[1] - vertices[2]);
             std::string result;
-            for(int i = 1,direction = 1;i <= PART/2;direction = -1* direction) {
-
+            for (int i = 1, direction = 1; i <= PART / 2; direction = -1 * direction) {
+                vector<uchar> middle;
                 if (distance1 > distance2) {
-                    double stepx = (vertices[0].x - vertices[3].x)/PART;
-                    double stepy = (vertices[0].y - vertices[3].y)/PART;
-                    Point2f step(stepx,stepy);
-                    begin = (vertices[0] + vertices[3]) / 2 + step*i * direction;
+                    double stepx = (vertices[0].x - vertices[3].x) / PART;
+                    double stepy = (vertices[0].y - vertices[3].y) / PART;
+                    Point2f step(stepx, stepy);
+                    begin = (vertices[0] + vertices[3]) / 2 + step * i * direction;
                     end = (vertices[1] + vertices[2]) / 2 + step * i * direction;
                 } else {
-                    double stepx = (vertices[0].x - vertices[1].x)/PART;
-                    double stepy = (vertices[0].y - vertices[1].y)/PART;
-                    Point2f step(stepx,stepy);
+                    double stepx = (vertices[0].x - vertices[1].x) / PART;
+                    double stepy = (vertices[0].y - vertices[1].y) / PART;
+                    Point2f step(stepx, stepy);
                     begin = (vertices[0] + vertices[1]) / 2 + step * i * direction;
                     end = (vertices[2] + vertices[3]) / 2 + step * i * direction;
                 }
-                LineIterator line = LineIterator(grey, begin, end);
+                LineIterator line = LineIterator(gray, begin, end);
                 middle.reserve(line.count);
-                for(int i = 0;i < line.count;i ++,line++) {
-                    middle.push_back(grey.at<uchar>(line.pos()));
-                    cv::circle(mat,line.pos(),1,Scalar(0,0,255),1);
+                for (int cnt = 0; cnt < line.count; cnt++, line++) {
+                    middle.push_back(gray.at<uchar>(line.pos()));
+#ifdef CV_DEBUG
+                    cv::circle(mat, line.pos(), 1, Scalar(0, 0, 255), 1);
+#endif
                 }
-                //预处理
-
-                adaptBinaryzation(middle,middle);
                 result = this->decode(middle, 0);
                 if (result.size() != 13) {
                     result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
                 }
-                cv::circle(mat,begin,4,Scalar(255,0,0),2);
-                cv::circle(mat,end,4,Scalar(0,0,255),2);
+#ifdef CV_DEBUG
+                cv::line(mat, begin, end, cv::Scalar(0, 255, 0));
+                //cv::line(mat,begin,end,Scalar(0,0,255),2);
+                cv::circle(mat, begin, 4, Scalar(255, 0, 0), 2);
+                cv::circle(mat, end, 4, Scalar(0, 0, 255), 2);
+#endif
                 if (result.size() == 13) {
                     break;
                 }
-                if(direction == -1){
+                if (direction == -1) {
                     i++;
                 }
             }
@@ -91,6 +73,7 @@ namespace cv {
 
         return will_return;
     }
+
 
 
     const vector<vector<int>> &get_A_or_C_Patterns() {

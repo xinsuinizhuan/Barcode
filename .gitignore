@@ -33,7 +33,7 @@ bld/
 [Ll]og/
 [Ll]ogs/
 out/
-cmake-[Bb]uild-[Dd]ebug/
+cmake-[Bb]uild-*/
 # IDEs directory
 .vs/
 .vscode/
@@ -364,4 +364,4 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/cmake-build-release/
+*.zip

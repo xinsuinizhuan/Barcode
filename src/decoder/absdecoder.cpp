@@ -4,9 +4,35 @@
 
 #include <opencv2/imgproc.hpp>
 #include <deque>
+#include <opencv2/opencv.hpp>
 #include "decoder/absdecoder.hpp"
+//test
+#include <fstream>
+#include <iostream>
+#include <sstream>
 
 namespace cv {
+    void cutImage(InputArray _src, OutputArray& _dst, RotatedRect rect) {
+        Mat src = _src.getMat();
+        Point2i center(src.cols/2, src.rows/2);
+        cv::Mat t_mat =cv::Mat::zeros(2, 3, CV_64F);
+        t_mat.at<double>(0,0) = 1;
+        t_mat.at<double>(1,1) = 1;
+        t_mat.at<double>(0,2) = src.cols/2 - rect.center.x;
+        t_mat.at<double>(1,2) = src.rows/2 - rect.center.y;
+        Mat src_copy;
+        warpAffine(src, src_copy, t_mat, _src.size(),INTER_NEAREST,BORDER_CONSTANT,Scalar(255));
+        double angle_offset = 0;
+        Size cut_size = rect.size;
+        if(rect.size.height > rect.size.width) {
+            angle_offset = 90;
+            cut_size.width = rect.size.height;
+            cut_size.height = rect.size.width;
+        }
+        Mat M = getRotationMatrix2D(center,rect.angle + angle_offset,1);
+        warpAffine(src_copy, src_copy, M, _src.size(),INTER_NEAREST,BORDER_CONSTANT,Scalar(255));
+        getRectSubPix(src_copy,cut_size,center,_dst);
+    }
 
     void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters) {
         // 先不考虑异常处理
@@ -39,6 +65,7 @@ namespace cv {
 
     void adaptBinaryzation(InputArray src, OutputArray& dst) {
         const int MAXIMUM = 1, MINIMUM = -1, NONE = 0;
+        const uchar WHITE = 255, BLACK = 0;
         Mat gray_img = src.getMat();
         Mat blur;
         GaussianBlur(gray_img, blur, Size2i(3, 3), 1, 1);
@@ -54,7 +81,19 @@ namespace cv {
 
         Matx16d d_kernel = {-1.0/3,-1.0/3,-1.0/3,1.0/3,1.0/3,1.0/3};
         Sobel(norm_img,d_norm_img,CV_64F,1,0,3);
-        const uchar WHITE = 255, BLACK = 0;
+        Mat center = d_norm_img.rowRange(d_norm_img.rows/2, d_norm_img.rows/2+1);
+        //写入文件
+#ifdef CV_DEBUG
+        using namespace std;
+        ofstream outFile;
+        outFile.open("./../../plot/data.csv", ios::out);
+        for(int i = 0;i < center.cols;i ++) {
+            outFile << center.at<double>(0,i) << ",";
+        }
+        outFile << '\n';
+        outFile.close();
+#endif
+
         dst.create(src.size(), CV_8UC1);
         Mat result(Size(norm_img.cols, norm_img.rows),CV_8UC1);
 
@@ -102,11 +141,11 @@ namespace cv {
                 }
             }
             //二值化
-            if(extremes_que.empty()) {
-                continue;
-            }
             uchar signal;
-            if(extremes_que.front().second == MAXIMUM) {
+            if(extremes_que.empty()) {
+                signal = WHITE;
+            }
+            else if(extremes_que.front().second == MAXIMUM) {
                 signal = BLACK;
             } else {
                 signal = WHITE;
@@ -122,9 +161,10 @@ namespace cv {
                 result.at<uchar>(row,col) = signal;
             }
         }
+        imshow("result_no_resize", result);
 
         Mat mat_dst = dst.getMat();
-        resize(result, mat_dst,Size(mat_dst.cols, mat_dst.rows));
+        resize(result, mat_dst,Size(mat_dst.cols, mat_dst.rows),0,0,INTER_NEAREST);
     }
 
 }

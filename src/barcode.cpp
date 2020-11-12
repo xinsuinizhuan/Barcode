@@ -33,7 +33,6 @@ namespace cv {
 
     BarcodeDetector::~BarcodeDetector() = default;
 
-
     bool BarcodeDetector::detect(InputArray img, CV_OUT std::vector<RotatedRect> &rects, bool debug) const {
         Mat inarr;
         if (!checkBarInputImage(img, inarr)) {
