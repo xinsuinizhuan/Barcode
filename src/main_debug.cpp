@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
     } else {
         frame = imread(argv[1]);
-        bardet.detect(frame, rects, true);
+        bardet.detect(frame, rects);
         for (auto &rect : rects) {
             rect.points(vertices);
             for (int j = 0; j < 4; j++)

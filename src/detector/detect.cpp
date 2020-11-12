@@ -133,14 +133,15 @@ namespace cv {
             resized_barcode = barcode.clone();
         }
         //resized_barcode.convertTo(resized_barcode, CV_32FC3);
-//        medianBlur(resized_barcode, resized_barcode, 3);
+        medianBlur(resized_barcode, resized_barcode, 3);
+
     }
 
 
-    void Detect::localization(bool debug) {
+    void Detect::localization() {
         localization_rects.clear();
-        if (debug) {
-            clock_t start = clock();
+#ifdef CV_DEBUG
+        clock_t start = clock();
             imshow("gray image", resized_barcode);
 
             findCandidates();   // find areas with low variance in gradient direction
@@ -157,11 +158,12 @@ namespace cv {
             printf("Finding candidates costs %ld ms, connecting components costs %ld ms, locating barcodes costs %ld ms\n",
                    find_time - start, connect_time - find_time,
                    locate_time - connect_time);
-        } else {
-            findCandidates();   // find areas with low variance in gradient direction
-            connectComponents();
-            locateBarcodes();
-        }
+
+#else
+        findCandidates();   // find areas with low variance in gradient direction
+        connectComponents();
+        locateBarcodes();
+#endif
 
 
     }
@@ -256,8 +258,9 @@ namespace cv {
         // calculate variances, normalize and threshold so that low-variance areas are bright(255) and
         // high-variance areas are dark(0)
         Mat raw_consistency = calConsistency();
-
+#ifdef CV_DEBUG
         imshow("consistency", raw_consistency);
+#endif
 //        adaptiveThreshold(raw_consistency,consistency,255,ADAPTIVE_THRESH_MEAN_C,THRESH_BINARY,11,0);
         threshold(raw_consistency, consistency, 180, 255, THRESH_BINARY + THRESH_OTSU);
 
@@ -274,7 +277,7 @@ namespace cv {
         // connect large components by doing morph close followed by morph open
         // use larger element size for erosion to remove small elements joined by dilation, element size is experimentally determined
         Mat small_elemSE, large_elemSE;
-        int small = 10, large = 12;
+        int small = 8, large = 10;
         small_elemSE = getStructuringElement(MorphShapes::MORPH_ELLIPSE,
                                              Size(small, small));
         large_elemSE = getStructuringElement(MorphShapes::MORPH_ELLIPSE,
@@ -283,8 +286,8 @@ namespace cv {
         dilate(processed_barcode, processed_barcode, small_elemSE);
         erode(processed_barcode, processed_barcode, large_elemSE);
 
-        erode(processed_barcode, processed_barcode, large_elemSE);
-        dilate(processed_barcode, processed_barcode, small_elemSE);
+        erode(processed_barcode, processed_barcode, small_elemSE);
+        dilate(processed_barcode, processed_barcode, large_elemSE);
     }
 
     double Detect::getBarcodeOrientation(const vector<vector<Point> > &contours, int i) {
@@ -319,9 +322,9 @@ namespace cv {
         float xy, x_sq, y_sq, d, rect_area;
         Mat raw_consistency(resized_barcode.size(), CV_8U), gradient_density;
 
-        int width_offset = cvRound(0.03 * width / 2);
-        int height_offset = cvRound(0.03 * height / 2);
-        float THRESHOLD_AREA = float(width_offset * height_offset) * 1.8f;
+        int width_offset = cvRound(0.05 * width / 2);
+        int height_offset = cvRound(0.05 * height / 2);
+        float THRESHOLD_AREA = float(width_offset * height_offset) * 1.6f;
         integral(gradient_magnitude, gradient_density, CV_32F);
 
 

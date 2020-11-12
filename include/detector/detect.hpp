@@ -19,7 +19,7 @@ namespace cv {
     public:
         void init(const Mat &src);
 
-        void localization(bool debug = false);
+        void localization();
 
         vector<RotatedRect> getLocalizationRects() { return localization_rects; }
 
