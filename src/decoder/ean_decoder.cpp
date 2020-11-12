@@ -2,28 +2,24 @@
 #include <iostream>
 #include <array>
 #include <opencv2/imgproc.hpp>
+#ifdef CV_DEBUG
+#include <opencv2/opencv.hpp>
+#endif
 // 三种编码方式 https://baike.baidu.com/item/EAN-13
 
 namespace cv {
 
-    bool isValidCoordinate(const Point2f &point, const Mat &mat) {
-        //TODO fix <=
-        if ((point.x <= 0) || (point.y <= 0))
-            return false;
-
-        if ((point.x >= mat.cols - 1) || (point.y >= mat.rows - 1))
-            return false;
-
-        return true;
-    }
-
     // default thought that mat is a matrix after binary-transfer.
     vector<string> ean_decoder::rect_to_ucharlist(Mat &mat, const vector<RotatedRect> &rects) {
+        CV_Assert(mat.channels() == 1);
         vector<string> will_return;
-        Mat grey = mat.clone();
+        Mat gray = mat.clone();
+        equalizeHist(gray, gray);
+        cv::medianBlur(gray,gray,3);
+        adaptiveThreshold(gray,gray, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 9, 1);
+
         constexpr int PART = 16;
         for (const auto &rect : rects) {
-            vector<uchar> middle;
             Point2f begin;
             Point2f end;
             Point2f vertices[4];
@@ -32,6 +28,7 @@ namespace cv {
             double distance2 = cv::norm(vertices[1] - vertices[2]);
             std::string result;
             for (int i = 1, direction = 1; i <= PART / 2; direction = -1 * direction) {
+                vector<uchar> middle;
                 if (distance1 > distance2) {
                     double stepx = (vertices[0].x - vertices[3].x) / PART;
                     double stepy = (vertices[0].y - vertices[3].y) / PART;
@@ -45,15 +42,14 @@ namespace cv {
                     begin = (vertices[0] + vertices[1]) / 2 + step * i * direction;
                     end = (vertices[2] + vertices[3]) / 2 + step * i * direction;
                 }
-                LineIterator line = LineIterator(grey, begin, end);
+                LineIterator line = LineIterator(gray, begin, end);
                 middle.reserve(line.count);
                 for (int cnt = 0; cnt < line.count; cnt++, line++) {
-                    middle.push_back(grey.at<uchar>(line.pos()));
+                    middle.push_back(gray.at<uchar>(line.pos()));
 #ifdef CV_DEBUG
                     cv::circle(mat, line.pos(), 1, Scalar(0, 0, 255), 1);
 #endif
                 }
-                cv::threshold(middle, middle, 0, 255, THRESH_BINARY | THRESH_OTSU);
                 result = this->decode(middle, 0);
                 if (result.size() != 13) {
                     result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
@@ -244,36 +240,6 @@ namespace cv {
         }
         return checkDigit == (10 - (sum % 10)) % 10;
     }
-
-
-
-//    std::pair<int, int> ean_decoder::find_start_end_patterns(const vector<uchar> &row) {
-//        bool foundStart = false;
-//        std::pair<int, int> startRange{};
-//        int nextStart = 0;
-//        vector<int> counters{0, 0, 0};
-//        while (!foundStart) {
-//            std::fill(std::begin(counters), std::end(counters), 0);
-//            startRange = find_gurad_patterns(row, nextStart, false, BEGIN_PATTERN(), counters);
-//            int start = startRange.first;
-//            nextStart = startRange.second;
-//            // Make sure there is a quiet zone at least as big as the start pattern before the barcode.
-//            // If this check would run off the left edge of the image, do not accept this barcode,
-//            // as it is very likely to be a false positive.
-//            int quietStart = start - (nextStart - start);
-//            if (quietStart >= 0) {
-//                // TODO ,后续二值化之后用bitarray,这里要做优化.
-//                foundStart = true;
-//                for (int i = quietStart; i < start; i++) {
-//                    if (row[i] != WHITE) {
-//                        foundStart = false;
-//                    }
-//                }
-//                //foundStart = row.isRange(quietStart, start, false);
-//            }
-//        }
-//        return startRange;
-//    }
 
     std::pair<int, int> ean_decoder::find_gurad_patterns(const vector<uchar> &row,
                                                          int rowOffset,
