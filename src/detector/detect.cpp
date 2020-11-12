@@ -171,7 +171,7 @@ namespace cv {
     void Detect::locateBarcodes() {
         std::vector<std::vector<Point> > contours;
         std::vector<Vec4i> hierarchy;
-        findContours(processed_barcode, contours, hierarchy, RETR_LIST, CHAIN_APPROX_SIMPLE);
+        findContours(processed_barcode, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
         double bounding_rect_area;
         RotatedRect minRect;
         double THRESHOLD_MIN_AREA = height * width * 0.005;
@@ -262,7 +262,7 @@ namespace cv {
         imshow("consistency", raw_consistency);
 #endif
 //        adaptiveThreshold(raw_consistency,consistency,255,ADAPTIVE_THRESH_MEAN_C,THRESH_BINARY,11,0);
-        threshold(raw_consistency, consistency, 180, 255, THRESH_BINARY + THRESH_OTSU);
+        threshold(raw_consistency, consistency, 220, 255, THRESH_BINARY );
 
 //        normalize(consistency, consistency, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
 
