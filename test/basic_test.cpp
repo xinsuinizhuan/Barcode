@@ -110,8 +110,8 @@ TEST(basic_test, Ean13Decodes) {
     }
     std::cout << std::end(ean13_graphs) - std::begin(ean13_graphs) << " " << count << std::endl;
 
-    }
 }
+
 
 TEST(basic_test, BinaryzationTest) {
     cv::Mat image = imread("./../../test/data/real.jpg",cv::IMREAD_GRAYSCALE);
