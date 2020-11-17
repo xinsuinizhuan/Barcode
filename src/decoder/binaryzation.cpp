@@ -91,7 +91,7 @@ namespace cv {
                 if (!extremes_que.empty()) {
                     std::pair<int, int> extreme = extremes_que.front();
                     if (col == extreme.first) {
-                        signal = (signal == BLACK) ? WHITE : BLACK;
+                        signal = ((signal == BLACK) ? WHITE : BLACK);
                         extremes_que.pop_front();
                     }
                 }

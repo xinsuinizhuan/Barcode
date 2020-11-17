@@ -6,7 +6,6 @@
 // three digit decode method from https://baike.baidu.com/item/EAN-13
 
 namespace cv {
-
     // default thought that mat is a matrix after binary-transfer.
     /*Input a mat and it's position rect, return the decode result */
     vector<string> ean_decoder::rectToUcharlist(Mat &mat, const vector<RotatedRect> &rects) const {
@@ -119,7 +118,7 @@ namespace cv {
 
     ean_decoder::ean_decoder(const char *const name) {
         this->name = string(name);
-        if (name == TYPE_EAN13) {
+        if (name == string(TYPE_EAN13)) {
             bitsNum = EAN13LENGTH;
             digitNumber = EAN13DIGITNUMBER;
             //7 module encode a digit
@@ -127,20 +126,20 @@ namespace cv {
     }
 
     const vector<int> &BEGIN_PATTERN() {
-        // it just need it's 1:1:1(black:white:balck)
+        // it just need it's 1:1:1(black:white:black)
         static const vector<int> BEGIN_PATTERN_(3, 1);
         return BEGIN_PATTERN_;
     }
 
     const vector<int> &MIDDLE_PATTERN() {
-        // it just need it's 1:1:1:1:1(white:black:white:balck:white)
+        // it just need it's 1:1:1:1:1(white:black:white:black:white)
         static const vector<int> MIDDLE_PATTERN_(5, 1);
         return MIDDLE_PATTERN_;
     }
 
     const std::array<char, 32> &FIRST_CHAR_ARRAY() {
         // use array to simulation a Hashmap,
-        // becuase the datasize is small,
+        // because the data's size is small,
         // use a hashmap or brute-force search 10 times both can not accept
         static const std::array<char, 32> pattern{
                 '\x00', '\x00', '\x00', '\x00', '\x00', '\x00',
@@ -238,7 +237,7 @@ namespace cv {
             return false;
         }
         int sum = 0;
-        for (int index = result.size() - 2, i = 1ul; index >= 0; index--, i++) {
+        for (int index = result.size() - 2, i = 1; index >= 0; index--, i++) {
             int temp = result[index] - '0';
             sum += (temp + ((i & 1) != 0 ? temp << 1 : 0));
         }
