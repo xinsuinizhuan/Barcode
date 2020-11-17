@@ -5,7 +5,7 @@
 #include "opencv2/core/mat.hpp"
 
 namespace cv {
-//extern struct EncodePair;
+    //extern struct EncodePair;
     using std::string;
     using std::vector;
 
@@ -32,13 +32,13 @@ namespace cv {
         vector<string> rectToUcharlist(Mat &mat, const std::vector<RotatedRect> &rects) const;
 
     private:
-        string name;//EAN具体解码类别：EAN-13 / EAN-8
-
+        string name; //EAN具体解码类别：EAN-13 / EAN-8
         static constexpr uchar EAN13LENGTH = 95;
         static constexpr uchar EAN13DIGITNUMBER = 13;
         //TODO EAN8 Length ...
         uchar bitsNum;
         uchar digitNumber;
+
         bool isValid(string result) const override;
 
         static int decodeDigit(const vector<uchar> &row, vector<int> &counters, int rowOffset,
@@ -54,6 +54,5 @@ namespace cv {
     Mat grayNomalization(Mat mat, double M0, double VAR0);
 
     vector<Mat> getBarcodeImgs(Mat gray_img, const vector<RotatedRect> &rects);
-}
+} // namespace cv
 #endif // !EANDECODER_H
-
