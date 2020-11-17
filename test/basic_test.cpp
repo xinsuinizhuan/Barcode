@@ -64,7 +64,6 @@ TEST(basic_test, Ean13Decodes) {
     cv::Point2f points[4];
     auto count = 0;
     for (const auto &i: ean13_graphs) {
-
         std::cout << i << ':' << std::endl;
         cv::Mat frame = cv::imread(R"(./../../test/ean13/)" + i);
         std::vector<cv::RotatedRect> rects;
@@ -75,15 +74,6 @@ TEST(basic_test, Ean13Decodes) {
             std::cerr << ex.what() << "No detect pictures\n";
             continue;
         }
-
-        for (const auto &rect : rects) {
-            rect.points(points);
-            for (int j = 0; j < 4; j++) {
-#ifdef CV_DEBUG
-                cv::line(frame, points[j % 4], points[(j + 1) % 4], cv::Scalar(0, 255, 0));
-#endif
-            }
-        }
         std::vector<std::string> results;
         try {
             barcodeDetector.decode(frame, rects, results);
@@ -91,6 +81,14 @@ TEST(basic_test, Ean13Decodes) {
         catch (cv::Exception &ex) {
             std::cerr << std::string(2, ' ') << ex.what() << "No detect results\n";
             continue;
+        }
+        for (const auto &rect : rects) {
+            rect.points(points);
+            for (int j = 0; j < 4; j++) {
+#ifdef CV_DEBUG
+                cv::line(frame, points[j % 4], points[(j + 1) % 4], cv::Scalar(0, 255, 0));
+#endif
+            }
         }
         bool judge = false;
         int exist_number = 0;
@@ -114,39 +112,39 @@ TEST(basic_test, Ean13Decodes) {
 
 
 TEST(basic_test, BinaryzationTest) {
-    cv::Mat image = imread("./../../test/data/real.jpg",cv::IMREAD_GRAYSCALE);
-    imshow("img",image);
+    cv::Mat image = imread("./../../test/data/real.jpg", cv::IMREAD_GRAYSCALE);
+    imshow("img", image);
     cv::Mat dst = image.clone();
     equalizeHist(image, dst);
-    cv::medianBlur(dst,dst,3);
+    cv::medianBlur(dst, dst, 3);
     imshow("dst", dst);
 
     cv::Mat adapt = dst.clone();
     cv::Mat ostu;
-    cv::threshold(adapt,ostu,0,255,cv::THRESH_BINARY|cv::THRESH_OTSU);
+    cv::threshold(adapt, ostu, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
     imshow("ostu", ostu);
 
     //局部二值化
     cv::Mat local_img;
     adaptiveThreshold(adapt, local_img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 9, 1);
-    imshow("local",local_img);
+    imshow("local", local_img);
 
     cv::Mat adapt_img;
     adaptBinaryzation(adapt, adapt_img);
     imshow("adapt", adapt_img);
 
 
-
     cv::Mat adapt_normal;
-    resize(adapt_img,adapt_normal,cv::Size(local_img.cols, local_img.rows));
+    resize(adapt_img, adapt_normal, cv::Size(local_img.cols, local_img.rows));
     imshow("resizeAdapt", adapt_normal);
 
     cv::waitKey();
 }
+
 TEST(basic_test, ImgUnitTest) {
     std::string img_path = "./../../test/data/real.jpg";
     cv::BarcodeDetector bardet;
-    cv::Mat frame = cv::imread(img_path,cv::IMREAD_GRAYSCALE);
+    cv::Mat frame = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
     cv::Mat decodeFrame = frame.clone();
     std::vector<cv::RotatedRect> rects;
     cv::Point2f points[4];
@@ -183,9 +181,9 @@ TEST(basic_test, ImgUnitTest) {
 
 
 TEST(basic_test, RotateTest) {
-    cv::Mat image = imread("./../../test/data/real2.jpg",cv::IMREAD_GRAYSCALE);
+    cv::Mat image = imread("./../../test/data/real2.jpg", cv::IMREAD_GRAYSCALE);
     cv::Mat test;
-    cv::RotatedRect rect(cv::Point2f(134,91),cv::Size(141,293),-89);
+    cv::RotatedRect rect(cv::Point2f(134, 91), cv::Size(141, 293), -89);
     cv::Point2f pts[4];
     rect.points(pts);
     for (int i = 0; i < 4; i++) {
@@ -201,4 +199,32 @@ TEST(basic_test, RotateTest) {
     cv::imshow("test", test);
     cv::imshow("img", image);
     cv::waitKey();
+}
+
+TEST(basic_test, isValidEan13) {
+    int methodLength = 13;
+    auto test_function = [&methodLength](std::string result) {
+        if (result.size() != methodLength) {
+            return false;
+        }
+        int sum = 0;
+        for (int index = result.size() - 2, i = 1; index >= 0; index--, i++) {
+            int temp = result[index] - '0';
+            sum += (temp + ((i & 1) != 0 ? temp << 1 : 0));
+        }
+        return (result.back() - '0') == (10 - (sum % 10)) % 10;
+    };
+    std::string correct_array[] = {"4010948996163", "9780201379624", "2020111711167", "8750130032670", "5231002444232"};
+    for (const auto &item : correct_array) {
+        EXPECT_TRUE(test_function(item));
+        std::string copyed = item;
+        for (int i = 0; i < 10; ++i) {
+            copyed.back() = '0'+i;
+            if(i != item.back()-'0'){
+                EXPECT_FALSE(test_function(copyed));
+            }else{
+                EXPECT_TRUE(test_function(copyed));
+            }
+        }
+    }
 }

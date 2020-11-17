@@ -2,13 +2,13 @@
 // Created by 97659 on 2020/11/3.
 //
 
+#include "precomp.hpp"
 #include "barcode.hpp"
 
 namespace cv {
     static bool checkBarInputImage(InputArray img, Mat &gray) {
         CV_Assert(!img.empty());
         CV_CheckDepthEQ(img.depth(), CV_8U, "");
-
         if (img.cols() <= 20 || img.rows() <= 20) {
             return false;  // image data is not enough for providing reliable results
         }
@@ -54,8 +54,8 @@ namespace cv {
             return false;
         }
         CV_Assert(!rects.empty());
-        ean_decoder decoder("");
-        vector<std::string> _decoded_info = decoder.rect_to_ucharlist(inarr, rects);
+        ean_decoder decoder(TYPE_EAN13);
+        vector<std::string> _decoded_info = decoder.rectToUcharlist(inarr, rects);
         decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
 
         return true;
@@ -67,20 +67,23 @@ namespace cv {
         if (!checkBarInputImage(img, inarr)) {
             return false;
         }
-
-        Detect bardet;
-        bardet.init(inarr);
-        bardet.localization();
-        vector<RotatedRect> _rects = bardet.getLocalizationRects();
-        rects.assign(_rects.begin(), _rects.end());
-        if (_rects.empty()) {
+        this->detect(img, rects);
+        if (rects.empty()) {
             return false;
         }
-        ean_decoder decoder("");
-
-        vector<std::string> _decoded_info = decoder.rect_to_ucharlist(inarr, _rects);
-        decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
-
+        this->decode(img, rects, decoded_info);
+//        Detect bardet;
+//        bardet.init(inarr);
+//        bardet.localization();
+//        vector<RotatedRect> _rects = bardet.getLocalizationRects();
+//        rects.assign(_rects.begin(), _rects.end());
+//        if (_rects.empty()) {
+//            return false;
+//        }
+//        ean_decoder decoder("");
+//
+//        vector<std::string> _decoded_info = decoder.rectToUcharlist(inarr, _rects);
+//        decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
         return true;
     }
 

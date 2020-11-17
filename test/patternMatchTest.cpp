@@ -43,7 +43,7 @@ TEST(patternMatch, compare) {
         for (int j = 0; j < 4; ++j) {
             std::cout << i[j] << " ";
         }
-        auto temp = patternMatchConsieDistance(prepares, i, MAX_INDIVIDUAL_VARIANCE);
+        auto temp = cv::patternMatchVariance(prepares, i, MAX_INDIVIDUAL_VARIANCE);
         std::cout << temp << " ";
         maxmium = std::min(temp, maxmium);
         std::cout << maxmium << std::endl;

@@ -3,18 +3,19 @@
 #include <array>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
-// 三种编码方式 https://baike.baidu.com/item/EAN-13
+// three digit decode method from https://baike.baidu.com/item/EAN-13
 
 namespace cv {
 
     // default thought that mat is a matrix after binary-transfer.
-    vector<string> ean_decoder::rect_to_ucharlist(Mat &mat, const vector<RotatedRect> &rects) {
+    /*Input a mat and it's position rect, return the decode result */
+    vector<string> ean_decoder::rectToUcharlist(Mat &mat, const vector<RotatedRect> &rects) const {
         CV_Assert(mat.channels() == 1);
         vector<string> will_return;
         Mat gray = mat.clone();
         equalizeHist(gray, gray);
-        cv::medianBlur(gray,gray,3);
-        adaptiveThreshold(gray,gray, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 9, 1);
+        cv::medianBlur(gray, gray, 3);
+        adaptiveThreshold(gray, gray, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 9, 1);
         imshow("binary", gray);
         constexpr int PART = 16;
         for (const auto &rect : rects) {
@@ -60,16 +61,14 @@ namespace cv {
                 cv::circle(mat, begin, 4, Scalar(255, 0, 0), 2);
                 cv::circle(mat, end, 4, Scalar(0, 0, 255), 2);
 #endif
-
                 int vote_cnt = 0;
                 if (result.size() == 13) {
-                    if(result_vote.find(result) == result_vote.end()) {
-                        result_vote.insert(std::pair<std::string,int>(result, 1));
+                    if (result_vote.find(result) == result_vote.end()) {
+                        result_vote.insert(std::pair<std::string, int>(result, 1));
                     } else {
                         result_vote[result] += 1;
                     }
-
-                    if(result_vote[result] > vote_cnt) {
+                    if (result_vote[result] > vote_cnt) {
                         vote_cnt = result_vote[result];
                         max_result = result;
                     }
@@ -79,9 +78,7 @@ namespace cv {
                 }
             }
             will_return.push_back(max_result);
-
         }
-
         return will_return;
     }
 
@@ -122,15 +119,12 @@ namespace cv {
 
     ean_decoder::ean_decoder(const char *const name) {
         this->name = string(name);
-        this->unitWidth = -1;
-        if (name == EAN13) {
+        if (name == TYPE_EAN13) {
             bitsNum = EAN13LENGTH;
-            //7 module 编码一个digit
-            codeLength = 7;
+            digitNumber = EAN13DIGITNUMBER;
+            //7 module encode a digit
         }
     }
-
-    ean_decoder::~ean_decoder() = default;
 
     const vector<int> &BEGIN_PATTERN() {
         // it just need it's 1:1:1(black:white:balck)
@@ -155,7 +149,8 @@ namespace cv {
                 '\x00', '\x05', '\x00', '\x07', '\x02', '\x00',
                 '\x00', '\x04', '\x01', '\x00', '\x00', '\x00',
                 '\x00', '\x00'
-        };// length is 32 to ensure the security
+        };
+        // length is 32 to ensure the security
         // 0x00000 -> 0  -> 0
         // 0x11010 -> 26 -> 1
         // 0x10110 -> 22 -> 2
@@ -171,9 +166,9 @@ namespace cv {
         return pattern;
     }
 
-    string ean_decoder::decode_outer(vector<uchar> data) {
+    string ean_decoder::decodeOuter(vector<uchar> data) {
         vector<int> guradCounters{0, 0, 0};
-        std::pair<int, int> temp = find_gurad_patterns(data, 0, false, BEGIN_PATTERN(), guradCounters);
+        std::pair<int, int> temp = findGuardPatterns(data, 0, false, BEGIN_PATTERN(), guradCounters);
         int start = temp.first;
         return decode(data, start);
     }
@@ -187,13 +182,12 @@ namespace cv {
     string ean_decoder::decode(vector<uchar> data, int start) const {
         // at least it should have EAN13LENGTH's bits
         // else it can not decode at all
-        char decoderesult[14]{'\0'};
+        char decode_result[14]{'\0'};
         if (data.size() - start < EAN13LENGTH) {
             return "size wrong";
         }
-        vector<int> guradCounters{0, 0, 0};
-        std::pair<int, int> temp = find_gurad_patterns(data, start, false, BEGIN_PATTERN(), guradCounters);
-        start = temp.second;
+        vector<int> gurad_counters{0, 0, 0};
+        start = findGuardPatterns(data, start, false, BEGIN_PATTERN(), gurad_counters).second;
         vector<int> counters = {0, 0, 0, 0};
         int end = data.size();
         uint32_t first_char_bit = 0;
@@ -203,33 +197,33 @@ namespace cv {
             if (bestMatch == -1) {
                 return "ERROR";
             }
-            decoderesult[i] = static_cast<char>('0' + bestMatch % 10);
+            decode_result[i] = static_cast<char>('0' + bestMatch % 10);
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
             first_char_bit |= (bestMatch >= 10) << i;
         }
-        decoderesult[0] = FIRST_CHAR_ARRAY()[first_char_bit >> 2] + '0';
+        decode_result[0] = FIRST_CHAR_ARRAY()[first_char_bit >> 2] + '0';
         // why there need >> 2?
         // first, the i in for-cycle is begin in 1
         // second, the first i = 1 is always
-        start = find_gurad_patterns(data, start, true, MIDDLE_PATTERN(),
-                                    vector<int>(MIDDLE_PATTERN().size())).second;
+        start = findGuardPatterns(data, start, true, MIDDLE_PATTERN(),
+                                  vector<int>(MIDDLE_PATTERN().size())).second;
         for (int i = 0; i < 6 && start < end; ++i) {
             int bestMatch = decodeDigit(data, counters, start, get_A_or_C_Patterns());
             if (bestMatch == -1) {
                 return "ERROR";
             }
-            decoderesult[i + 7] = static_cast<char>('0' + bestMatch);
+            decode_result[i + 7] = static_cast<char>('0' + bestMatch);
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
         }
-        string result = string(decoderesult);
+        string result = string(decode_result);
         if (!isValid(result)) {
-            return "wrong: " + result;
+            return "Wrong: " + result.append(string(13 - result.size(), ' '));
         }
         //TODO throw exception
         return result;
     }
 
-    string ean_decoder::decode_and_detect(vector<uchar> data) const {
+    string ean_decoder::decodeAndDetect(vector<uchar> data) const {
         // TODO
         return "!";
     }
@@ -240,28 +234,26 @@ namespace cv {
     }
 
     bool ean_decoder::isValid(string result) const {
-        int i = 1, sum = 0;
-        int checkDigit = result[result.size() - 1] - '0';
-        for (int index = result.size() - i - 1; index >= 0; index--, i++) {
-            int temp = result[index] - '0';
-            if (i % 2 != 0) {
-                temp *= 3;
-            }
-            sum += temp;
+        if (result.size() != this->digitNumber) {
+            return false;
         }
-        return checkDigit == (10 - (sum % 10)) % 10;
+        int sum = 0;
+        for (int index = result.size() - 2, i = 1ul; index >= 0; index--, i++) {
+            int temp = result[index] - '0';
+            sum += (temp + ((i & 1) != 0 ? temp << 1 : 0));
+        }
+        return (result.back() - '0') == (10 - (sum % 10)) % 10;
     }
 
-    std::pair<int, int> ean_decoder::find_gurad_patterns(const vector<uchar> &row,
-                                                         int rowOffset,
-                                                         uchar whiteFirst,
-                                                         const vector<int> &pattern,
-                                                         vector<int> counters) {
+    std::pair<int, int> ean_decoder::findGuardPatterns(const vector<uchar> &row,
+                                                       int rowOffset,
+                                                       uchar whiteFirst,
+                                                       const vector<int> &pattern,
+                                                       vector<int> counters) {
         std::pair<int, int> will_return{rowOffset, -1};
         int patternLength = pattern.size();
         int width = row.size();
         uchar isWhite = whiteFirst ? WHITE : BLACK;
-        // TODO, deque<bool> 版本?
         rowOffset = std::find(row.cbegin() + rowOffset, row.cend(), isWhite) - row.cbegin();
         //rowOffset = whiteFirst ? row.getNextUnset(rowOffset) : row.getNextSet(rowOffset);
         int counterPosition = 0;
@@ -276,7 +268,6 @@ namespace cv {
                     }
                     patternStart += counters[0] + counters[1];
                     std::copy(counters.begin() + 2, counters.end(), counters.begin());
-                    //System.arraycopy(counters, 2, counters, 0, patternLength - 2);
                     counters[patternLength - 2] = 0;
                     counters[patternLength - 1] = 0;
                     counterPosition--;
@@ -306,5 +297,4 @@ namespace cv {
         return std::max(-1, bestMatch);
         // -1 is dismatch or means error.
     }
-
 }
