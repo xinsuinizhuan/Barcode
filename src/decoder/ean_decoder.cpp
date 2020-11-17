@@ -12,14 +12,22 @@ namespace cv {
         CV_Assert(mat.channels() == 1);
         vector<string> will_return;
         Mat gray = mat.clone();
-        equalizeHist(gray, gray);
-        cv::medianBlur(gray, gray, 3);
-        adaptiveThreshold(gray, gray, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 9, 1);
+        // assume the maximum proportion of barcode is half of max(width, height), thickest bar is
+        // 0.5*max(width,height)/95 * 4
+        int length = max(gray.rows, gray.cols);
+        int block_size = length/95 * 2 + 1;
+        equalizeHist(gray,gray);
+        imshow("hist", gray);
+        adaptiveThreshold(gray,gray, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, block_size, 1);
         imshow("binary", gray);
-        constexpr int PART = 16;
+        constexpr int PART = 10;
         for (const auto &rect : rects) {
             std::map<std::string, int> result_vote;
             std::string max_result = "ERROR";
+            if(max(rect.size.height, rect.size.width) < EAN13LENGTH) {
+                will_return.push_back(max_result);
+                continue;
+            }
             Point2f begin;
             Point2f end;
             Point2f vertices[4];
@@ -46,9 +54,6 @@ namespace cv {
                 middle.reserve(line.count);
                 for (int cnt = 0; cnt < line.count; cnt++, line++) {
                     middle.push_back(gray.at<uchar>(line.pos()));
-#ifdef CV_DEBUG
-                    cv::circle(mat, line.pos(), 1, Scalar(0, 0, 255), 1);
-#endif
                 }
                 result = this->decode(middle, 0);
                 if (result.size() != 13) {

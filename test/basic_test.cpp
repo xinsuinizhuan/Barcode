@@ -65,7 +65,7 @@ TEST(basic_test, Ean13Decodes) {
     auto count = 0;
     for (const auto &i: ean13_graphs) {
         std::cout << i << ':' << std::endl;
-        cv::Mat frame = cv::imread(R"(./../../test/ean13/)" + i);
+        cv::Mat frame = cv::imread(R"(./../test/ean13/)" + i);
         std::vector<cv::RotatedRect> rects;
         try {
             barcodeDetector.detect(frame, rects);
