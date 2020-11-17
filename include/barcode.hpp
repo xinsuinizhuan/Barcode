@@ -7,6 +7,7 @@
 
 #include "detector/detect.hpp"
 #include "decoder/ean_decoder.hpp"
+#include "decoder/binaryzation.hpp"
 
 namespace cv {
     class CV_EXPORTS_W BarcodeDetector {

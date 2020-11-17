@@ -6,7 +6,7 @@ add_executable(
         unit_tests
         basic_test.cpp
         patternMatchTest.cpp
-)
+        binaryzation_test.cpp)
 
 target_link_libraries(
         unit_tests
