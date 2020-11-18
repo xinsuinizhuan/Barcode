@@ -142,22 +142,22 @@ namespace cv {
         localization_rects.clear();
 #ifdef CV_DEBUG
         clock_t start = clock();
-            imshow("gray image", resized_barcode);
+        imshow("gray image", resized_barcode);
 
-            findCandidates();   // find areas with low variance in gradient direction
-            clock_t find_time = clock();
-            imshow("image before morphing", processed_barcode);
+        findCandidates();   // find areas with low variance in gradient direction
+        clock_t find_time = clock();
+        imshow("image before morphing", processed_barcode);
 
-            connectComponents();
-            clock_t connect_time = clock();
-            imshow("image after morphing", processed_barcode);
+        connectComponents();
+        clock_t connect_time = clock();
+        imshow("image after morphing", processed_barcode);
 
-            locateBarcodes();
-            clock_t locate_time = clock();
+        locateBarcodes();
+        clock_t locate_time = clock();
 
-            printf("Finding candidates costs %ld ms, connecting components costs %ld ms, locating barcodes costs %ld ms\n",
-                   find_time - start, connect_time - find_time,
-                   locate_time - connect_time);
+        printf("Finding candidates costs %ld ms, connecting components costs %ld ms, locating barcodes costs %ld ms\n",
+               find_time - start, connect_time - find_time,
+               locate_time - connect_time);
 
 #else
         findCandidates();   // find areas with low variance in gradient direction
@@ -262,7 +262,7 @@ namespace cv {
         imshow("consistency", raw_consistency);
 #endif
 //        adaptiveThreshold(raw_consistency,consistency,255,ADAPTIVE_THRESH_MEAN_C,THRESH_BINARY,11,0);
-        threshold(raw_consistency, consistency, 220, 255, THRESH_BINARY );
+        threshold(raw_consistency, consistency, 220, 255, THRESH_BINARY);
 
 //        normalize(consistency, consistency, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
 

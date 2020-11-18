@@ -104,25 +104,25 @@ namespace cv {
     }
 
     // w has to be odd
-    void getMinMax(int row, int col, int w , Mat img, uchar& min, uchar&max) {
-        int half_width = w/2;
+    void getMinMax(int row, int col, int w, Mat img, uchar &min, uchar &max) {
+        int half_width = w / 2;
         min = 255;
         max = 0;
-        for (int offset_row = -1 * half_width; offset_row <= half_width; offset_row ++) {
+        for (int offset_row = -1 * half_width; offset_row <= half_width; offset_row++) {
             int temp_row = row + offset_row;
             if (temp_row < 0 || temp_row >= img.rows) {
                 continue;
             }
-            for (int offset_col = -1 * half_width; offset_col <= half_width; offset_col ++) {
+            for (int offset_col = -1 * half_width; offset_col <= half_width; offset_col++) {
                 int temp_col = col + offset_col;
                 if (temp_col < 0 || temp_col >= img.cols) {
                     continue;
                 }
                 uchar temp_val = img.at<uchar>(temp_row, temp_col);
-                if(temp_val > max) {
+                if (temp_val > max) {
                     max = temp_val;
                 }
-                if(temp_val < min) {
+                if (temp_val < min) {
                     min = temp_val;
                 }
             }
@@ -168,27 +168,27 @@ namespace cv {
 
         Mat threshold2(_src.rows, _src.cols, CV_32FC1, Scalar(0));
         Mat threshold3(_src.rows, _src.cols, CV_32FC1, Scalar(0));
-        for (int row = 0; row < threshold2.rows; row ++) {
-            for (int col = 0; col < threshold2.cols; col ++) {
+        for (int row = 0; row < threshold2.rows; row++) {
+            for (int col = 0; col < threshold2.cols; col++) {
                 uchar min, max;
                 getMinMax(row, col, window_size, _src, min, max);
-                threshold2.at<float>(row, col) = (min+max)/2.0f;
+                threshold2.at<float>(row, col) = (min + max) / 2.0f;
                 threshold3.at<float>(row, col) = max - min;
             }
         }
         Mat threshold4;
-        GaussianBlur(threshold2, threshold4, Size(window_size,window_size), window_size/2,window_size/2);
+        GaussianBlur(threshold2, threshold4, Size(window_size, window_size), window_size / 2, window_size / 2);
 
         //Binaryzation
         float t1 = (1 + alpha) * threshold1;
         float t2 = (1 - alpha) * threshold1;
         float t3 = alpha * threshold1;
-        for (int row = 0; row < _src.rows; row ++) {
-            for ( int col = 0; col < _src.cols; col ++) {
+        for (int row = 0; row < _src.rows; row++) {
+            for (int col = 0; col < _src.cols; col++) {
                 uchar temp_val = _src.at<uchar>(row, col);
-                if(temp_val > t1) {
+                if (temp_val > t1) {
                     _dst.at<uchar>(row, col) = 255;
-                } else if(temp_val < t2) {
+                } else if (temp_val < t2) {
                     _dst.at<uchar>(row, col) = 0;
                 } else {
                     if (threshold3.at<float>(row, col) > t3) {
@@ -198,9 +198,9 @@ namespace cv {
                             _dst.at<uchar>(row, col) = 255;
                         }
                     } else {
-                        float threshold3_temp = (threshold1 + threshold4.at<float>(row, col))/2.0f;
+                        float threshold3_temp = (threshold1 + threshold4.at<float>(row, col)) / 2.0f;
                         threshold3.at<float>(row, col) = threshold3_temp;
-                        if(temp_val < threshold3_temp) {
+                        if (temp_val < threshold3_temp) {
                             _dst.at<uchar>(row, col) = 0;
                         } else {
                             _dst.at<uchar>(row, col) = 255;
@@ -209,7 +209,6 @@ namespace cv {
                 }
             }
         }
-
 
 
     }

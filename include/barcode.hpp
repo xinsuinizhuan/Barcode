@@ -33,6 +33,7 @@ namespace cv {
         CV_WRAP bool decode(InputArray img, const std::vector<RotatedRect> &rects, CV_OUT
                             std::vector<std::string> &decoded_info) const;
 
+
         /** @brief Both detects and decodes barcode
 
          @param img grayscale or color (BGR) image containing QR code.

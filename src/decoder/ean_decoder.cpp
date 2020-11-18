@@ -15,48 +15,44 @@ namespace cv {
         // assume the maximum proportion of barcode is half of max(width, height), thickest bar is
         // 0.5*max(width,height)/95 * 4
         int length = max(gray.rows, gray.cols);
-        int block_size = length/95 * 2 + 1;
-        equalizeHist(gray,gray);
+        int block_size = length / digitNumber * 2 + 1;
+        equalizeHist(gray, gray);
         imshow("hist", gray);
-        adaptiveThreshold(gray,gray, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, block_size, 1);
+        adaptiveThreshold(gray, gray, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, block_size, 1);
         imshow("binary", gray);
         constexpr int PART = 10;
         for (const auto &rect : rects) {
             std::map<std::string, int> result_vote;
             std::string max_result = "ERROR";
-            if(max(rect.size.height, rect.size.width) < EAN13LENGTH) {
+            if (max(rect.size.height, rect.size.width) < EAN13LENGTH) {
                 will_return.push_back(max_result);
                 continue;
             }
-            Point2f begin;
-            Point2f end;
-            Point2f vertices[4];
+            Point2f begin, end, vertices[4], cbegin, cend, step;
             rect.points(vertices);
+            std::string result;
             double distance1 = cv::norm(vertices[0] - vertices[1]);
             double distance2 = cv::norm(vertices[1] - vertices[2]);
-            std::string result;
+            if (distance1 > distance2) {
+                step = (vertices[0] - vertices[3]) / PART;
+                cbegin = (vertices[0] + vertices[3]) / 2;
+                cend = (vertices[1] + vertices[2]) / 2;
+            } else {
+                step = (vertices[0] - vertices[1]) / PART;
+                cbegin = (vertices[0] + vertices[1]) / 2;
+                cend = (vertices[2] + vertices[3]) / 2;
+            }
             for (int i = 1, direction = 1; i <= PART / 2; direction = -1 * direction) {
                 vector<uchar> middle;
-                if (distance1 > distance2) {
-                    double stepx = (vertices[0].x - vertices[3].x) / PART;
-                    double stepy = (vertices[0].y - vertices[3].y) / PART;
-                    Point2f step(stepx, stepy);
-                    begin = (vertices[0] + vertices[3]) / 2 + step * i * direction;
-                    end = (vertices[1] + vertices[2]) / 2 + step * i * direction;
-                } else {
-                    double stepx = (vertices[0].x - vertices[1].x) / PART;
-                    double stepy = (vertices[0].y - vertices[1].y) / PART;
-                    Point2f step(stepx, stepy);
-                    begin = (vertices[0] + vertices[1]) / 2 + step * i * direction;
-                    end = (vertices[2] + vertices[3]) / 2 + step * i * direction;
-                }
+                begin = cbegin + step * i * direction;
+                end = cend + step * i * direction;
                 LineIterator line = LineIterator(gray, begin, end);
                 middle.reserve(line.count);
                 for (int cnt = 0; cnt < line.count; cnt++, line++) {
                     middle.push_back(gray.at<uchar>(line.pos()));
                 }
                 result = this->decode(middle, 0);
-                if (result.size() != 13) {
+                if (result.size() != bitsNum) {
                     result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
                 }
 #ifdef CV_DEBUG
@@ -66,12 +62,8 @@ namespace cv {
                 cv::circle(mat, end, 4, Scalar(0, 0, 255), 2);
 #endif
                 int vote_cnt = 0;
-                if (result.size() == 13) {
-                    if (result_vote.find(result) == result_vote.end()) {
-                        result_vote.insert(std::pair<std::string, int>(result, 1));
-                    } else {
-                        result_vote[result] += 1;
-                    }
+                if (result.size() == bitsNum) {
+                    result_vote[result] += 1;// if not exist, it will automatically create key-value pair
                     if (result_vote[result] > vote_cnt) {
                         vote_cnt = result_vote[result];
                         max_result = result;
@@ -170,12 +162,6 @@ namespace cv {
         return pattern;
     }
 
-    string ean_decoder::decodeOuter(vector<uchar> data) {
-        vector<int> guradCounters{0, 0, 0};
-        std::pair<int, int> temp = findGuardPatterns(data, 0, false, BEGIN_PATTERN(), guradCounters);
-        int start = temp.first;
-        return decode(data, start);
-    }
 
     /**
      * decode EAN-13
@@ -183,6 +169,7 @@ namespace cv {
      * @prama: start, the index of start order, begin at 0, max-value is data.size()-1
      * it scan begin at the data[start]
      */
+    // TODO!, need fix the param: stars's usage
     string ean_decoder::decode(vector<uchar> data, int start) const {
         // at least it should have EAN13LENGTH's bits
         // else it can not decode at all
@@ -205,7 +192,7 @@ namespace cv {
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
             first_char_bit |= (bestMatch >= 10) << i;
         }
-        decode_result[0] = FIRST_CHAR_ARRAY()[first_char_bit >> 2] + '0';
+        decode_result[0] = static_cast<char>(FIRST_CHAR_ARRAY()[first_char_bit >> 2] + '0');
         // why there need >> 2?
         // first, the i in for-cycle is begin in 1
         // second, the first i = 1 is always
@@ -221,14 +208,15 @@ namespace cv {
         }
         string result = string(decode_result);
         if (!isValid(result)) {
-            return "Wrong: " + result.append(string(13 - result.size(), ' '));
+            return "Wrong: " + result.append(string(bitsNum - result.size(), ' '));
         }
         //TODO throw exception
         return result;
     }
 
-    string ean_decoder::decodeAndDetect(vector<uchar> data) const {
+    string ean_decoder::decodeDirectly(vector<uchar> data) const {
         // TODO
+
         return "!";
     }
 

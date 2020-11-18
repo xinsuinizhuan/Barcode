@@ -33,7 +33,7 @@ namespace cv {
 
     BarcodeDetector::~BarcodeDetector() = default;
 
-    bool BarcodeDetector::detect(InputArray img, CV_OUT std::vector<RotatedRect> &rects) const {
+    bool BarcodeDetector::detect(InputArray img, CV_OUT std::vector <RotatedRect> &rects) const {
         Mat inarr;
         if (!checkBarInputImage(img, inarr)) {
             return false;
@@ -42,36 +42,36 @@ namespace cv {
         Detect bardet;
         bardet.init(inarr);
         bardet.localization();
-        vector<RotatedRect> _rects = bardet.getLocalizationRects();
+        vector <RotatedRect> _rects = bardet.getLocalizationRects();
         rects.assign(_rects.begin(), _rects.end());
         return true;
     }
 
     bool BarcodeDetector::decode(InputArray img, const std::vector<RotatedRect> &rects, CV_OUT
-                                 vector<std::string> &decoded_info) const {
+    vector<std::string> &decoded_info) const {
         Mat inarr;
         if (!checkBarInputImage(img, inarr)) {
             return false;
         }
         CV_Assert(!rects.empty());
         ean_decoder decoder(TYPE_EAN13);
-        vector<std::string> _decoded_info = decoder.rectToUcharlist(inarr, rects);
+        vector < std::string > _decoded_info = decoder.rectToUcharlist(inarr, rects);
         decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
 
         return true;
     }
 
     bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT vector<std::string> &decoded_info, CV_OUT
-                                          vector<RotatedRect> &rects) const {
+    vector<RotatedRect> &rects) const {
         Mat inarr;
         if (!checkBarInputImage(img, inarr)) {
             return false;
         }
-        this->detect(img, rects);
-        if (rects.empty()) {
+        bool ok = detect(img, rects);
+        if (!ok || rects.empty()) {
             return false;
         }
-        this->decode(img, rects, decoded_info);
+        decode(img, rects, decoded_info);
 //        Detect bardet;
 //        bardet.init(inarr);
 //        bardet.localization();

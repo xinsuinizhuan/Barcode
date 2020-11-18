@@ -23,11 +23,9 @@ namespace cv {
         string decode(vector<uchar> data, int start) const override;
 
         //Detect encode type
-        string decodeAndDetect(vector<uchar> data) const override;
+        string decodeDirectly(vector<uchar> data) const override;
 
         string getName() const override;
-
-        string decodeOuter(vector<uchar> data);
 
         vector<string> rectToUcharlist(Mat &mat, const std::vector<RotatedRect> &rects) const;
 

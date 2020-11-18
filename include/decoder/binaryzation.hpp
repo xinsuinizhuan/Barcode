@@ -1,10 +1,12 @@
 #ifndef __OPENCV_BINARYZATION_H__
+
 #include <opencv2/imgproc.hpp>
 #include <deque>
 #include <opencv2/opencv.hpp>
 //test
 #include <fstream>
 #include <iostream>
+
 namespace cv {
     void adaptBinaryzation(cv::InputArray src, cv::OutputArray &dst);
 
