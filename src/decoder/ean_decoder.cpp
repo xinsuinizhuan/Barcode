@@ -8,7 +8,7 @@
 namespace cv {
     // default thought that mat is a matrix after binary-transfer.
     /*Input a mat and it's position rect, return the decode result */
-    vector<string> ean_decoder::rectToUcharlist(Mat &mat, const vector<RotatedRect> &rects) const {
+    vector<string> ean_decoder::rectToUcharlist(Mat &mat, const vector<RotatedRect> &rects, int PART) const {
         CV_Assert(mat.channels() == 1);
         vector<string> will_return;
         Mat gray = mat.clone();
@@ -20,7 +20,7 @@ namespace cv {
         imshow("hist", gray);
         adaptiveThreshold(gray, gray, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, block_size, 1);
         imshow("binary", gray);
-        constexpr int PART = 10;
+        //constexpr int PART = 10;
         for (const auto &rect : rects) {
             std::map<std::string, int> result_vote;
             std::string max_result = "ERROR";
@@ -113,11 +113,11 @@ namespace cv {
         return AB_Patterns;
     }
 
-    ean_decoder::ean_decoder(const char *const name) {
-        this->name = string(name);
-        if (name == string(TYPE_EAN13)) {
+    ean_decoder::ean_decoder(EAN name) {
+        if (name == EAN::TYPE13) {
             bitsNum = EAN13LENGTH;
             digitNumber = EAN13DIGITNUMBER;
+            this->name = "EAN-13";
             //7 module encode a digit
         }
     }
@@ -182,7 +182,7 @@ namespace cv {
         vector<int> counters = {0, 0, 0, 0};
         int end = data.size();
         uint32_t first_char_bit = 0;
-        // [1,6] are left part of EAN13, [7,12] are right part, index 0 is calculated by left part
+        // [1,6] are left part of EAN, [7,12] are right part, index 0 is calculated by left part
         for (int i = 1; i < 7 && start < end; ++i) {
             int bestMatch = decodeDigit(data, counters, start, get_AB_Patterns());
             if (bestMatch == -1) {
@@ -214,10 +214,15 @@ namespace cv {
         return result;
     }
 
-    string ean_decoder::decodeDirectly(vector<uchar> data) const {
+    string ean_decoder::decodeDirectly(InputArray _img) const {
         // TODO
-
-        return "!";
+        auto Mat = _img.getMat();
+        auto rRect = RotatedRect(Point2f(Mat.cols / 2, Mat.rows / 2), Size2f(Mat.cols, Mat.rows), 0);
+        auto result = rectToUcharlist(Mat, vector<RotatedRect>{rRect}, 30);
+        if (!result.empty()) {
+            return result.front();
+        }
+        return "";
     }
 
 

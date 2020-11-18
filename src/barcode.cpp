@@ -33,7 +33,7 @@ namespace cv {
 
     BarcodeDetector::~BarcodeDetector() = default;
 
-    bool BarcodeDetector::detect(InputArray img, CV_OUT std::vector <RotatedRect> &rects) const {
+    bool BarcodeDetector::detect(InputArray img, CV_OUT std::vector<RotatedRect> &rects) const {
         Mat inarr;
         if (!checkBarInputImage(img, inarr)) {
             return false;
@@ -42,27 +42,27 @@ namespace cv {
         Detect bardet;
         bardet.init(inarr);
         bardet.localization();
-        vector <RotatedRect> _rects = bardet.getLocalizationRects();
+        vector<RotatedRect> _rects = bardet.getLocalizationRects();
         rects.assign(_rects.begin(), _rects.end());
         return true;
     }
 
     bool BarcodeDetector::decode(InputArray img, const std::vector<RotatedRect> &rects, CV_OUT
-    vector<std::string> &decoded_info) const {
+                                 vector<std::string> &decoded_info) const {
         Mat inarr;
         if (!checkBarInputImage(img, inarr)) {
             return false;
         }
         CV_Assert(!rects.empty());
-        ean_decoder decoder(TYPE_EAN13);
-        vector < std::string > _decoded_info = decoder.rectToUcharlist(inarr, rects);
+        ean_decoder decoder(EAN::TYPE13);
+        vector<std::string> _decoded_info = decoder.rectToUcharlist(inarr, rects);
         decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
 
         return true;
     }
 
     bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT vector<std::string> &decoded_info, CV_OUT
-    vector<RotatedRect> &rects) const {
+                                          vector<RotatedRect> &rects) const {
         Mat inarr;
         if (!checkBarInputImage(img, inarr)) {
             return false;
@@ -87,4 +87,18 @@ namespace cv {
         return true;
     }
 
+
+    bool BarcodeDetector::detectDirectly(InputArray img, CV_OUT string &decoded_info, CV_OUT
+                                         vector<RotatedRect> &rects) const {
+        Mat inarr;
+        if (!checkBarInputImage(img, inarr)) {
+            return false;
+        }
+        ean_decoder ean13(EAN::TYPE13);
+        decoded_info = ean13.decodeDirectly(img);
+        if (!decoded_info.empty()) {
+            return false;
+        }
+        return true;
+    }
 }

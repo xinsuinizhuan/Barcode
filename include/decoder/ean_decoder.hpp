@@ -9,13 +9,14 @@ namespace cv {
     using std::string;
     using std::vector;
 
-    // TODO, let those variables move to their own class
-    const static char *TYPE_EAN13 = "EAN-13";
-    const static char *TYPE_EAN8 = "EAN-8";
+    // TODO, EAN-8
+    enum class EAN {
+        TYPE13 = 0, TYPE8
+    };
 
     class ean_decoder : public absdecoder {
     public:
-        explicit ean_decoder(const char *name);
+        explicit ean_decoder(EAN name);
 
         ~ean_decoder() override = default;
 
@@ -23,11 +24,11 @@ namespace cv {
         string decode(vector<uchar> data, int start) const override;
 
         //Detect encode type
-        string decodeDirectly(vector<uchar> data) const override;
+        string decodeDirectly(InputArray _img) const override;
 
         string getName() const override;
 
-        vector<string> rectToUcharlist(Mat &mat, const std::vector<RotatedRect> &rects) const;
+        vector<string> rectToUcharlist(Mat &mat, const std::vector<RotatedRect> &rects, int PART = 10) const;
 
     private:
         string name; //EAN具体解码类别：EAN-13 / EAN-8

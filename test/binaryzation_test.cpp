@@ -67,7 +67,7 @@ TEST(binaryzation_test, ImgUnitTest) {
 
 
 TEST(basic_test, RotateTest) {
-    cv::Mat image = imread("./../../test/data/real2.jpg", cv::IMREAD_GRAYSCALE);
+    cv::Mat image = imread("./../../test/data/real2.jpgZ", cv::IMREAD_GRAYSCALE);
     cv::Mat test;
     cv::RotatedRect rect(cv::Point2f(134, 91), cv::Size(141, 293), -89);
     cv::Point2f pts[4];

@@ -8,7 +8,6 @@
 #include <limits>
 
 namespace cv {
-
     // BLACK elemental area is 0
     constexpr static int BLACK = std::numeric_limits<uchar>::min();
     // WHITE elemental area is 0xff

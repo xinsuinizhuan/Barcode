@@ -12,6 +12,7 @@ int main(int argc, char **argv) {
         exit(-1);
     }
     BarcodeDetector bardet;
+    ean_decoder ean13_decoder{EAN::TYPE13};
     Mat frame;
     Point2f vertices[4];
     clock_t start;
@@ -28,6 +29,7 @@ int main(int argc, char **argv) {
             start = clock();
             capture.read(frame);
             bardet.detectAndDecode(frame, decoded_info, rects);
+            decoded_info.push_back(ean13_decoder.decodeDirectly(frame));
             for (auto &info:decoded_info) {
                 std::cout << info << std::endl;
             }

@@ -1,5 +1,6 @@
 #include "test_precomp.hpp"
 
+const std::string pre_path = R"(./../../)";
 std::string ean13_graphs[] = {
         "1_normal.jpg", "2_normal.png",
         "3_normal.jpg", "4_normal.png",
@@ -28,7 +29,7 @@ TEST(basic_test, get_path) {
 TEST(basic_test, Detects) {
     for (const auto &item : public_graphs) {
         const std::string &name_current_image = item;
-        const std::string path = R"(./../../test/data/)";
+        const std::string path = pre_path + R"(test/data/)";
         cv::Mat frame = cv::imread(path + name_current_image);
         ASSERT_FALSE(frame.empty()) << "Can't read image: " << name_current_image;
 
@@ -63,9 +64,10 @@ TEST(basic_test, Ean13Decodes) {
     cv::BarcodeDetector barcodeDetector;
     cv::Point2f points[4];
     auto count = 0;
+    std::string path = pre_path + R"(test/ean13/)";
     for (const auto &i: ean13_graphs) {
         std::cout << i << ':' << std::endl;
-        cv::Mat frame = cv::imread(R"(./../test/ean13/)" + i);
+        cv::Mat frame = cv::imread(path + i);
         std::vector<cv::RotatedRect> rects;
         try {
             barcodeDetector.detect(frame, rects);
@@ -110,8 +112,9 @@ TEST(basic_test, Ean13Decodes) {
 
 }
 
+TEST(basic_test, decodeDirectly) {
 
-
+}
 
 TEST(basic_test, isValidEan13) {
     int methodLength = 13;
@@ -131,10 +134,10 @@ TEST(basic_test, isValidEan13) {
         EXPECT_TRUE(test_function(item));
         std::string copyed = item;
         for (int i = 0; i < 10; ++i) {
-            copyed.back() = '0'+i;
-            if(i != item.back()-'0'){
+            copyed.back() = '0' + i;
+            if (i != item.back() - '0') {
                 EXPECT_FALSE(test_function(copyed));
-            }else{
+            } else {
                 EXPECT_TRUE(test_function(copyed));
             }
         }

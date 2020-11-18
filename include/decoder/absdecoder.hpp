@@ -32,7 +32,7 @@ namespace cv {
         //input 1 row 2-value Mat, return decode string
         virtual std::string decode(std::vector<uchar> bar, int start) const = 0;
 
-        virtual std::string decodeDirectly(std::vector<uchar> bar) const = 0;
+        virtual std::string decodeDirectly(InputArray _img) const = 0;
 
         virtual std::string getName() const = 0;
 
