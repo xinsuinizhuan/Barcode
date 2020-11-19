@@ -133,7 +133,7 @@ namespace cv {
             resized_barcode = barcode.clone();
         }
         //resized_barcode.convertTo(resized_barcode, CV_32FC3);
-
+//        medianBlur(resized_barcode, resized_barcode, 3);
     }
 
 
@@ -221,13 +221,25 @@ namespace cv {
         Mat scharr_x(resized_barcode.size(), CV_32F), scharr_y(resized_barcode.size(), CV_32F), temp;
         Scharr(resized_barcode, scharr_x, CV_32F, 1, 0);
         Scharr(resized_barcode, scharr_y, CV_32F, 0, 1);
-
+        // calculate magnitude of gradient, normalize and threshold
+        magnitude(scharr_x, scharr_y, gradient_magnitude);
+        normalize(gradient_magnitude, gradient_magnitude, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
+        adaptiveThreshold(gradient_magnitude, gradient_magnitude, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 9, 0);
+        //threshold(gradient_magnitude, gradient_magnitude, 50, 1, THRESH_BINARY);
+//        threshold(gradient_magnitude, gradient_magnitude, 48, 1, THRESH_BINARY);
+//        gradient_magnitude.convertTo(gradient_magnitude, CV_8U);
         for (int y = 0; y < height; y++) {
             //pixels_position.clear();
             auto *x_row = scharr_x.ptr<float_t>(y);
             auto *y_row = scharr_y.ptr<float_t>(y);
+            auto *magnitude_row = gradient_magnitude.ptr<uint8_t>(y);
             int pos = 0;
             for (; pos < width; pos++) {
+                if (magnitude_row[pos] == 0) {
+                    x_row[pos] = 0;
+                    y_row[pos] = 0;
+                    continue;
+                }
                 if (x_row[pos] < 0) {
                     x_row[pos] *= -1;
                     y_row[pos] *= -1;
@@ -240,18 +252,14 @@ namespace cv {
         integral(scharr_x.mul(scharr_y), integral_xy, temp, CV_32F, CV_32F);
 
 
-        // calculate magnitude of gradient, normalize and threshold
-        gradient_magnitude = Mat::zeros(gradient_direction.size(), gradient_direction.type());
-        magnitude(scharr_x, scharr_y, gradient_magnitude);
-        normalize(gradient_magnitude, gradient_magnitude, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
-        threshold(gradient_magnitude, gradient_magnitude, 50, 1, THRESH_BINARY);
+
         // calculate variances, normalize and threshold so that low-variance areas are bright(255) and
         // high-variance areas are dark(0)
         Mat raw_consistency = calConsistency();
 
         imshow("consistency", raw_consistency);
 //        adaptiveThreshold(raw_consistency,consistency,255,ADAPTIVE_THRESH_MEAN_C,THRESH_BINARY,11,0);
-        threshold(raw_consistency, consistency, 150, 255, THRESH_BINARY);
+        threshold(raw_consistency, consistency, 180, 255, THRESH_BINARY + THRESH_OTSU);
 
 //        normalize(consistency, consistency, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
 
@@ -311,9 +319,9 @@ namespace cv {
         float xy, x_sq, y_sq, d, rect_area;
         Mat raw_consistency(resized_barcode.size(), CV_8U), gradient_density;
 
-        int width_offset = cvRound(0.05 * width / 2);
-        int height_offset = cvRound(0.05 * height / 2);
-        float THRESHOLD_AREA = float(width_offset * height_offset) * 1.5f;
+        int width_offset = cvRound(0.03 * width / 2);
+        int height_offset = cvRound(0.03 * height / 2);
+        float THRESHOLD_AREA = float(width_offset * height_offset) * 1.8f;
         integral(gradient_magnitude, gradient_density, CV_32F);
 
 
