@@ -88,14 +88,13 @@ namespace cv {
     }
 
 
-    bool BarcodeDetector::detectDirectly(InputArray img, CV_OUT string &decoded_info, CV_OUT
-                                         vector<RotatedRect> &rects) const {
+    bool BarcodeDetector::detectDirectly(InputArray img,CV_OUT string &decoded_info) const {
         Mat inarr;
         if (!checkBarInputImage(img, inarr)) {
             return false;
         }
         ean_decoder ean13(EAN::TYPE13);
-        decoded_info = ean13.decodeDirectly(img);
+        decoded_info = ean13.decodeDirectly(inarr);
         if (!decoded_info.empty()) {
             return false;
         }

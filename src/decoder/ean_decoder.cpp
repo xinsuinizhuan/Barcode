@@ -56,10 +56,10 @@ namespace cv {
                     result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
                 }
 #ifdef CV_DEBUG
-                cv::line(mat, begin, end, cv::Scalar(0, 255, 0));
+                //cv::line(mat, begin, end, cv::Scalar(0, 255, 0));
                 //cv::line(mat,begin,end,Scalar(0,0,255),2);
-                cv::circle(mat, begin, 4, Scalar(255, 0, 0), 2);
-                cv::circle(mat, end, 4, Scalar(0, 0, 255), 2);
+                //cv::circle(mat, begin, 4, Scalar(255, 0, 0), 2);
+                //cv::circle(mat, end, 4, Scalar(0, 0, 255), 2);
 #endif
                 int vote_cnt = 0;
                 if (result.size() == bitsNum) {
@@ -74,6 +74,9 @@ namespace cv {
                 }
             }
             will_return.push_back(max_result);
+#ifdef CV_DEBUG
+            cv::imshow("circles",gray);
+#endif
         }
         return will_return;
     }
@@ -178,7 +181,8 @@ namespace cv {
             return "size wrong";
         }
         vector<int> gurad_counters{0, 0, 0};
-        start = findGuardPatterns(data, start, false, BEGIN_PATTERN(), gurad_counters).second;
+        auto whiteFirst = (*data.begin() != WHITE);
+        start = findGuardPatterns(data, start, whiteFirst, BEGIN_PATTERN(), gurad_counters).second;
         vector<int> counters = {0, 0, 0, 0};
         int end = data.size();
         uint32_t first_char_bit = 0;

@@ -113,7 +113,28 @@ TEST(basic_test, Ean13Decodes) {
 }
 
 TEST(basic_test, decodeDirectly) {
-
+    cv::BarcodeDetector barcodeDetector;
+    auto count = 0;
+    std::string path = pre_path + R"(test/ean13/)";
+    for (const auto &i: ean13_graphs) {
+        std::cout << i << ':' << std::endl;
+        cv::Mat frame = cv::imread(path + i);
+        std::vector<cv::RotatedRect> rects;
+        std::string result;
+        try {
+            barcodeDetector.detectDirectly(frame, result);
+        }
+        catch (cv::Exception &ex) {
+            std::cerr << std::string(2, ' ') << ex.what() << "No detect results\n";
+            continue;
+        }
+        std::cout << result << std::endl;
+#ifdef CV_DEBUG
+        cv::imshow(i, frame);
+        cv::waitKey(0);
+#endif
+    }
+    std::cout << std::end(ean13_graphs) - std::begin(ean13_graphs) << " " << count << std::endl;
 }
 
 TEST(basic_test, isValidEan13) {
