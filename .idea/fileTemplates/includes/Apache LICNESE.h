@@ -1,5 +1,5 @@
 /*
-Copyright 2020 ${ALL COMMITTERS}
+Copyright $YEAR ${ALL COMMITTERS}
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,13 +13,3 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#ifndef __OPENCV_PRECOMP_H__
-#define __OPENCV_PRECOMP_H__
-
-#include <opencv2/imgproc.hpp>
-#include <opencv2/opencv.hpp>
-
-#include <deque>
-#include <array>
-
-#endif

@@ -1,5 +1,21 @@
-#ifndef EANDECODER_H
-#define EANDECODER_H
+/*
+Copyright 2020 ${ALL COMMITTERS}
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+#ifndef __OPENCV_BARCODE_EAN_DECODER_HPP__
+#define __OPENCV_BARCODE_EAN_DECODER_HPP__
 
 #include "absdecoder.hpp"
 #include "opencv2/core/mat.hpp"
@@ -54,4 +70,4 @@ Mat grayNomalization(Mat mat, double M0, double VAR0);
 
 vector<Mat> getBarcodeImgs(Mat gray_img, const vector<RotatedRect> &rects);
 } // namespace cv
-#endif // !EANDECODER_H
+#endif // !__OPENCV_BARCODE_EAN_DECODER_HPP__
