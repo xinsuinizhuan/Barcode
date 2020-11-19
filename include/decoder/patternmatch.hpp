@@ -12,17 +12,12 @@
 #include "barcode_data.hpp"
 
 namespace cv {
-    int patternMatch(std::vector<int> counters,
-                     const std::vector<int> &pattern,
-                     uint maxIndividual);
+int patternMatch(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividual);
 
-    inline int patternMatchConsieDistance(std::vector<int> counters,
-                                          const std::vector<int> &pattern,
-                                          uint maxIndividualVariance);
+inline int
+patternMatchConsieDistance(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividualVariance);
 
-    inline int patternMatchVariance(std::vector<int> counters,
-                                    const std::vector<int> &pattern,
-                                    int maxIndividualVariance);
+inline int patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance);
 };
 
 #endif //! BARCODE_INCLUDE_DECODER_PATTERNMATCH_H
