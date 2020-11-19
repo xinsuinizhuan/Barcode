@@ -2,31 +2,32 @@
 #include <iostream>
 #include <array>
 #include <opencv2/imgproc.hpp>
-// 三种编码方式 https://baike.baidu.com/item/EAN-13
+#include <opencv2/opencv.hpp>
+// three digit decode method from https://baike.baidu.com/item/EAN-13
 
-/**
- * TODO 1. 多条
- */
 namespace cv {
-
-    bool isValidCoordinate(Point2f point, const Mat &mat) {
-        //TODO fix <=
-        if ((point.x <= 0) || (point.y <= 0))
-            return false;
-
-        if ((point.x >= mat.cols - 1) || (point.y >= mat.rows - 1))
-            return false;
-
-        return true;
-    }
-
     // default thought that mat is a matrix after binary-transfer.
-    vector<string> ean_decoder::rect_to_ucharlist(Mat &mat, const vector<RotatedRect> &rects) {
+    /*Input a mat and it's position rect, return the decode result */
+    vector<string> ean_decoder::rectToUcharlist(Mat &mat, const vector<RotatedRect> &rects) const {
+        CV_Assert(mat.channels() == 1);
         vector<string> will_return;
-        Mat grey = mat.clone();
-        int PART = 16;
+        Mat gray = mat.clone();
+        // assume the maximum proportion of barcode is half of max(width, height), thickest bar is
+        // 0.5*max(width,height)/95 * 4
+        int length = max(gray.rows, gray.cols);
+        int block_size = length/95 * 2 + 1;
+        equalizeHist(gray,gray);
+        imshow("hist", gray);
+        adaptiveThreshold(gray,gray, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, block_size, 1);
+        imshow("binary", gray);
+        constexpr int PART = 10;
         for (const auto &rect : rects) {
-            vector<uchar> middle;
+            std::map<std::string, int> result_vote;
+            std::string max_result = "ERROR";
+            if(max(rect.size.height, rect.size.width) < EAN13LENGTH) {
+                will_return.push_back(max_result);
+                continue;
+            }
             Point2f begin;
             Point2f end;
             Point2f vertices[4];
@@ -34,46 +35,54 @@ namespace cv {
             double distance1 = cv::norm(vertices[0] - vertices[1]);
             double distance2 = cv::norm(vertices[1] - vertices[2]);
             std::string result;
-            for(int i = 1,direction = 1;i <= PART/2;direction = -1* direction) {
-
+            for (int i = 1, direction = 1; i <= PART / 2; direction = -1 * direction) {
+                vector<uchar> middle;
                 if (distance1 > distance2) {
-                    double stepx = (vertices[0].x - vertices[3].x)/PART;
-                    double stepy = (vertices[0].y - vertices[3].y)/PART;
-                    Point2f step(stepx,stepy);
-                    begin = (vertices[0] + vertices[3]) / 2 + step*i * direction;
+                    double stepx = (vertices[0].x - vertices[3].x) / PART;
+                    double stepy = (vertices[0].y - vertices[3].y) / PART;
+                    Point2f step(stepx, stepy);
+                    begin = (vertices[0] + vertices[3]) / 2 + step * i * direction;
                     end = (vertices[1] + vertices[2]) / 2 + step * i * direction;
                 } else {
-                    double stepx = (vertices[0].x - vertices[1].x)/PART;
-                    double stepy = (vertices[0].y - vertices[1].y)/PART;
-                    Point2f step(stepx,stepy);
+                    double stepx = (vertices[0].x - vertices[1].x) / PART;
+                    double stepy = (vertices[0].y - vertices[1].y) / PART;
+                    Point2f step(stepx, stepy);
                     begin = (vertices[0] + vertices[1]) / 2 + step * i * direction;
                     end = (vertices[2] + vertices[3]) / 2 + step * i * direction;
                 }
-                LineIterator line = LineIterator(grey, begin, end);
+                LineIterator line = LineIterator(gray, begin, end);
                 middle.reserve(line.count);
-                for(int i = 0;i < line.count;i ++,line++) {
-                    middle.push_back(grey.at<uchar>(line.pos()));
-                    cv::circle(mat,line.pos(),1,Scalar(0,0,255),1);
+                for (int cnt = 0; cnt < line.count; cnt++, line++) {
+                    middle.push_back(gray.at<uchar>(line.pos()));
                 }
-                cv::threshold(middle,middle,0,255,THRESH_BINARY|THRESH_OTSU);
                 result = this->decode(middle, 0);
                 if (result.size() != 13) {
                     result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
                 }
+#ifdef CV_DEBUG
+                cv::line(mat, begin, end, cv::Scalar(0, 255, 0));
                 //cv::line(mat,begin,end,Scalar(0,0,255),2);
-                cv::circle(mat,begin,4,Scalar(255,0,0),2);
-                cv::circle(mat,end,4,Scalar(0,0,255),2);
+                cv::circle(mat, begin, 4, Scalar(255, 0, 0), 2);
+                cv::circle(mat, end, 4, Scalar(0, 0, 255), 2);
+#endif
+                int vote_cnt = 0;
                 if (result.size() == 13) {
-                    break;
+                    if (result_vote.find(result) == result_vote.end()) {
+                        result_vote.insert(std::pair<std::string, int>(result, 1));
+                    } else {
+                        result_vote[result] += 1;
+                    }
+                    if (result_vote[result] > vote_cnt) {
+                        vote_cnt = result_vote[result];
+                        max_result = result;
+                    }
                 }
-                if(direction == -1){
+                if (direction == -1) {
                     i++;
                 }
             }
-            will_return.push_back(result);
-
+            will_return.push_back(max_result);
         }
-
         return will_return;
     }
 
@@ -114,31 +123,28 @@ namespace cv {
 
     ean_decoder::ean_decoder(const char *const name) {
         this->name = string(name);
-        this->unitWidth = -1;
-        if (name == EAN13) {
+        if (name == string(TYPE_EAN13)) {
             bitsNum = EAN13LENGTH;
-            //7 module 编码一个digit
-            codeLength = 7;
+            digitNumber = EAN13DIGITNUMBER;
+            //7 module encode a digit
         }
     }
 
-    ean_decoder::~ean_decoder() = default;
-
     const vector<int> &BEGIN_PATTERN() {
-        // it just need it's 1:1:1(black:white:balck)
+        // it just need it's 1:1:1(black:white:black)
         static const vector<int> BEGIN_PATTERN_(3, 1);
         return BEGIN_PATTERN_;
     }
 
     const vector<int> &MIDDLE_PATTERN() {
-        // it just need it's 1:1:1:1:1(white:black:white:balck:white)
+        // it just need it's 1:1:1:1:1(white:black:white:black:white)
         static const vector<int> MIDDLE_PATTERN_(5, 1);
         return MIDDLE_PATTERN_;
     }
 
     const std::array<char, 32> &FIRST_CHAR_ARRAY() {
         // use array to simulation a Hashmap,
-        // becuase the datasize is small,
+        // because the data's size is small,
         // use a hashmap or brute-force search 10 times both can not accept
         static const std::array<char, 32> pattern{
                 '\x00', '\x00', '\x00', '\x00', '\x00', '\x00',
@@ -147,7 +153,8 @@ namespace cv {
                 '\x00', '\x05', '\x00', '\x07', '\x02', '\x00',
                 '\x00', '\x04', '\x01', '\x00', '\x00', '\x00',
                 '\x00', '\x00'
-        };// length is 32 to ensure the security
+        };
+        // length is 32 to ensure the security
         // 0x00000 -> 0  -> 0
         // 0x11010 -> 26 -> 1
         // 0x10110 -> 22 -> 2
@@ -163,9 +170,9 @@ namespace cv {
         return pattern;
     }
 
-    string ean_decoder::decode_outer(vector<uchar> data) {
+    string ean_decoder::decodeOuter(vector<uchar> data) {
         vector<int> guradCounters{0, 0, 0};
-        std::pair<int, int> temp = find_gurad_patterns(data, 0, false, BEGIN_PATTERN(), guradCounters);
+        std::pair<int, int> temp = findGuardPatterns(data, 0, false, BEGIN_PATTERN(), guradCounters);
         int start = temp.first;
         return decode(data, start);
     }
@@ -179,13 +186,12 @@ namespace cv {
     string ean_decoder::decode(vector<uchar> data, int start) const {
         // at least it should have EAN13LENGTH's bits
         // else it can not decode at all
-        char decoderesult[14]{'\0'};
+        char decode_result[14]{'\0'};
         if (data.size() - start < EAN13LENGTH) {
             return "size wrong";
         }
-        vector<int> guradCounters{0, 0, 0};
-        std::pair<int, int> temp = find_gurad_patterns(data, start, false, BEGIN_PATTERN(), guradCounters);
-        start = temp.second;
+        vector<int> gurad_counters{0, 0, 0};
+        start = findGuardPatterns(data, start, false, BEGIN_PATTERN(), gurad_counters).second;
         vector<int> counters = {0, 0, 0, 0};
         int end = data.size();
         uint32_t first_char_bit = 0;
@@ -195,33 +201,33 @@ namespace cv {
             if (bestMatch == -1) {
                 return "ERROR";
             }
-            decoderesult[i] = static_cast<char>('0' + bestMatch % 10);
+            decode_result[i] = static_cast<char>('0' + bestMatch % 10);
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
             first_char_bit |= (bestMatch >= 10) << i;
         }
-        decoderesult[0] = FIRST_CHAR_ARRAY()[first_char_bit >> 2] + '0';
+        decode_result[0] = FIRST_CHAR_ARRAY()[first_char_bit >> 2] + '0';
         // why there need >> 2?
         // first, the i in for-cycle is begin in 1
         // second, the first i = 1 is always
-        start = find_gurad_patterns(data, start, true, MIDDLE_PATTERN(),
-                                    vector<int>(MIDDLE_PATTERN().size())).second;
+        start = findGuardPatterns(data, start, true, MIDDLE_PATTERN(),
+                                  vector<int>(MIDDLE_PATTERN().size())).second;
         for (int i = 0; i < 6 && start < end; ++i) {
             int bestMatch = decodeDigit(data, counters, start, get_A_or_C_Patterns());
             if (bestMatch == -1) {
                 return "ERROR";
             }
-            decoderesult[i + 7] = static_cast<char>('0' + bestMatch);
+            decode_result[i + 7] = static_cast<char>('0' + bestMatch);
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
         }
-        string result = string(decoderesult);
+        string result = string(decode_result);
         if (!isValid(result)) {
-            return "wrong: " + result;
+            return "Wrong: " + result.append(string(13 - result.size(), ' '));
         }
         //TODO throw exception
         return result;
     }
 
-    string ean_decoder::decode_and_detect(vector<uchar> data) const {
+    string ean_decoder::decodeAndDetect(vector<uchar> data) const {
         // TODO
         return "!";
     }
@@ -232,58 +238,26 @@ namespace cv {
     }
 
     bool ean_decoder::isValid(string result) const {
-        int i = 1, sum = 0;
-        int checkDigit = result[result.size() - 1] - '0';
-        for (int index = result.size() - i - 1; index >= 0; index--, i++) {
-            int temp = result[index] - '0';
-            if (i % 2 != 0) {
-                temp *= 3;
-            }
-            sum += temp;
+        if (result.size() != this->digitNumber) {
+            return false;
         }
-        return checkDigit == (10 - (sum % 10)) % 10;
+        int sum = 0;
+        for (int index = result.size() - 2, i = 1; index >= 0; index--, i++) {
+            int temp = result[index] - '0';
+            sum += (temp + ((i & 1) != 0 ? temp << 1 : 0));
+        }
+        return (result.back() - '0') == (10 - (sum % 10)) % 10;
     }
 
-
-
-//    std::pair<int, int> ean_decoder::find_start_end_patterns(const vector<uchar> &row) {
-//        bool foundStart = false;
-//        std::pair<int, int> startRange{};
-//        int nextStart = 0;
-//        vector<int> counters{0, 0, 0};
-//        while (!foundStart) {
-//            std::fill(std::begin(counters), std::end(counters), 0);
-//            startRange = find_gurad_patterns(row, nextStart, false, BEGIN_PATTERN(), counters);
-//            int start = startRange.first;
-//            nextStart = startRange.second;
-//            // Make sure there is a quiet zone at least as big as the start pattern before the barcode.
-//            // If this check would run off the left edge of the image, do not accept this barcode,
-//            // as it is very likely to be a false positive.
-//            int quietStart = start - (nextStart - start);
-//            if (quietStart >= 0) {
-//                // TODO ,后续二值化之后用bitarray,这里要做优化.
-//                foundStart = true;
-//                for (int i = quietStart; i < start; i++) {
-//                    if (row[i] != WHITE) {
-//                        foundStart = false;
-//                    }
-//                }
-//                //foundStart = row.isRange(quietStart, start, false);
-//            }
-//        }
-//        return startRange;
-//    }
-
-    std::pair<int, int> ean_decoder::find_gurad_patterns(const vector<uchar> &row,
-                                                         int rowOffset,
-                                                         uchar whiteFirst,
-                                                         const vector<int> &pattern,
-                                                         vector<int> counters) {
+    std::pair<int, int> ean_decoder::findGuardPatterns(const vector<uchar> &row,
+                                                       int rowOffset,
+                                                       uchar whiteFirst,
+                                                       const vector<int> &pattern,
+                                                       vector<int> counters) {
         std::pair<int, int> will_return{rowOffset, -1};
         int patternLength = pattern.size();
         int width = row.size();
         uchar isWhite = whiteFirst ? WHITE : BLACK;
-        // TODO, deque<bool> 版本?
         rowOffset = std::find(row.cbegin() + rowOffset, row.cend(), isWhite) - row.cbegin();
         //rowOffset = whiteFirst ? row.getNextUnset(rowOffset) : row.getNextSet(rowOffset);
         int counterPosition = 0;
@@ -298,7 +272,6 @@ namespace cv {
                     }
                     patternStart += counters[0] + counters[1];
                     std::copy(counters.begin() + 2, counters.end(), counters.begin());
-                    //System.arraycopy(counters, 2, counters, 0, patternLength - 2);
                     counters[patternLength - 2] = 0;
                     counters[patternLength - 1] = 0;
                     counterPosition--;
@@ -328,5 +301,4 @@ namespace cv {
         return std::max(-1, bestMatch);
         // -1 is dismatch or means error.
     }
-
 }

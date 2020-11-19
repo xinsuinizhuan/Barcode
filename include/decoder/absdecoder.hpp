@@ -1,5 +1,20 @@
-#ifndef ABSDECODER_H
-#define ABSDECODER_H
+/*
+Copyright 2020 OpenCV Foundation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#ifndef __OPENCV_BARCODE_ABSDECODER_H__
+#define __OPENCV_BARCODE_ABSDECODER_H__
 
 #include "opencv2/core/mat.hpp"
 #include <utility>
@@ -7,41 +22,30 @@
 #include <string>
 #include "barcode_data.hpp"
 #include "patternmatch.hpp"
-/*
-	absdecoder 是各种识别方式的抽象类，EAN-13/8 Code128 等等都实现它
-	在Bardecoder 中动态选择使用哪种解码Decoder
+/**
+ *   absdecoder the abstract basic class for decode formats,
+ *   it will have ean13/8, Code128 , etc.. class extend this class
 */
 namespace cv {
-
-    void test(); // TODO
-
     class absdecoder {
     public:
         //input 1 row 2-value Mat, return decode string
         virtual std::string decode(std::vector<uchar> bar, int start) const = 0;
 
-        virtual std::string decode_and_detect(std::vector<uchar> bar) const = 0;
+        virtual std::string decodeAndDetect(std::vector<uchar> bar) const = 0;
 
         virtual std::string getName() const = 0;
+
+        virtual ~absdecoder() = default;
 
     private:
         virtual bool isValid(std::string result) const = 0;
     };
 
 
-
     void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters);
 
-    struct EncodePair {
-        std::string content;
-        std::string type;
-        bool valid = true;
-
-        EncodePair(std::string content, std::string type) {
-            this->content = std::move(content);
-            this->type = std::move(type);
-        }
-    };
+    void cutImage(InputArray _src, OutputArray &_dst, RotatedRect rect);
 }
 
-#endif //! ABSDECODER_H
+#endif //! __OPENCV_BARCODE_ABSDECODER_H__

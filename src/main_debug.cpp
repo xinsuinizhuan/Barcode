@@ -20,8 +20,8 @@ int main(int argc, char **argv) {
 
     if (strcmp(argv[1], "--webcam") == 0) {
         VideoCapture capture(0);
-//        capture.set(CAP_PROP_FRAME_WIDTH, 1920);
-//        capture.set(CAP_PROP_FRAME_HEIGHT, 1080);
+        //capture.set(CAP_PROP_FRAME_WIDTH, 1920);
+        //capture.set(CAP_PROP_FRAME_HEIGHT, 1080);
 
         float fps;
         while (true) {
@@ -49,11 +49,18 @@ int main(int argc, char **argv) {
 
     } else {
         frame = imread(argv[1]);
-        bardet.detect(frame, rects, true);
+        bardet.detectAndDecode(frame, decoded_info, rects);
+
+        for (auto &info:decoded_info) {
+            std::cout << info << std::endl;
+        }
+        int i = 0;
         for (auto &rect : rects) {
             rect.points(vertices);
             for (int j = 0; j < 4; j++)
                 line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0), 2);
+            cv::putText(frame, decoded_info[i], vertices[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
+            i++;
         }
         imshow("bounding boxes", frame);
         waitKey();
