@@ -28,7 +28,9 @@ namespace cv {
 
         string getName() const override;
 
-        vector<string> rectToUcharlist(Mat &mat, const std::vector<RotatedRect> &rects, int PART = 10) const;
+        vector<string> rectToResults(Mat &mat, const std::vector<RotatedRect> &rects, int PART = 10) const;
+
+        string rectToResult(const Mat &gray, Mat &mat, const RotatedRect &rect, int PART = 10) const;
 
     private:
         string name; //EAN具体解码类别：EAN-13 / EAN-8
@@ -48,6 +50,7 @@ namespace cv {
                                                      uchar whiteFirst,
                                                      const vector<int> &pattern,
                                                      vector<int> counters);
+
     };
 
     Mat grayNomalization(Mat mat, double M0, double VAR0);

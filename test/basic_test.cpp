@@ -2,9 +2,9 @@
 
 const std::string pre_path = R"(./../../)";
 std::string ean13_graphs[] = {
-        "1_normal.jpg", "2_normal.png",
-        "3_normal.jpg", "4_normal.png",
-        "5_corner_small.jpg", "6_vertical_corner_small.jpg",
+//        "1_normal.png", "2_normal.png",
+//        "3_normal.jpg", "4_normal.png",
+//        "5_corner_small.jpg", "6_vertical_corner_small.jpg",
         "7_tilt45.png", "8_tilt330.jpg", "9_dirty_tilt30.jpg",
         "10_dirty_graph.jpg", "11_tilt45.png",
         "12_middle.png",
@@ -128,6 +128,7 @@ TEST(basic_test, decodeDirectly) {
             std::cerr << std::string(2, ' ') << ex.what() << "No detect results\n";
             continue;
         }
+        count += (result.size() == 13);
         std::cout << result << std::endl;
 #ifdef CV_DEBUG
         cv::imshow(i, frame);

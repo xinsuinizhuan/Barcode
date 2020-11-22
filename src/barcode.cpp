@@ -55,7 +55,7 @@ namespace cv {
         }
         CV_Assert(!rects.empty());
         ean_decoder decoder(EAN::TYPE13);
-        vector<std::string> _decoded_info = decoder.rectToUcharlist(inarr, rects);
+        vector<std::string> _decoded_info = decoder.rectToResults(inarr, rects);
         decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
 
         return true;
@@ -82,7 +82,7 @@ namespace cv {
 //        }
 //        ean_decoder decoder("");
 //
-//        vector<std::string> _decoded_info = decoder.rectToUcharlist(inarr, _rects);
+//        vector<std::string> _decoded_info = decoder.rectToResults(inarr, _rects);
 //        decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
         return true;
     }
