@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
     Mat frame;
     Point2f vertices[4];
     clock_t start;
-    std::vector<RotatedRect> rects;
+    std::vector<Rect> rects;
     std::vector<string> decoded_info;
 
     if (strcmp(argv[1], "--webcam") == 0) {
@@ -27,17 +27,18 @@ int main(int argc, char **argv) {
         while (true) {
             start = clock();
             capture.read(frame);
-            bardet.detectAndDecode(frame, decoded_info, rects);
-            for (auto &info:decoded_info) {
-                std::cout << info << std::endl;
-            }
+            bardet.detect(frame, rects);
+//            for (auto &info:decoded_info) {
+//                std::cout << info << std::endl;
+//            }
             int i = 0;
             for (auto &rect : rects) {
-                rect.points(vertices);
-                for (int j = 0; j < 4; j++)
-                    line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0), 2);
-                cv::putText(frame, decoded_info[i], vertices[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
-                i++;
+                rectangle(frame, rect, Scalar(0, 255, 0), 2);
+//                rect.points(vertices);
+//                for (int j = 0; j < 4; j++)
+//                    line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0), 2);
+//                cv::putText(frame, decoded_info[i], vertices[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
+//                i++;
 
 
             }
@@ -48,21 +49,22 @@ int main(int argc, char **argv) {
         }
 
     } else {
+        //TODO too slow
         frame = imread(argv[1]);
-        bardet.detectAndDecode(frame, decoded_info, rects);
+        start = clock();
+
+        bardet.detect(frame, rects);
 
         for (auto &info:decoded_info) {
             std::cout << info << std::endl;
         }
         int i = 0;
         for (auto &rect : rects) {
-            rect.points(vertices);
-            for (int j = 0; j < 4; j++)
-                line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0), 2);
-            cv::putText(frame, decoded_info[i], vertices[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
-            i++;
+            rectangle(frame, rect, Scalar(0, 255, 0), 2);
         }
         imshow("bounding boxes", frame);
+        printf("Costs %ld ms", clock() - start);
+
         waitKey();
     }
     return 0;
