@@ -66,7 +66,7 @@ namespace cv {
         return true;
     }
 
-    inline double Detect::computeOrientation(float y, float x) {
+    inline double static computeOrientation(float y, float x) {
         if (x >= 0) {
             return atan(y / x) / 2.0;
         }
@@ -145,7 +145,7 @@ namespace cv {
             resized_barcode = barcode.clone();
         }
         //resized_barcode.convertTo(resized_barcode, CV_32FC3);
-//        medianBlur(resized_barcode, resized_barcode, 3);
+        medianBlur(resized_barcode, resized_barcode, 3);
 
     }
 
@@ -341,8 +341,8 @@ namespace cv {
         float xy, x_sq, y_sq, d, rect_area;
         Mat raw_consistency(resized_barcode.size(), CV_8U), orientation(resized_barcode.size(),
                                                                         CV_32F);
-        int width_offset = cvRound(0.03 * width / 2);
-        int height_offset = cvRound(0.03 * height / 2);
+        int width_offset = cvRound(0.05 * width / 2);
+        int height_offset = cvRound(0.05 * height / 2);
         float THRESHOLD_AREA = float(width_offset * height_offset) * 2.0f;
 
 
@@ -396,7 +396,7 @@ namespace cv {
 //                                                                                          Size(3, 3)));
         imshow("consistency", raw_consistency);
         const float LOCAL_THRESHOLD_CONSISTENCY = 0.95, THRESHOLD_RADIAN = PI / 20, THRESHOLD_BLOCK_NUM =
-                width * height / 200.0, LOCAL_RATIO = 0.6;
+                width * height / 500.0, LOCAL_RATIO = 0.6;
         Point2d pToGrowing, pt;                       //待生长点位置
 //        float pGrowValue;                             //待生长点灰度值
         float pSrcValue, pCurValue;
@@ -456,12 +456,12 @@ namespace cv {
 
                         if (abs(pCurValue - pSrcValue) < THRESHOLD_RADIAN ||
                             abs(pCurValue - pSrcValue) > PI - THRESHOLD_RADIAN) {
-//                            growImage.at<uint8_t>(pToGrowing.y, pToGrowing.x) = 255;      //标记为白色
                             raw_consistency.at<uint8_t>(pToGrowing.y, pToGrowing.x) = 0;
                             sin_sum += sin(2 * pCurValue);
                             cos_sum += cos(2 * pCurValue);
                             counter += 1;
-                            growingPoints.push_back(pToGrowing);                 //将下一个生长点压入栈中
+                            //push to stack
+                            growingPoints.push_back(pToGrowing);
                             growingImgPoints.push_back(pToGrowing);
                         }
                     }
