@@ -336,8 +336,8 @@ namespace cv {
         float xy, x_sq, y_sq, d, rect_area;
         Mat raw_consistency(resized_barcode.size(), CV_8U), orientation(resized_barcode.size(),
                                                                         CV_32F);
-        int width_offset = cvRound(0.01 * width / 2);
-        int height_offset = cvRound(0.01 * height / 2);
+        int width_offset = cvRound(0.03 * width / 2);
+        int height_offset = cvRound(0.03 * height / 2);
         float THRESHOLD_AREA = float(width_offset * height_offset) * 1.6f;
 
 
@@ -393,8 +393,7 @@ namespace cv {
                 width * height / 200.0, LOCAL_RATIO = 0.6;
         Point2d pToGrowing, pt;                       //待生长点位置
 //        float pGrowValue;                             //待生长点灰度值
-        float pSrcValue;                               //生长起点灰度值
-        float pCurValue;                               //当前生长点灰度值
+        float pSrcValue, pCurValue, rect_orientation;                               //当前生长点灰度值
         float sin_sum, cos_sum, counter, edge_num;
         Mat growImage = Mat::zeros(raw_consistency.size(), CV_8U);   //创建一个空白区域，填充为黑色
         //生长方向顺序数据
@@ -470,6 +469,7 @@ namespace cv {
                 if (local_consistency < LOCAL_THRESHOLD_CONSISTENCY)
                     continue;
                 RotatedRect rect = minAreaRect(growingImgPoints);
+
 //                float ans = counter / rect.width / rect.height;
 //                printf("%f\n",ans);
                 if (counter < rect.size.area() * LOCAL_RATIO)
@@ -477,11 +477,33 @@ namespace cv {
 
 
                 double local_orientation = computeOrientation(cos_sum, sin_sum);
+                // only orientation is approximately equal to the rectangle orientation
+                if (rect.size.width < rect.size.height) {
+                    rect_orientation = rect.angle <= 0 ? (rect.angle / 180 + 0.5) * PI : (rect.angle / 180 - 0.5) * PI;
+                } else {
+                    rect_orientation = rect.angle / 180 * PI;
+                }
+                if (abs(local_orientation - rect_orientation) > THRESHOLD_RADIAN &&
+                    abs(local_orientation - rect_orientation) < PI - THRESHOLD_RADIAN)
+                    continue;
+//                printf("orientation: %f, rect angle: %f, width > height? %d\n", local_orientation,
+//                       rect.angle / 180 * PI, rect.size.width > rect.size.height);
                 std::cout << local_consistency << " " << local_orientation << " " << counter << " "
                           << counter / rect.size.area() << std::endl;
 //                localization_bbox.push_back(rect);
 //                bbox_scores.push_back(edge_num / rect.height / rect.width);
 //                bbox_orientations.push_back(local_orientation);
+                if (purpose == ZOOMING) {
+                    rect.center.x /= coeff_expansion;
+                    rect.center.y /= coeff_expansion;
+                    rect.size.height /= coeff_expansion;
+                    rect.size.width /= coeff_expansion;
+                } else if (purpose == SHRINKING) {
+                    rect.center.x *= coeff_expansion;
+                    rect.center.y *= coeff_expansion;
+                    rect.size.height *= coeff_expansion;
+                    rect.size.width *= coeff_expansion;
+                }
                 localization_rects.push_back(rect);
 
             }
