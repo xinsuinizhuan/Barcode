@@ -49,7 +49,6 @@ int main(int argc, char **argv) {
         }
 
     } else {
-        //TODO too slow
         frame = imread(argv[1]);
         start = clock();
 

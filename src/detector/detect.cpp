@@ -114,6 +114,7 @@ namespace cv {
 //        }
 //        if (max_side < 320.0) {
 //            purpose = ZOOMING;
+//            purpose = ZOOMING;
 //            coeff_expansion = 320.0 / max_side;
 //            width = cvRound(src.size().width * coeff_expansion);
 //            height = cvRound(src.size().height * coeff_expansion);
@@ -175,7 +176,7 @@ namespace cv {
 
 #else
         findCandidates();   // find areas with low variance in gradient direction
-        dnn::NMSBoxes(localization_bbox, bbox_scores, 0.95, 0.2, bbox_indices);
+        dnn::NMSBoxes(localization_bbox, bbox_scores, 0.8, 0.2, bbox_indices);
 #endif
 
 
@@ -248,7 +249,7 @@ namespace cv {
         Scharr(resized_barcode, scharr_y, CV_32F, 0, 1);
         // calculate magnitude of gradient, normalize and threshold
         magnitude(scharr_x, scharr_y, gradient_magnitude);
-        threshold(gradient_magnitude, gradient_magnitude, 32, 1, CV_8U);
+        threshold(gradient_magnitude, gradient_magnitude, 64, 1, CV_8U);
         imshow("mag", gradient_magnitude);
 //        normalize(gradient_magnitude, gradient_magnitude, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
 //        adaptiveThreshold(gradient_magnitude, gradient_magnitude, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 9, 0);
@@ -279,9 +280,9 @@ namespace cv {
         integral(scharr_x, temp, integral_x_sq, CV_32F, CV_32F);
         integral(scharr_y, temp, integral_y_sq, CV_32F, CV_32F);
         integral(scharr_x.mul(scharr_y), integral_xy, temp, CV_32F, CV_32F);
-        float window_ratio = 0.05;
+        float window_ratio = 0.01;
         Mat raw_consistency, orientation;
-        while (window_ratio <= 0.052) {
+        while (window_ratio <= 0.1) {
 #ifdef CV_DEBUG
             printf("window ratio: %f\n", window_ratio);
 #endif
@@ -345,8 +346,8 @@ namespace cv {
     }
 
     Mat Detect::regionGrowing(Mat &consistency, Mat &orientation, int window_size) {
-        const float LOCAL_THRESHOLD_CONSISTENCY = 0.95, THRESHOLD_RADIAN = PI / 20, THRESHOLD_BLOCK_NUM =
-                float(consistency.cols * consistency.rows) / 60.0, LOCAL_RATIO = 0.2;
+        const float LOCAL_THRESHOLD_CONSISTENCY = 0.99, THRESHOLD_RADIAN = PI / 20, THRESHOLD_BLOCK_NUM =
+                float(consistency.cols * consistency.rows) / 60.0, LOCAL_RATIO = 0.5;
         Point2d pToGrowing, pt;                       //待生长点位置
 //        float pGrowValue;                             //待生长点灰度值
         float pSrcValue;                               //生长起点灰度值
@@ -441,12 +442,10 @@ namespace cv {
                 // minimum local edge ratio
                 if (edge_num > rect.height * rect.width * LOCAL_RATIO) {
                     double local_orientation = computeOrientation(cos_sum, sin_sum);
-#ifdef CV__DEBUG
                     std::cout << local_consistency << " " << local_orientation << " " << counter << " "
                               << edge_num / rect.height / rect.width << std::endl;
-#endif
                     localization_bbox.push_back(rect);
-                    bbox_scores.push_back(local_consistency);
+                    bbox_scores.push_back(edge_num / rect.height / rect.width);
                     bbox_orientations.push_back(local_orientation);
                     rectangle(resized_barcode, rect, 127);
                     imshow("grow image", resized_barcode);
