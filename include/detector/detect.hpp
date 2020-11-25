@@ -22,6 +22,8 @@ limitations under the License.
 #include "opencv2/opencv.hpp"
 #include <vector>
 
+#define PI 3.1415926535897932
+
 namespace cv {
 
     using std::vector;
@@ -44,7 +46,7 @@ namespace cv {
         } purpose = UNCHANGED;
         double coeff_expansion = 1.0;
         int height, width;
-        Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, processed_barcode, consistency, integral_x_sq, integral_y_sq, integral_xy;
+        Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, processed_barcode, integral_x_sq, integral_y_sq, integral_xy, gradient_density;
         vector<RotatedRect> localization_rects;
 
         void findCandidates();
@@ -59,6 +61,7 @@ namespace cv {
         inline bool isValidCoord(const Point2f &coord) const;
 
         void normalizeRegion(RotatedRect &rect);
+
 
         void locateBarcodes();
     };
