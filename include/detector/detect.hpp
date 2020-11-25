@@ -59,9 +59,8 @@ namespace cv {
 
         //void locateBarcodes();
 
-        Mat regionGrowing(Mat &consistency, Mat &orientation, int window_size);
+        void regionGrowing(Mat &consistency, Mat &orientation, int window_size);
 
-        void nonMaximumSuppression(const float IOU_THRESHOLD);
     };
 }
 

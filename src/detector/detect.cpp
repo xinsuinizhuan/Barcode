@@ -345,7 +345,7 @@ namespace cv {
         return barcode_orientation;
     }
 
-    Mat Detect::regionGrowing(Mat &consistency, Mat &orientation, int window_size) {
+    void Detect::regionGrowing(Mat &consistency, Mat &orientation, int window_size) {
         const float LOCAL_THRESHOLD_CONSISTENCY = 0.99, THRESHOLD_RADIAN = PI / 20, THRESHOLD_BLOCK_NUM =
                 float(consistency.cols * consistency.rows) / 60.0, LOCAL_RATIO = 0.5;
         Point2d pToGrowing, pt;                       //待生长点位置
@@ -353,7 +353,7 @@ namespace cv {
         float pSrcValue;                               //生长起点灰度值
         float pCurValue;                               //当前生长点灰度值
         float sin_sum, cos_sum, counter, edge_num;
-        Mat growImage = Mat::zeros(consistency.size(), CV_8U);   //创建一个空白区域，填充为黑色
+//        Mat growImage = Mat::zeros(consistency.size(), CV_8U);   //创建一个空白区域，填充为黑色
         //生长方向顺序数据
         int DIR[8][2] = {{-1, -1},
                          {0,  -1},
@@ -377,8 +377,8 @@ namespace cv {
                 consistency_row[x] = 0;
                 growingPoints.clear();
                 growingImgPoints.clear();
-                growImage.setTo(0);
-                growImage.at<uint8_t>(y, x) = 255;              //标记生长点
+//                growImage.setTo(0);
+//                growImage.at<uint8_t>(y, x) = 255;              //标记生长点
                 pCurValue = orientation.at<float_t>(y, x);
                 sin_sum = sin(2 * pCurValue);
                 cos_sum = cos(2 * pCurValue);
@@ -404,11 +404,11 @@ namespace cv {
                         if (consistency.at<uint8_t>(pToGrowing.y, pToGrowing.x) == 0)
                             continue;
                         pCurValue = orientation.at<float_t>(pToGrowing.y, pToGrowing.x);
-                        if (pCurValue < (-PI * 3 / 4)) //block gradient is not consistent
-                            continue;
+//                        if (pCurValue < (-PI * 3 / 4)) //block gradient is not consistent
+//                            continue;
                         if (abs(pCurValue - pSrcValue) < THRESHOLD_RADIAN ||
                             abs(pCurValue - pSrcValue) > PI - THRESHOLD_RADIAN) {
-                            growImage.at<uint8_t>(pToGrowing.y, pToGrowing.x) = 255;      //标记为白色
+//                            growImage.at<uint8_t>(pToGrowing.y, pToGrowing.x) = 255;      //标记为白色
                             consistency.at<uint8_t>(pToGrowing.y, pToGrowing.x) = 0;
                             sin_sum += sin(2 * pCurValue);
                             cos_sum += cos(2 * pCurValue);
@@ -457,7 +457,7 @@ namespace cv {
 
         }
 
-        return growImage.clone();
+//        return growImage.clone();
     }
 
     Mat Detect::calConsistency(Mat &raw_consistency, Mat &orientation, int window_size) {
@@ -493,16 +493,17 @@ namespace cv {
 
                 //we had an integral image to count non-zero elements
                 rect_area = calcRectSum(integral_edges, right_col, left_col, top_row, bottom_row);
-                if (rect_area < THRESHOLD_AREA) {
-                    // 有梯度的点占比小于阈值则视为平滑区域
-                    consistency_row[pos] = 0;
-                    orientation_row[pos] = -PI;
-                    continue;
-                }
+
 
                 x_sq = calcRectSum(integral_x_sq, right_col, left_col, top_row, bottom_row);
                 y_sq = calcRectSum(integral_y_sq, right_col, left_col, top_row, bottom_row);
                 xy = calcRectSum(integral_xy, right_col, left_col, top_row, bottom_row);
+                if (rect_area < THRESHOLD_AREA) {
+                    // 有梯度的点占比小于阈值则视为平滑区域
+                    consistency_row[pos] = 0;
+                    orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
+                    continue;
+                }
                 // get the values of the rectangle corners from the integral image - 0 if outside bounds
                 d = sqrt((x_sq - y_sq) * (x_sq - y_sq) + 4 * xy * xy) / (x_sq + y_sq);
                 if (d > THRESHOLD_CONSISTENCY) {
@@ -511,7 +512,7 @@ namespace cv {
                     rectangle(barcode, Point2d(left_col, top_row), Point2d(right_col, bottom_row), 255);
                 } else {
                     consistency_row[pos] = 0;
-                    orientation_row[pos] = -PI;
+                    orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
                 }
 //                variance.at<float_t>(y, pos) = data;
             }
