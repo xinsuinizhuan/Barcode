@@ -237,8 +237,13 @@ namespace cv {
         Scharr(resized_barcode, scharr_y, CV_32F, 0, 1);
         // calculate magnitude of gradient, normalize and threshold
         magnitude(scharr_x, scharr_y, gradient_magnitude);
-        threshold(gradient_magnitude, gradient_magnitude, 32, 255, CV_8U);
+        threshold(gradient_magnitude, gradient_magnitude, 32, 1, THRESH_BINARY);
+        gradient_magnitude.convertTo(gradient_magnitude, CV_8U);
+//        normalize(gradient_magnitude, gradient_magnitude, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
+//        threshold(gradient_magnitude, gradient_magnitude, 16, 1, THRESH_BINARY);
+
 //        adaptiveThreshold(gradient_magnitude, gradient_magnitude, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 9, 0);
+
         integral(gradient_magnitude, gradient_density, CV_32F);
 
         //threshold(gradient_magnitude, gradient_magnitude, 50, 1, THRESH_BINARY);
@@ -338,7 +343,7 @@ namespace cv {
                                                                         CV_32F);
         int width_offset = cvRound(0.03 * width / 2);
         int height_offset = cvRound(0.03 * height / 2);
-        float THRESHOLD_AREA = float(width_offset * height_offset) * 1.6f;
+        float THRESHOLD_AREA = float(width_offset * height_offset) * 2.0f;
 
 
 
@@ -358,23 +363,18 @@ namespace cv {
                 // if they are outside the matrix bounds
                 left_col = ((pos - width_offset - 1) < 0) ? -1 : (pos - width_offset - 1);
                 right_col = ((pos + width_offset) > width) ? width : (pos + width_offset);
+
+                //we had an integral image to count non-zero elements
                 rect_area = calcRectSum(gradient_density, right_col, left_col, top_row, bottom_row);
                 if (rect_area < THRESHOLD_AREA) {
                     // 有梯度的点占比小于阈值则视为平滑区域
                     consistency_row[pos] = 0;
                     continue;
                 }
-                //we had an integral image to count non-zero elements
                 x_sq = calcRectSum(integral_x_sq, right_col, left_col, top_row, bottom_row);
                 y_sq = calcRectSum(integral_y_sq, right_col, left_col, top_row, bottom_row);
                 xy = calcRectSum(integral_xy, right_col, left_col, top_row, bottom_row);
 
-//                if (rect_area < THRESHOLD_AREA) {
-//                    // 有梯度的点占比小于阈值则视为平滑区域
-//                    consistency_row[pos] = -1.0f;
-//                    continue;
-//
-//                }
                 // get the values of the rectangle corners from the integral image - 0 if outside bounds
                 d = sqrt((x_sq - y_sq) * (x_sq - y_sq) + 4 * xy * xy) / (x_sq + y_sq);
                 if (d > 0.95) {
@@ -382,19 +382,26 @@ namespace cv {
                     consistency_row[pos] = cvRound(255 * d);
                 } else {
                     consistency_row[pos] = 0;
+//                    orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
+
                 }
 
 
             }
 
         }
+//        morphologyEx(raw_consistency, raw_consistency, MORPH_DILATE, getStructuringElement(MorphShapes::MORPH_RECT,
+//                                                                                           Size(width_offset/2, height_offset/2)));
+//        morphologyEx(raw_consistency, raw_consistency, MORPH_ERODE, getStructuringElement(MorphShapes::MORPH_CROSS,
+//                                                                                          Size(3, 3)));
         imshow("consistency", raw_consistency);
         const float LOCAL_THRESHOLD_CONSISTENCY = 0.95, THRESHOLD_RADIAN = PI / 20, THRESHOLD_BLOCK_NUM =
                 width * height / 200.0, LOCAL_RATIO = 0.6;
         Point2d pToGrowing, pt;                       //待生长点位置
 //        float pGrowValue;                             //待生长点灰度值
-        float pSrcValue, pCurValue, rect_orientation;                               //当前生长点灰度值
-        float sin_sum, cos_sum, counter, edge_num;
+        float pSrcValue, pCurValue;
+        double rect_orientation;                               //当前生长点灰度值
+        float sin_sum, cos_sum, counter;
         Mat growImage = Mat::zeros(raw_consistency.size(), CV_8U);   //创建一个空白区域，填充为黑色
         //生长方向顺序数据
         int DIR[8][2] = {{-1, -1},
@@ -446,8 +453,7 @@ namespace cv {
                         if (raw_consistency.at<uint8_t>(pToGrowing.y, pToGrowing.x) == 0)
                             continue;
                         pCurValue = orientation.at<float_t>(pToGrowing.y, pToGrowing.x);
-//                        if (pCurValue < (-PI * 3 / 4)) //block gradient is not consistent
-//                            continue;
+
                         if (abs(pCurValue - pSrcValue) < THRESHOLD_RADIAN ||
                             abs(pCurValue - pSrcValue) > PI - THRESHOLD_RADIAN) {
 //                            growImage.at<uint8_t>(pToGrowing.y, pToGrowing.x) = 255;      //标记为白色

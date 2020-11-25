@@ -48,7 +48,7 @@ namespace cv {
 
         void normalizeRegion(RotatedRect &rect);
 
-        inline double computeOrientation(float y, float x);
+        static inline double computeOrientation(float y, float x);
 
         void locateBarcodes();
     };
