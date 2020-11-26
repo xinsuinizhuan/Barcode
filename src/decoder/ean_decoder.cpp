@@ -1,3 +1,18 @@
+/*
+Copyright 2020 ${ALL COMMITTERS}
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 #include "decoder/ean_decoder.hpp"
 #include <iostream>
 #include <array>
@@ -24,12 +39,10 @@ namespace cv {
             Mat bar_img;
             cutImage(gray, bar_img,rect);
 
-            resize(bar_img, bar_img, Size(400, bar_img.rows));
+            resize(bar_img, bar_img, Size(300, bar_img.rows));
             //imshow("rawbar", bar_img);
-            //adaptiveThreshold(bar_img,bar_img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 17, 1);
-            threshold(bar_img, bar_img, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
-            //threshold(bar_img, bar_img, 145, 255, CV_8UC1);
-            //imshow("barimg", bar_img);
+            adaptiveThreshold(bar_img,bar_img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 13, 1);
+            imshow("barimg", bar_img);
             std::map<std::string, int> result_vote;
             std::string max_result = "ERROR";
             if(max(rect.size.height, rect.size.width) < EAN13LENGTH) {
@@ -64,240 +77,281 @@ namespace cv {
                 cv::circle(bar_copy, end, 4, Scalar(0, 0, 255), 2);
                 imshow("barscan", bar_copy);
 #endif
-                int vote_cnt = 0;
-                if (result.size() == 13) {
-                    if (result_vote.find(result) == result_vote.end()) {
-                        result_vote.insert(std::pair<std::string, int>(result, 1));
-                    } else {
-                        result_vote[result] += 1;
-                    }
-                    if (result_vote[result] > vote_cnt) {
-                        vote_cnt = result_vote[result];
-                        max_result = result;
-                    }
+            int vote_cnt = 0;
+            if (result.size() == 13)
+            {
+                if (result_vote.find(result) == result_vote.end())
+                {
+                    result_vote.insert(std::pair<std::string, int>(result, 1));
                 }
-                if (direction == -1) {
-                    i++;
+                else
+                {
+                    result_vote[result] += 1;
                 }
-            }
-            will_return.push_back(max_result);
-        }
-        return will_return;
-    }
-
-
-    const vector<vector<int>> &get_A_or_C_Patterns() {
-        static const vector<vector<int>> A_or_C_Patterns = {
-                {3, 2, 1, 1}, // 0
-                {2, 2, 2, 1}, // 1
-                {2, 1, 2, 2}, // 2
-                {1, 4, 1, 1}, // 3
-                {1, 1, 3, 2}, // 4
-                {1, 2, 3, 1}, // 5
-                {1, 1, 1, 4}, // 6
-                {1, 3, 1, 2}, // 7
-                {1, 2, 1, 3}, // 8
-                {3, 1, 1, 2}  // 9
-        };
-        return A_or_C_Patterns;
-    }
-
-    // right for A
-
-    const vector<vector<int>> &get_AB_Patterns() {
-        static const vector<vector<int>> AB_Patterns = [] {
-            auto AB_Patterns_inited = vector<vector<int>>(20, vector<int>(PATTERN_LENGTH, 0));
-            std::copy(get_A_or_C_Patterns().cbegin(), get_A_or_C_Patterns().cend(), AB_Patterns_inited.begin());
-            //AB pattern is
-            int offset = 10;
-            for (int i = 0; i < get_A_or_C_Patterns().size(); ++i) {
-                for (int j = 0; j < PATTERN_LENGTH; ++j) {
-                    AB_Patterns_inited[i + offset][j] = AB_Patterns_inited[i][PATTERN_LENGTH - j - 1];
+                if (result_vote[result] > vote_cnt)
+                {
+                    vote_cnt = result_vote[result];
+                    max_result = result;
                 }
             }
-            return AB_Patterns_inited;
-        }();
-        return AB_Patterns;
-    }
-
-    ean_decoder::ean_decoder(const char *const name) {
-        this->name = string(name);
-        if (name == string(TYPE_EAN13)) {
-            bitsNum = EAN13LENGTH;
-            digitNumber = EAN13DIGITNUMBER;
-            //7 module encode a digit
-        }
-    }
-
-    const vector<int> &BEGIN_PATTERN() {
-        // it just need it's 1:1:1(black:white:black)
-        static const vector<int> BEGIN_PATTERN_(3, 1);
-        return BEGIN_PATTERN_;
-    }
-
-    const vector<int> &MIDDLE_PATTERN() {
-        // it just need it's 1:1:1:1:1(white:black:white:black:white)
-        static const vector<int> MIDDLE_PATTERN_(5, 1);
-        return MIDDLE_PATTERN_;
-    }
-
-    const std::array<char, 32> &FIRST_CHAR_ARRAY() {
-        // use array to simulation a Hashmap,
-        // because the data's size is small,
-        // use a hashmap or brute-force search 10 times both can not accept
-        static const std::array<char, 32> pattern{
-                '\x00', '\x00', '\x00', '\x00', '\x00', '\x00',
-                '\x00', '\x06', '\x00', '\x00', '\x00', '\x09',
-                '\x00', '\x08', '\x03', '\x00', '\x00', '\x00',
-                '\x00', '\x05', '\x00', '\x07', '\x02', '\x00',
-                '\x00', '\x04', '\x01', '\x00', '\x00', '\x00',
-                '\x00', '\x00'
-        };
-        // length is 32 to ensure the security
-        // 0x00000 -> 0  -> 0
-        // 0x11010 -> 26 -> 1
-        // 0x10110 -> 22 -> 2
-        // 0x01110 -> 14 -> 3
-        // 0x11001 -> 25 -> 4
-        // 0x10011 -> 19 -> 5
-        // 0x00111 -> 7  -> 6
-        // 0x10101 -> 21 -> 7
-        // 0x01101 -> 13 -> 8
-        // 0x01011 -> 11 -> 9
-        // delete the 1-13's 2 number's bit,
-        // it always be A which do not need to count.
-        return pattern;
-    }
-
-    string ean_decoder::decodeOuter(vector<uchar> data) {
-        vector<int> guradCounters{0, 0, 0};
-        std::pair<int, int> temp = findGuardPatterns(data, 0, false, BEGIN_PATTERN(), guradCounters);
-        int start = temp.first;
-        return decode(data, start);
-    }
-
-    /**
-     * decode EAN-13
-     * @prama: data: the input array,
-     * @prama: start, the index of start order, begin at 0, max-value is data.size()-1
-     * it scan begin at the data[start]
-     */
-    string ean_decoder::decode(vector<uchar> data, int start) const {
-        // at least it should have EAN13LENGTH's bits
-        // else it can not decode at all
-        char decode_result[14]{'\0'};
-        if (data.size() - start < EAN13LENGTH) {
-            return "size wrong";
-        }
-        vector<int> gurad_counters{0, 0, 0};
-        start = findGuardPatterns(data, start, false, BEGIN_PATTERN(), gurad_counters).second;
-        vector<int> counters = {0, 0, 0, 0};
-        int end = data.size();
-        uint32_t first_char_bit = 0;
-        // [1,6] are left part of EAN13, [7,12] are right part, index 0 is calculated by left part
-        for (int i = 1; i < 7 && start < end; ++i) {
-            int bestMatch = decodeDigit(data, counters, start, get_AB_Patterns());
-            if (bestMatch == -1) {
-                return "ERROR";
+            if (direction == -1)
+            {
+                i++;
             }
-            decode_result[i] = static_cast<char>('0' + bestMatch % 10);
-            start = std::accumulate(counters.cbegin(), counters.cend(), start);
-            first_char_bit |= (bestMatch >= 10) << i;
         }
-        decode_result[0] = FIRST_CHAR_ARRAY()[first_char_bit >> 2] + '0';
-        // why there need >> 2?
-        // first, the i in for-cycle is begin in 1
-        // second, the first i = 1 is always
-        start = findGuardPatterns(data, start, true, MIDDLE_PATTERN(),
-                                  vector<int>(MIDDLE_PATTERN().size())).second;
-        for (int i = 0; i < 6 && start < end; ++i) {
-            int bestMatch = decodeDigit(data, counters, start, get_A_or_C_Patterns());
-            if (bestMatch == -1) {
-                return "ERROR";
+        will_return.push_back(max_result);
+    }
+    return will_return;
+}
+
+
+const vector<vector<int>> &get_A_or_C_Patterns()
+{
+    static const vector<vector<int>> A_or_C_Patterns = {{3, 2, 1, 1}
+                                                        , // 0
+            {                                            2, 2, 2, 1}
+                                                        , // 1
+            {                                            2, 1, 2, 2}
+                                                        , // 2
+            {                                            1, 4, 1, 1}
+                                                        , // 3
+            {                                            1, 1, 3, 2}
+                                                        , // 4
+            {                                            1, 2, 3, 1}
+                                                        , // 5
+            {                                            1, 1, 1, 4}
+                                                        , // 6
+            {                                            1, 3, 1, 2}
+                                                        , // 7
+            {                                            1, 2, 1, 3}
+                                                        , // 8
+            {                                            3, 1, 1, 2}  // 9
+    };
+    return A_or_C_Patterns;
+}
+
+// right for A
+
+const vector<vector<int>> &get_AB_Patterns()
+{
+    static const vector<vector<int>> AB_Patterns = [] {
+        auto AB_Patterns_inited = vector<vector<int>>(20, vector<int>(PATTERN_LENGTH, 0));
+        std::copy(get_A_or_C_Patterns().cbegin(), get_A_or_C_Patterns().cend(), AB_Patterns_inited.begin());
+        //AB pattern is
+        int offset = 10;
+        for (int i = 0; i < get_A_or_C_Patterns().size(); ++i)
+        {
+            for (int j = 0; j < PATTERN_LENGTH; ++j)
+            {
+                AB_Patterns_inited[i + offset][j] = AB_Patterns_inited[i][PATTERN_LENGTH - j - 1];
             }
-            decode_result[i + 7] = static_cast<char>('0' + bestMatch);
-            start = std::accumulate(counters.cbegin(), counters.cend(), start);
         }
-        string result = string(decode_result);
-        if (!isValid(result)) {
-            return "Wrong: " + result.append(string(13 - result.size(), ' '));
+        return AB_Patterns_inited;
+    }();
+    return AB_Patterns;
+}
+
+ean_decoder::ean_decoder(const char *const name)
+{
+    this->name = string(name);
+    if (name == string(TYPE_EAN13))
+    {
+        bitsNum = EAN13LENGTH;
+        digitNumber = EAN13DIGITNUMBER;
+        //7 module encode a digit
+    }
+}
+
+const vector<int> &BEGIN_PATTERN()
+{
+    // it just need it's 1:1:1(black:white:black)
+    static const vector<int> BEGIN_PATTERN_(3, 1);
+    return BEGIN_PATTERN_;
+}
+
+const vector<int> &MIDDLE_PATTERN()
+{
+    // it just need it's 1:1:1:1:1(white:black:white:black:white)
+    static const vector<int> MIDDLE_PATTERN_(5, 1);
+    return MIDDLE_PATTERN_;
+}
+
+const std::array<char, 32> &FIRST_CHAR_ARRAY()
+{
+    // use array to simulation a Hashmap,
+    // because the data's size is small,
+    // use a hashmap or brute-force search 10 times both can not accept
+    static const std::array<char, 32> pattern{
+            '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', '\x06', '\x00', '\x00', '\x00', '\x09', '\x00'
+            , '\x08', '\x03', '\x00', '\x00', '\x00', '\x00', '\x05', '\x00', '\x07', '\x02', '\x00', '\x00', '\x04'
+            , '\x01', '\x00', '\x00', '\x00', '\x00', '\x00'};
+    // length is 32 to ensure the security
+    // 0x00000 -> 0  -> 0
+    // 0x11010 -> 26 -> 1
+    // 0x10110 -> 22 -> 2
+    // 0x01110 -> 14 -> 3
+    // 0x11001 -> 25 -> 4
+    // 0x10011 -> 19 -> 5
+    // 0x00111 -> 7  -> 6
+    // 0x10101 -> 21 -> 7
+    // 0x01101 -> 13 -> 8
+    // 0x01011 -> 11 -> 9
+    // delete the 1-13's 2 number's bit,
+    // it always be A which do not need to count.
+    return pattern;
+}
+
+string ean_decoder::decodeOuter(vector<uchar> data)
+{
+    vector<int> guradCounters{0, 0, 0};
+    std::pair<int, int> temp = findGuardPatterns(data, 0, false, BEGIN_PATTERN(), guradCounters);
+    int start = temp.first;
+    return decode(data, start);
+}
+
+/**
+ * decode EAN-13
+ * @prama: data: the input array,
+ * @prama: start, the index of start order, begin at 0, max-value is data.size()-1
+ * it scan begin at the data[start]
+ */
+string ean_decoder::decode(vector<uchar> data, int start) const
+{
+    // at least it should have EAN13LENGTH's bits
+    // else it can not decode at all
+    char decode_result[14]{'\0'};
+    if (data.size() - start < EAN13LENGTH)
+    {
+        return "size wrong";
+    }
+    vector<int> gurad_counters{0, 0, 0};
+    start = findGuardPatterns(data, start, false, BEGIN_PATTERN(), gurad_counters).second;
+    vector<int> counters = {0, 0, 0, 0};
+    int end = data.size();
+    uint32_t first_char_bit = 0;
+    // [1,6] are left part of EAN13, [7,12] are right part, index 0 is calculated by left part
+    for (int i = 1; i < 7 && start < end; ++i)
+    {
+        int bestMatch = decodeDigit(data, counters, start, get_AB_Patterns());
+        if (bestMatch == -1)
+        {
+            return "ERROR";
         }
-        //TODO throw exception
-        return result;
+        decode_result[i] = static_cast<char>('0' + bestMatch % 10);
+        start = std::accumulate(counters.cbegin(), counters.cend(), start);
+        first_char_bit |= (bestMatch >= 10) << i;
     }
-
-    string ean_decoder::decodeAndDetect(vector<uchar> data) const {
-        // TODO
-        return "!";
-    }
-
-
-    string ean_decoder::getName() const {
-        return this->name;
-    }
-
-    bool ean_decoder::isValid(string result) const {
-        if (result.size() != this->digitNumber) {
-            return false;
+    decode_result[0] = FIRST_CHAR_ARRAY()[first_char_bit >> 2] + '0';
+    // why there need >> 2?
+    // first, the i in for-cycle is begin in 1
+    // second, the first i = 1 is always
+    start = findGuardPatterns(data, start, true, MIDDLE_PATTERN(), vector<int>(MIDDLE_PATTERN().size())).second;
+    for (int i = 0; i < 6 && start < end; ++i)
+    {
+        int bestMatch = decodeDigit(data, counters, start, get_A_or_C_Patterns());
+        if (bestMatch == -1)
+        {
+            return "ERROR";
         }
-        int sum = 0;
-        for (int index = result.size() - 2, i = 1; index >= 0; index--, i++) {
-            int temp = result[index] - '0';
-            sum += (temp + ((i & 1) != 0 ? temp << 1 : 0));
-        }
-        return (result.back() - '0') == (10 - (sum % 10)) % 10;
+        decode_result[i + 7] = static_cast<char>('0' + bestMatch);
+        start = std::accumulate(counters.cbegin(), counters.cend(), start);
     }
+    string result = string(decode_result);
+    if (!isValid(result))
+    {
+        return "Wrong: " + result.append(string(13 - result.size(), ' '));
+    }
+    //TODO throw exception
+    return result;
+}
 
-    std::pair<int, int> ean_decoder::findGuardPatterns(const vector<uchar> &row,
-                                                       int rowOffset,
-                                                       uchar whiteFirst,
-                                                       const vector<int> &pattern,
-                                                       vector<int> counters) {
-        std::pair<int, int> will_return{rowOffset, -1};
-        int patternLength = pattern.size();
-        int width = row.size();
-        uchar isWhite = whiteFirst ? WHITE : BLACK;
-        rowOffset = std::find(row.cbegin() + rowOffset, row.cend(), isWhite) - row.cbegin();
-        //rowOffset = whiteFirst ? row.getNextUnset(rowOffset) : row.getNextSet(rowOffset);
-        int counterPosition = 0;
-        int patternStart = rowOffset;
-        for (int x = rowOffset; x < width; x++) {
-            if (row[x] == isWhite) {
-                counters[counterPosition]++;
-            } else {
-                if (counterPosition == patternLength - 1) {
-                    if (patternMatch(counters, pattern, MAX_INDIVIDUAL_VARIANCE) < MAX_AVG_VARIANCE) {
-                        return std::make_pair(patternStart, x);
-                    }
-                    patternStart += counters[0] + counters[1];
-                    std::copy(counters.begin() + 2, counters.end(), counters.begin());
-                    counters[patternLength - 2] = 0;
-                    counters[patternLength - 1] = 0;
-                    counterPosition--;
-                } else {
-                    counterPosition++;
+string ean_decoder::decodeAndDetect(vector<uchar> data) const
+{
+    // TODO
+    return "!";
+}
+
+
+string ean_decoder::getName() const
+{
+    return this->name;
+}
+
+bool ean_decoder::isValid(string result) const
+{
+    if (result.size() != this->digitNumber)
+    {
+        return false;
+    }
+    int sum = 0;
+    for (int index = result.size() - 2, i = 1; index >= 0; index--, i++)
+    {
+        int temp = result[index] - '0';
+        sum += (temp + ((i & 1) != 0 ? temp << 1 : 0));
+    }
+    return (result.back() - '0') == (10 - (sum % 10)) % 10;
+}
+
+std::pair<int, int>
+ean_decoder::findGuardPatterns(const vector<uchar> &row, int rowOffset, uchar whiteFirst, const vector<int> &pattern,
+                               vector<int> counters)
+{
+    std::pair<int, int> will_return{rowOffset, -1};
+    int patternLength = pattern.size();
+    int width = row.size();
+    uchar isWhite = whiteFirst ? WHITE : BLACK;
+    rowOffset = std::find(row.cbegin() + rowOffset, row.cend(), isWhite) - row.cbegin();
+    //rowOffset = whiteFirst ? row.getNextUnset(rowOffset) : row.getNextSet(rowOffset);
+    int counterPosition = 0;
+    int patternStart = rowOffset;
+    for (int x = rowOffset; x < width; x++)
+    {
+        if (row[x] == isWhite)
+        {
+            counters[counterPosition]++;
+        }
+        else
+        {
+            if (counterPosition == patternLength - 1)
+            {
+                if (patternMatch(counters, pattern, MAX_INDIVIDUAL_VARIANCE) < MAX_AVG_VARIANCE)
+                {
+                    return std::make_pair(patternStart, x);
                 }
-                counters[counterPosition] = 1;
-                isWhite = (std::numeric_limits<uchar>::max() - isWhite);
+                patternStart += counters[0] + counters[1];
+                std::copy(counters.begin() + 2, counters.end(), counters.begin());
+                counters[patternLength - 2] = 0;
+                counters[patternLength - 1] = 0;
+                counterPosition--;
             }
+            else
+            {
+                counterPosition++;
+            }
+            counters[counterPosition] = 1;
+            isWhite = (std::numeric_limits<uchar>::max() - isWhite);
         }
-        will_return.second = rowOffset;
-        return will_return;
     }
+    will_return.second = rowOffset;
+    return will_return;
+}
 
-    int ean_decoder::decodeDigit(const vector<uchar> &row, vector<int> &counters, int rowOffset,
-                                 vector<vector<int>> patterns) {
-        fillCounter(row, rowOffset, counters);
-        int bestMatch = -1;
-        int bestVariance = MAX_AVG_VARIANCE; // worst variance we'll accept
-        for (int i = 0; i < patterns.size(); i++) {
-            int variance = patternMatch(counters, patterns[i], MAX_INDIVIDUAL_VARIANCE);
-            if (variance < bestVariance) {
-                bestVariance = variance;
-                bestMatch = i;
-            }
+int
+ean_decoder::decodeDigit(const vector<uchar> &row, vector<int> &counters, int rowOffset, vector<vector<int>> patterns)
+{
+    fillCounter(row, rowOffset, counters);
+    int bestMatch = -1;
+    int bestVariance = MAX_AVG_VARIANCE; // worst variance we'll accept
+    for (int i = 0; i < patterns.size(); i++)
+    {
+        int variance = patternMatch(counters, patterns[i], MAX_INDIVIDUAL_VARIANCE);
+        if (variance < bestVariance)
+        {
+            bestVariance = variance;
+            bestMatch = i;
         }
-        return std::max(-1, bestMatch);
-        // -1 is dismatch or means error.
     }
+    return std::max(-1, bestMatch);
+    // -1 is dismatch or means error.
+}
 }
