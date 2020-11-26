@@ -146,15 +146,16 @@ namespace cv {
             resized_barcode = barcode.clone();
         }
         //resized_barcode.convertTo(resized_barcode, CV_32FC3);
-//        medianBlur(resized_barcode, resized_barcode, 3);
+        medianBlur(resized_barcode, resized_barcode, 3);
 
     }
 
 
     void Detect::localization() {
         localization_bbox.clear();
-        bbox_indices.clear();
         bbox_scores.clear();
+        bbox_orientations.clear();
+
 #ifdef CV_DEBUG
         clock_t start = clock();
 //        imshow("gray image", resized_barcode);
@@ -166,7 +167,7 @@ namespace cv {
 //        connectComponents();
 
 
-        dnn::NMSBoxes(localization_bbox, bbox_scores, 0.95, 0.2, bbox_indices);
+//        dnn::NMSBoxes(localization_bbox, bbox_scores, 0.95, 0.2, bbox_indices);
 
         clock_t locate_time = clock();
 
@@ -176,18 +177,26 @@ namespace cv {
 
 #else
         findCandidates();   // find areas with low variance in gradient direction
-        dnn::NMSBoxes(localization_bbox, bbox_scores, 0.8, 0.2, bbox_indices);
+//        dnn::NMSBoxes(localization_bbox, bbox_scores, 0.8, 0.2, bbox_indices);
 #endif
 
 
     }
 
-    vector<Rect> Detect::getLocalizationRects() {
-        localization_rects.clear();
 
-        for (std::_Vector_iterator<std::_Vector_val<std::_Simple_types<int>>>::value_type &bbox_index : bbox_indices) {
-            localization_rects.push_back(localization_bbox[bbox_index]);
+    vector<RotatedRect> Detect::getLocalizationRects() {
+
+//        std::sort(localization_rects.begin(), localization_rects.end(), compare);
+//        for (auto it = localization_rects.begin(); it < localization_rects.end(); it++) {
+//            std::cout << (*it).size.area() << std::endl;
+//        }
+        localization_rects.clear();
+        bbox_indices.clear();
+        dnn::NMSBoxes(localization_bbox, bbox_scores, 0, 0.1, bbox_indices);
+        for (auto it = bbox_indices.begin(); it < bbox_indices.end(); it++) {
+            localization_rects.push_back(localization_bbox[*it]);
         }
+
         return localization_rects;
     }
 
@@ -249,8 +258,9 @@ namespace cv {
         Scharr(resized_barcode, scharr_y, CV_32F, 0, 1);
         // calculate magnitude of gradient, normalize and threshold
         magnitude(scharr_x, scharr_y, gradient_magnitude);
-        threshold(gradient_magnitude, gradient_magnitude, 64, 1, CV_8U);
-        imshow("mag", gradient_magnitude);
+        threshold(gradient_magnitude, gradient_magnitude, 32, 1, THRESH_BINARY);
+        gradient_magnitude.convertTo(gradient_magnitude, CV_8U);
+//        imshow("mag", gradient_magnitude);
 //        normalize(gradient_magnitude, gradient_magnitude, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
 //        adaptiveThreshold(gradient_magnitude, gradient_magnitude, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 9, 0);
         integral(gradient_magnitude, integral_edges, CV_32F);
@@ -346,12 +356,14 @@ namespace cv {
     }
 
     void Detect::regionGrowing(Mat &consistency, Mat &orientation, int window_size) {
-        const float LOCAL_THRESHOLD_CONSISTENCY = 0.99, THRESHOLD_RADIAN = PI / 20, THRESHOLD_BLOCK_NUM =
-                float(consistency.cols * consistency.rows) / 60.0, LOCAL_RATIO = 0.5;
+        const float LOCAL_THRESHOLD_CONSISTENCY = 0.95, THRESHOLD_RADIAN = PI / 20, THRESHOLD_BLOCK_NUM =
+                20, LOCAL_RATIO = 0.6;
         Point2d pToGrowing, pt;                       //待生长点位置
+//        vector<RotatedRect> temp;
 //        float pGrowValue;                             //待生长点灰度值
         float pSrcValue;                               //生长起点灰度值
         float pCurValue;                               //当前生长点灰度值
+        double rect_orientation;
         float sin_sum, cos_sum, counter, edge_num;
 //        Mat growImage = Mat::zeros(consistency.size(), CV_8U);   //创建一个空白区域，填充为黑色
         //生长方向顺序数据
@@ -426,30 +438,38 @@ namespace cv {
                 // minimum local gradient orientation consistency
                 if (local_consistency < LOCAL_THRESHOLD_CONSISTENCY)
                     continue;
-                Rect rect = boundingRect(growingImgPoints);
-//                float ans = counter / rect.width / rect.height;
-//                printf("%f\n",ans);
-                if (counter < rect.width * rect.height * LOCAL_RATIO)
+                RotatedRect rect = minAreaRect(growingImgPoints);
+                if (counter < rect.size.area() * LOCAL_RATIO)
                     continue;
-                rect.x = (rect.x) * window_size;
-                rect.y = (rect.y) * window_size;
-                rect.height *= window_size;
-                rect.width *= window_size;
-                edge_num = calcRectSum(integral_edges, min(rect.x + rect.width, width),
-                                       max(rect.x, 0),
-                                       max(rect.y, 0),
-                                       min(rect.y + rect.height, height));
-                // minimum local edge ratio
-                if (edge_num > rect.height * rect.width * LOCAL_RATIO) {
-                    double local_orientation = computeOrientation(cos_sum, sin_sum);
-                    std::cout << local_consistency << " " << local_orientation << " " << counter << " "
-                              << edge_num / rect.height / rect.width << std::endl;
-                    localization_bbox.push_back(rect);
-                    bbox_scores.push_back(edge_num / rect.height / rect.width);
-                    bbox_orientations.push_back(local_orientation);
-                    rectangle(resized_barcode, rect, 127);
-                    imshow("grow image", resized_barcode);
+//                printf("counter ratio: %f\n", counter / rect.size.area());
+
+//                rect.x = (rect.x) * window_size;
+//                rect.y = (rect.y) * window_size;
+//                rect.height *= window_size;
+//                rect.width *= window_size;
+                double local_orientation = computeOrientation(cos_sum, sin_sum);
+                // only orientation is approximately equal to the rectangle orientation
+                if (rect.size.width < rect.size.height) {
+                    rect_orientation = rect.angle <= 0 ? (rect.angle / 180 + 0.5) * PI : (rect.angle / 180 - 0.5) * PI;
+                } else {
+                    rect_orientation = rect.angle / 180 * PI;
                 }
+                if (abs(local_orientation - rect_orientation) > THRESHOLD_RADIAN &&
+                    abs(local_orientation - rect_orientation) < PI - THRESHOLD_RADIAN)
+                    continue;
+                rect.size.width *= float(window_size + 2);
+                rect.size.height *= float(window_size + 2);
+                rect.center.x = (rect.center.x + 0.5) * window_size;
+                rect.center.y = (rect.center.y + 0.5) * window_size;
+
+                std::cout << local_consistency << " " << local_orientation << " " << counter << std::endl;
+                localization_bbox.push_back(rect);
+
+
+                bbox_scores.push_back(rect.size.area());
+                bbox_orientations.push_back(local_orientation);
+//                rectangle(resized_barcode, rect, 127);
+//                imshow("grow image", resized_barcode);
 
 
             }
@@ -464,10 +484,9 @@ namespace cv {
         /* calculate variance of gradient directions around each pixel
         in the img_details.gradient_directions matrix
         */
-        //FIXME some block's consistency is NaN
         int right_col, left_col, top_row, bottom_row;
         float xy, x_sq, y_sq, d, rect_area;
-        const float THRESHOLD_AREA = float(window_size * window_size) * 0.5f, THRESHOLD_CONSISTENCY = 0.01f;
+        const float THRESHOLD_AREA = float(window_size * window_size) * 0.5f, THRESHOLD_CONSISTENCY = 0.9f;
         Size new_size(width / window_size, height / window_size);
         raw_consistency = Mat(new_size, CV_8U),
                 orientation = Mat(new_size, CV_32F);
@@ -493,36 +512,36 @@ namespace cv {
 
                 //we had an integral image to count non-zero elements
                 rect_area = calcRectSum(integral_edges, right_col, left_col, top_row, bottom_row);
-
+                if (rect_area < THRESHOLD_AREA) {
+                    // 有梯度的点占比小于阈值则视为平滑区域
+                    consistency_row[pos] = 0;
+//                    orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
+                    continue;
+                }
 
                 x_sq = calcRectSum(integral_x_sq, right_col, left_col, top_row, bottom_row);
                 y_sq = calcRectSum(integral_y_sq, right_col, left_col, top_row, bottom_row);
                 xy = calcRectSum(integral_xy, right_col, left_col, top_row, bottom_row);
-                if (rect_area < THRESHOLD_AREA) {
-                    // 有梯度的点占比小于阈值则视为平滑区域
-                    consistency_row[pos] = 0;
-                    orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
-                    continue;
-                }
+
                 // get the values of the rectangle corners from the integral image - 0 if outside bounds
                 d = sqrt((x_sq - y_sq) * (x_sq - y_sq) + 4 * xy * xy) / (x_sq + y_sq);
                 if (d > THRESHOLD_CONSISTENCY) {
-                    consistency_row[pos] = 255;
+                    consistency_row[pos] = cvRound(d * 255);
                     orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
                     rectangle(barcode, Point2d(left_col, top_row), Point2d(right_col, bottom_row), 255);
                 } else {
                     consistency_row[pos] = 0;
-                    orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
+//                    orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
                 }
 //                variance.at<float_t>(y, pos) = data;
             }
 
         }
         imshow("consistency", raw_consistency);
-        morphologyEx(raw_consistency, raw_consistency, MORPH_DILATE, getStructuringElement(MorphShapes::MORPH_RECT,
-                                                                                           Size(3, 3)));
-        morphologyEx(raw_consistency, raw_consistency, MORPH_ERODE, getStructuringElement(MorphShapes::MORPH_CROSS,
-                                                                                          Size(3, 3)));
+//        morphologyEx(raw_consistency, raw_consistency, MORPH_DILATE, getStructuringElement(MorphShapes::MORPH_RECT,
+//                                                                                           Size(3, 3)));
+//        morphologyEx(raw_consistency, raw_consistency, MORPH_ERODE, getStructuringElement(MorphShapes::MORPH_CROSS,
+//                                                                                          Size(3, 3)));
         processed_barcode = Mat::zeros(resized_barcode.size(), CV_32F);
         regionGrowing(raw_consistency, orientation, window_size);
         return raw_consistency;

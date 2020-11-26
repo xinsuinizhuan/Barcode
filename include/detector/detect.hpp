@@ -18,10 +18,10 @@ namespace cv {
     class Detect {
     private:
         const int USE_ROTATED_RECT_ANGLE = 361;
-        vector<Rect> localization_rects;
+        vector<RotatedRect> localization_rects;
 
 
-        vector<Rect> localization_bbox;
+        vector<RotatedRect> localization_bbox;
         vector<float> bbox_scores;
         vector<int> bbox_indices;
         vector<float> bbox_orientations;
@@ -31,7 +31,7 @@ namespace cv {
 
         void localization();
 
-        vector<Rect> getLocalizationRects();
+        vector<RotatedRect> getLocalizationRects();
 
 
     protected:
@@ -44,7 +44,9 @@ namespace cv {
 
         void findCandidates();
 
-
+        static int compare(const RotatedRect &r1, const RotatedRect &r2){
+            return r1.size.area() > r2.size.area();
+        }
         double getBarcodeOrientation(const vector<vector<Point> > &contours, int i);
 
         Mat calConsistency(Mat &raw_consistency, Mat &orientation, int window_size);
