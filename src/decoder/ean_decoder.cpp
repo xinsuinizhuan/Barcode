@@ -96,7 +96,7 @@ namespace cv {
                 if (result_vote[result] > vote_cnt)
                 {
                     vote_cnt = result_vote[result];
-                    if(total_vote > PART/2 && vote_cnt/total_vote > 0.5) {
+                    if(vote_cnt/total_vote > 0.5) {
                         max_result = result;
                     }
                 }
