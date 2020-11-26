@@ -67,7 +67,7 @@ namespace cv {
         if (!checkBarInputImage(img, inarr)) {
             return false;
         }
-//        this->detect(img, rects);
+        this->detect(img, rects);
         if (rects.empty()) {
             return false;
         }

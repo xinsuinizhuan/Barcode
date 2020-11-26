@@ -382,7 +382,7 @@ namespace cv {
 
     void Detect::regionGrowing(int window_size) {
         const float LOCAL_THRESHOLD_CONSISTENCY = 0.98, THRESHOLD_RADIAN = PI / 20, THRESHOLD_BLOCK_NUM =
-                20, LOCAL_RATIO = 0.5;
+                20, LOCAL_RATIO = 0.4;
         Point2d pToGrowing, pt;                       //待生长点位置
 
         float src_value;                               //生长起点灰度值
