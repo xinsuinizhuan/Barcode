@@ -291,14 +291,15 @@ namespace cv {
         integral(scharr_y, temp, integral_y_sq, CV_32F, CV_32F);
         integral(scharr_x.mul(scharr_y), integral_xy, temp, CV_32F, CV_32F);
         float window_ratio = 0.01;
-        Mat raw_consistency, orientation;
-        while (window_ratio <= 0.1) {
+        Mat consistency, orientation, edge_nums;
+        while (window_ratio <= 0.13) {
 #ifdef CV_DEBUG
             printf("window ratio: %f\n", window_ratio);
 #endif
 
-            calConsistency(raw_consistency, orientation, cvRound(min(width, height) * window_ratio));
-            window_ratio += 0.01;
+            calConsistency(cvRound(min(width, height) * window_ratio));
+            regionGrowing(cvRound(min(width, height) * window_ratio));
+            window_ratio += 0.015;
 
         }
 //        adaptiveThreshold(raw_consistency,consistency,255,ADAPTIVE_THRESH_GAUSSIAN_C,THRESH_BINARY,11,0);
@@ -308,193 +309,27 @@ namespace cv {
 
 //        threshold(consistency, consistency, 75, 255, THRESH_BINARY);
 
-        imshow("before-open", barcode);
 
 
 //        processed_barcode = consistency;
     }
 
-    void Detect::connectComponents() {
-        // connect large components by doing morph close followed by morph open
-        // use larger element size for erosion to remove small elements joined by dilation, element size is experimentally determined
-        Mat small_elemSE, large_elemSE;
-        int small = 8, large = 10;
-        small_elemSE = getStructuringElement(MorphShapes::MORPH_ELLIPSE,
-                                             Size(small, small));
-        large_elemSE = getStructuringElement(MorphShapes::MORPH_ELLIPSE,
-                                             Size(large, large));
-
-        dilate(processed_barcode, processed_barcode, small_elemSE);
-        erode(processed_barcode, processed_barcode, large_elemSE);
-
-        erode(processed_barcode, processed_barcode, small_elemSE);
-        dilate(processed_barcode, processed_barcode, large_elemSE);
-    }
-
-    double Detect::getBarcodeOrientation(const vector<vector<Point> > &contours, int i) {
-        // get mean angle within contour region so we can rotate by that amount
-
-        Mat mask = Mat::zeros(processed_barcode.size(), CV_8U);
-        Mat temp_directions = Mat::zeros(processed_barcode.size(), CV_8U);
-        Mat temp_magnitudes = Mat::zeros(processed_barcode.size(), CV_8U);
-
-        drawContours(mask, contours, i, Scalar(255), -1); // -1 thickness to fill contour
-        bitwise_and(gradient_direction, mask, temp_directions);
-        bitwise_and(gradient_magnitude, mask, temp_magnitudes);
-
-        // gradient_direction now contains non-zero values only where there is a gradient
-        // mask now contains angles only for pixels within region enclosed by contour
-
-        double barcode_orientation = cv::sum(temp_directions)[0];
-        int num_NonZero = countNonZero(temp_magnitudes);
-        if (num_NonZero == 0)
-            barcode_orientation = USE_ROTATED_RECT_ANGLE;
-        else
-            barcode_orientation = barcode_orientation / num_NonZero;
-
-        return barcode_orientation;
-    }
-
-    void Detect::regionGrowing(Mat &consistency, Mat &orientation, int window_size) {
-        const float LOCAL_THRESHOLD_CONSISTENCY = 0.95, THRESHOLD_RADIAN = PI / 20, THRESHOLD_BLOCK_NUM =
-                20, LOCAL_RATIO = 0.6;
-        Point2d pToGrowing, pt;                       //待生长点位置
-//        vector<RotatedRect> temp;
-//        float pGrowValue;                             //待生长点灰度值
-        float pSrcValue;                               //生长起点灰度值
-        float pCurValue;                               //当前生长点灰度值
-        double rect_orientation;
-        float sin_sum, cos_sum, counter, edge_num;
-//        Mat growImage = Mat::zeros(consistency.size(), CV_8U);   //创建一个空白区域，填充为黑色
-        //生长方向顺序数据
-        int DIR[8][2] = {{-1, -1},
-                         {0,  -1},
-                         {1,  -1},
-                         {1,  0},
-                         {1,  1},
-                         {0,  1},
-                         {-1, 1},
-                         {-1, 0}};
-        vector<Point2f> growingPoints, growingImgPoints;
-//        pSrcValue = srcImage.at<float_t>(pt.y, pt.x);         //记录生长点的灰度值
-        for (int y = 0; y < consistency.rows; y++) {
-            //pixels_position.clear();
-            auto *consistency_row = consistency.ptr<uint8_t>(y);
-
-            int x = 0;
-            for (; x < consistency.cols; x++) {
-                if (consistency_row[x] == 0)
-                    continue;
-                // flag
-                consistency_row[x] = 0;
-                growingPoints.clear();
-                growingImgPoints.clear();
-//                growImage.setTo(0);
-//                growImage.at<uint8_t>(y, x) = 255;              //标记生长点
-                pCurValue = orientation.at<float_t>(y, x);
-                sin_sum = sin(2 * pCurValue);
-                cos_sum = cos(2 * pCurValue);
-                counter = 1;
-                pt = Point2d(x, y);
-
-                growingPoints.push_back(pt);
-                growingImgPoints.push_back(pt);
-                while (!growingPoints.empty()) {
-                    pt = growingPoints.back();
-                    growingPoints.pop_back();
-                    pSrcValue = orientation.at<float_t>(pt.y, pt.x);
-
-                    //growing in eight directions
-                    for (int i = 0; i < 9; ++i) {
-                        pToGrowing.x = pt.x + DIR[i][0];
-                        pToGrowing.y = pt.y + DIR[i][1];
-                        //check if out of boundary
-                        if (pToGrowing.x < 0 || pToGrowing.y<0 || pToGrowing.x>(consistency.cols - 1) ||
-                            (pToGrowing.y > consistency.rows - 1))
-                            continue;
-
-                        if (consistency.at<uint8_t>(pToGrowing.y, pToGrowing.x) == 0)
-                            continue;
-                        pCurValue = orientation.at<float_t>(pToGrowing.y, pToGrowing.x);
-//                        if (pCurValue < (-PI * 3 / 4)) //block gradient is not consistent
-//                            continue;
-                        if (abs(pCurValue - pSrcValue) < THRESHOLD_RADIAN ||
-                            abs(pCurValue - pSrcValue) > PI - THRESHOLD_RADIAN) {
-//                            growImage.at<uint8_t>(pToGrowing.y, pToGrowing.x) = 255;      //标记为白色
-                            consistency.at<uint8_t>(pToGrowing.y, pToGrowing.x) = 0;
-                            sin_sum += sin(2 * pCurValue);
-                            cos_sum += cos(2 * pCurValue);
-                            counter += 1;
-                            growingPoints.push_back(pToGrowing);                 //将下一个生长点压入栈中
-                            growingImgPoints.push_back(pToGrowing);
-                        }
-                    }
-                }
-                //minimum block num
-                if (counter < THRESHOLD_BLOCK_NUM)
-                    continue;
-
-                float local_consistency = (sin_sum * sin_sum + cos_sum * cos_sum) / counter / counter;
-                // minimum local gradient orientation consistency
-                if (local_consistency < LOCAL_THRESHOLD_CONSISTENCY)
-                    continue;
-                RotatedRect rect = minAreaRect(growingImgPoints);
-                if (counter < rect.size.area() * LOCAL_RATIO)
-                    continue;
-//                printf("counter ratio: %f\n", counter / rect.size.area());
-
-//                rect.x = (rect.x) * window_size;
-//                rect.y = (rect.y) * window_size;
-//                rect.height *= window_size;
-//                rect.width *= window_size;
-                double local_orientation = computeOrientation(cos_sum, sin_sum);
-                // only orientation is approximately equal to the rectangle orientation
-                if (rect.size.width < rect.size.height) {
-                    rect_orientation = rect.angle <= 0 ? (rect.angle / 180 + 0.5) * PI : (rect.angle / 180 - 0.5) * PI;
-                } else {
-                    rect_orientation = rect.angle / 180 * PI;
-                }
-                if (abs(local_orientation - rect_orientation) > THRESHOLD_RADIAN &&
-                    abs(local_orientation - rect_orientation) < PI - THRESHOLD_RADIAN)
-                    continue;
-                rect.size.width *= float(window_size + 2);
-                rect.size.height *= float(window_size + 2);
-                rect.center.x = (rect.center.x + 0.5) * window_size;
-                rect.center.y = (rect.center.y + 0.5) * window_size;
-
-                std::cout << local_consistency << " " << local_orientation << " " << counter << std::endl;
-                localization_bbox.push_back(rect);
-
-
-                bbox_scores.push_back(rect.size.area());
-                bbox_orientations.push_back(local_orientation);
-//                rectangle(resized_barcode, rect, 127);
-//                imshow("grow image", resized_barcode);
-
-
-            }
-
-
-        }
-
-//        return growImage.clone();
-    }
-
-    Mat Detect::calConsistency(Mat &raw_consistency, Mat &orientation, int window_size) {
+    void Detect::calConsistency(int window_size) {
         /* calculate variance of gradient directions around each pixel
         in the img_details.gradient_directions matrix
         */
         int right_col, left_col, top_row, bottom_row;
         float xy, x_sq, y_sq, d, rect_area;
-        const float THRESHOLD_AREA = float(window_size * window_size) * 0.5f, THRESHOLD_CONSISTENCY = 0.9f;
+        const float THRESHOLD_AREA = float(window_size * window_size) * 0.5f, THRESHOLD_CONSISTENCY = 0.85f;
         Size new_size(width / window_size, height / window_size);
-        raw_consistency = Mat(new_size, CV_8U),
-                orientation = Mat(new_size, CV_32F);
+        consistency = Mat(new_size, CV_8U),
+        orientation = Mat(new_size, CV_32F), edge_nums = Mat(new_size, CV_32F);
         //imshow("非零积分图", gradient_magnitude);
         for (int y = 0; y < new_size.height; y++) {
             //pixels_position.clear();
-            auto *consistency_row = raw_consistency.ptr<uint8_t>(y);
+            auto *consistency_row = consistency.ptr<uint8_t>(y);
             auto *orientation_row = orientation.ptr<float_t>(y);
+            auto *edge_nums_row = edge_nums.ptr<float_t>(y);
             if (y * window_size >= height) {
                 continue;
             }
@@ -528,6 +363,7 @@ namespace cv {
                 if (d > THRESHOLD_CONSISTENCY) {
                     consistency_row[pos] = cvRound(d * 255);
                     orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
+                    edge_nums_row[pos] = rect_area;
                     rectangle(barcode, Point2d(left_col, top_row), Point2d(right_col, bottom_row), 255);
                 } else {
                     consistency_row[pos] = 0;
@@ -537,15 +373,129 @@ namespace cv {
             }
 
         }
-        imshow("consistency", raw_consistency);
 //        morphologyEx(raw_consistency, raw_consistency, MORPH_DILATE, getStructuringElement(MorphShapes::MORPH_RECT,
 //                                                                                           Size(3, 3)));
 //        morphologyEx(raw_consistency, raw_consistency, MORPH_ERODE, getStructuringElement(MorphShapes::MORPH_CROSS,
 //                                                                                          Size(3, 3)));
-        processed_barcode = Mat::zeros(resized_barcode.size(), CV_32F);
-        regionGrowing(raw_consistency, orientation, window_size);
-        return raw_consistency;
 
+    }
+
+    void Detect::regionGrowing(int window_size) {
+        const float LOCAL_THRESHOLD_CONSISTENCY = 0.98, THRESHOLD_RADIAN = PI / 20, THRESHOLD_BLOCK_NUM =
+                20, LOCAL_RATIO = 0.5;
+        Point2d pToGrowing, pt;                       //待生长点位置
+
+        float src_value;                               //生长起点灰度值
+        float cur_value;                               //当前生长点灰度值
+        float edge_num;
+        double rect_orientation;
+        float sin_sum, cos_sum, counter;
+        //生长方向顺序数据
+        int DIR[8][2] = {{-1, -1},
+                         {0,  -1},
+                         {1,  -1},
+                         {1,  0},
+                         {1,  1},
+                         {0,  1},
+                         {-1, 1},
+                         {-1, 0}};
+        vector<Point2f> growingPoints, growingImgPoints;
+        for (int y = 0; y < consistency.rows; y++) {
+            //pixels_position.clear();
+            auto *consistency_row = consistency.ptr<uint8_t>(y);
+
+            int x = 0;
+            for (; x < consistency.cols; x++) {
+                if (consistency_row[x] == 0)
+                    continue;
+                // flag
+                consistency_row[x] = 0;
+                growingPoints.clear();
+                growingImgPoints.clear();
+
+                cur_value = orientation.at<float_t>(y, x);
+                sin_sum = sin(2 * cur_value);
+                cos_sum = cos(2 * cur_value);
+                counter = 1;
+                edge_num = edge_nums.at<float_t>(y, x);
+                pt = Point2d(x, y);
+
+                growingPoints.push_back(pt);
+                growingImgPoints.push_back(pt);
+                while (!growingPoints.empty()) {
+                    pt = growingPoints.back();
+                    growingPoints.pop_back();
+                    src_value = orientation.at<float_t>(pt.y, pt.x);
+
+                    //growing in eight directions
+                    for (int i = 0; i < 9; ++i) {
+                        pToGrowing.x = pt.x + DIR[i][0];
+                        pToGrowing.y = pt.y + DIR[i][1];
+                        //check if out of boundary
+                        if (pToGrowing.x < 0 || pToGrowing.y<0 || pToGrowing.x>(consistency.cols - 1) ||
+                            (pToGrowing.y > consistency.rows - 1))
+                            continue;
+
+                        if (consistency.at<uint8_t>(pToGrowing.y, pToGrowing.x) == 0)
+                            continue;
+                        cur_value = orientation.at<float_t>(pToGrowing.y, pToGrowing.x);
+                        if (abs(cur_value - src_value) < THRESHOLD_RADIAN ||
+                            abs(cur_value - src_value) > PI - THRESHOLD_RADIAN) {
+                            consistency.at<uint8_t>(pToGrowing.y, pToGrowing.x) = 0;
+                            sin_sum += sin(2 * cur_value);
+                            cos_sum += cos(2 * cur_value);
+                            counter += 1;
+                            edge_num += edge_nums.at<float_t>(pToGrowing.y, pToGrowing.x);
+                            growingPoints.push_back(pToGrowing);                 //将下一个生长点压入栈中
+                            growingImgPoints.push_back(pToGrowing);
+                        }
+                    }
+                }
+                //minimum block num
+                if (counter < THRESHOLD_BLOCK_NUM)
+                    continue;
+                float local_consistency = (sin_sum * sin_sum + cos_sum * cos_sum) / counter / counter;
+                // minimum local gradient orientation consistency
+                if (local_consistency < LOCAL_THRESHOLD_CONSISTENCY)
+                    continue;
+                RotatedRect rect = minAreaRect(growingImgPoints);
+                if (edge_num < rect.size.area() * float(window_size * window_size) * LOCAL_RATIO ||
+                    counter < rect.size.area() * LOCAL_RATIO)
+                    continue;
+//                printf("counter ratio: %f\n", counter / rect.size.area());
+
+                double local_orientation = computeOrientation(cos_sum, sin_sum);
+                // only orientation is approximately equal to the rectangle orientation
+                if (rect.size.width < rect.size.height) {
+                    rect_orientation = rect.angle <= 0 ? (rect.angle / 180 + 0.5) * PI : (rect.angle / 180 - 0.5) * PI;
+                } else {
+                    rect_orientation = rect.angle / 180 * PI;
+                }
+                if (abs(local_orientation - rect_orientation) > THRESHOLD_RADIAN &&
+                    abs(local_orientation - rect_orientation) < PI - THRESHOLD_RADIAN)
+                    continue;
+                rect.size.width *= float(window_size + 1);
+                rect.size.height *= float(window_size + 1);
+                rect.center.x = (rect.center.x + 0.5) * window_size;
+                rect.center.y = (rect.center.y + 0.5) * window_size;
+
+                std::cout << local_consistency << " " << local_orientation << " " << counter << " "
+                          << edge_num / rect.size.area() << std::endl;
+                localization_bbox.push_back(rect);
+
+
+                bbox_scores.push_back(edge_num);
+                bbox_orientations.push_back(local_orientation);
+//                rectangle(resized_barcode, rect, 127);
+//                imshow("grow image", resized_barcode);
+
+
+            }
+
+
+        }
+
+//        return growImage.clone();
     }
 
 

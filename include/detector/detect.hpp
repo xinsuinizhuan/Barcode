@@ -40,28 +40,27 @@ namespace cv {
         } purpose = UNCHANGED;
         double coeff_expansion = 1.0;
         int height, width;
-        Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, processed_barcode, integral_x_sq, integral_y_sq, integral_xy, integral_edges;
+        Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, processed_barcode, integral_x_sq, integral_y_sq, integral_xy, integral_edges, consistency, orientation, edge_nums;
 
         void findCandidates();
 
-        static int compare(const RotatedRect &r1, const RotatedRect &r2){
+        static int compare(const RotatedRect &r1, const RotatedRect &r2) {
             return r1.size.area() > r2.size.area();
         }
-        double getBarcodeOrientation(const vector<vector<Point> > &contours, int i);
-
-        Mat calConsistency(Mat &raw_consistency, Mat &orientation, int window_size);
-
-        void connectComponents();
-
-        inline bool isValidCoord(const Point2f &coord) const;
-
-        inline double computeOrientation(float y, float x);
 
         void normalizeRegion(RotatedRect &rect);
 
+        void calConsistency(int window_size);
+
+
+        inline bool isValidCoord(const Point2f &coord) const;
+
+        static inline double computeOrientation(float y, float x);
+
+
         //void locateBarcodes();
 
-        void regionGrowing(Mat &consistency, Mat &orientation, int window_size);
+        void regionGrowing(int window_size);
 
     };
 }
