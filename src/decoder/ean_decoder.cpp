@@ -6,6 +6,7 @@
 // three digit decode method from https://baike.baidu.com/item/EAN-13
 
 namespace cv {
+
     // default thought that mat is a matrix after binary-transfer.
     /*Input a mat and it's position rect, return the decode result */
     vector<string> ean_decoder::rectToUcharlist(Mat &mat, const vector<RotatedRect> &rects) const {
@@ -18,52 +19,50 @@ namespace cv {
         int block_size = length/95 * 2 + 1;
         equalizeHist(gray,gray);
         imshow("hist", gray);
-        adaptiveThreshold(gray,gray, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, block_size, 1);
-        imshow("binary", gray);
-        constexpr int PART = 10;
+        constexpr int PART = 16;
         for (const auto &rect : rects) {
+            Mat bar_img;
+            cutImage(gray, bar_img,rect);
+
+            resize(bar_img, bar_img, Size(400, bar_img.rows));
+            //imshow("rawbar", bar_img);
+            //adaptiveThreshold(bar_img,bar_img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 17, 1);
+            threshold(bar_img, bar_img, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+            //threshold(bar_img, bar_img, 145, 255, CV_8UC1);
+            //imshow("barimg", bar_img);
             std::map<std::string, int> result_vote;
             std::string max_result = "ERROR";
             if(max(rect.size.height, rect.size.width) < EAN13LENGTH) {
                 will_return.push_back(max_result);
                 continue;
             }
-            Point2f begin;
-            Point2f end;
-            Point2f vertices[4];
-            rect.points(vertices);
-            double distance1 = cv::norm(vertices[0] - vertices[1]);
-            double distance2 = cv::norm(vertices[1] - vertices[2]);
+#ifdef CV_DEBUG
+            Mat bar_copy = bar_img.clone();
+#endif
+            Point2i begin;
+            Point2i end;
             std::string result;
             for (int i = 1, direction = 1; i <= PART / 2; direction = -1 * direction) {
                 vector<uchar> middle;
-                if (distance1 > distance2) {
-                    double stepx = (vertices[0].x - vertices[3].x) / PART;
-                    double stepy = (vertices[0].y - vertices[3].y) / PART;
-                    Point2f step(stepx, stepy);
-                    begin = (vertices[0] + vertices[3]) / 2 + step * i * direction;
-                    end = (vertices[1] + vertices[2]) / 2 + step * i * direction;
-                } else {
-                    double stepx = (vertices[0].x - vertices[1].x) / PART;
-                    double stepy = (vertices[0].y - vertices[1].y) / PART;
-                    Point2f step(stepx, stepy);
-                    begin = (vertices[0] + vertices[1]) / 2 + step * i * direction;
-                    end = (vertices[2] + vertices[3]) / 2 + step * i * direction;
-                }
-                LineIterator line = LineIterator(gray, begin, end);
+                Point2i step(0, bar_img.rows / PART);
+                begin = Point2i(0, bar_img.rows/2) + step * i * direction;
+                end = Point2i(bar_img.cols - 1, bar_img.rows/2) + step * i * direction;
+                LineIterator line = LineIterator(bar_img, begin, end);
                 middle.reserve(line.count);
                 for (int cnt = 0; cnt < line.count; cnt++, line++) {
-                    middle.push_back(gray.at<uchar>(line.pos()));
+                    middle.push_back(bar_img.at<uchar>(line.pos()));
                 }
                 result = this->decode(middle, 0);
                 if (result.size() != 13) {
                     result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
                 }
 #ifdef CV_DEBUG
-                cv::line(mat, begin, end, cv::Scalar(0, 255, 0));
+
+                cv::line(bar_copy, begin, end, cv::Scalar(0, 255, 0));
                 //cv::line(mat,begin,end,Scalar(0,0,255),2);
-                cv::circle(mat, begin, 4, Scalar(255, 0, 0), 2);
-                cv::circle(mat, end, 4, Scalar(0, 0, 255), 2);
+                cv::circle(bar_copy, begin, 4, Scalar(255, 0, 0), 2);
+                cv::circle(bar_copy, end, 4, Scalar(0, 0, 255), 2);
+                imshow("barscan", bar_copy);
 #endif
                 int vote_cnt = 0;
                 if (result.size() == 13) {

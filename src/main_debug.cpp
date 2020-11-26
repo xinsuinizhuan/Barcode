@@ -11,6 +11,9 @@ int main(int argc, char **argv) {
                "./main_debug <input_file>\n");
         exit(-1);
     }
+    std::map<std::string, int> result_cnt;
+    double total = 0;
+    double max = 0;
     BarcodeDetector bardet;
     Mat frame;
     Point2f vertices[4];
@@ -30,6 +33,26 @@ int main(int argc, char **argv) {
             bardet.detectAndDecode(frame, decoded_info, rects);
             for (auto &info:decoded_info) {
                 std::cout << info << std::endl;
+                string error = "ERROR";
+                if(error != info) {
+                    if(result_cnt.find(info) == result_cnt.end()) {
+                        result_cnt[info] = 1;
+                    } else {
+                        result_cnt[info] += 1;
+                    }
+                    if(result_cnt[info] > max) {
+                        max = result_cnt[info];
+                    }
+                    total += 1;
+                }
+            }
+            if(total >= 0) {
+                cv::putText(frame, "Accuracy: " + std::to_string(max/total),Point(0,50),cv::FONT_HERSHEY_PLAIN, 2, Scalar(255, 0, 0), 2);
+            }
+            if(decoded_info.empty()) {
+                max = 0;
+                total = 0;
+                result_cnt.clear();
             }
             int i = 0;
             for (auto &rect : rects) {
@@ -38,8 +61,6 @@ int main(int argc, char **argv) {
                     line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0), 2);
                 cv::putText(frame, decoded_info[i], vertices[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
                 i++;
-
-
             }
             fps = 1.0f * CLOCKS_PER_SEC / (float) (clock() - start);
             std::cout << fps << " fps" << std::endl;

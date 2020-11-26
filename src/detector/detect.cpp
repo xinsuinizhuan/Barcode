@@ -133,7 +133,7 @@ namespace cv {
             resized_barcode = barcode.clone();
         }
         //resized_barcode.convertTo(resized_barcode, CV_32FC3);
-        medianBlur(resized_barcode, resized_barcode, 3);
+        //medianBlur(resized_barcode, resized_barcode, 3);
 
     }
 

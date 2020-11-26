@@ -1,7 +1,7 @@
 #include "test_precomp.hpp"
 
 TEST(binaryzation_test, BinaryzationTest) {
-    cv::Mat image = imread("../test/data/real.jpg", cv::IMREAD_GRAYSCALE);
+    cv::Mat image = imread("../test/data/real2.jpg", cv::IMREAD_GRAYSCALE);
     imshow("img", image);
     cv::Mat dst = image.clone();
     //pre process
@@ -28,7 +28,7 @@ TEST(binaryzation_test, BinaryzationTest) {
 }
 
 TEST(binaryzation_test, ImgUnitTest) {
-    std::string img_path = R"(./../test/data/real.jpg)";
+    std::string img_path = R"(./../test/data/real2.jpg)";
     cv::BarcodeDetector bardet;
     cv::Mat frame = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
     cv::Mat decodeFrame = frame.clone();
@@ -67,9 +67,9 @@ TEST(binaryzation_test, ImgUnitTest) {
 
 
 TEST(basic_test, RotateTest) {
-    cv::Mat image = imread("./../../test/data/real2.jpg", cv::IMREAD_GRAYSCALE);
+    cv::Mat image = imread("../test/data/real2.jpg", cv::IMREAD_GRAYSCALE);
     cv::Mat test;
-    cv::RotatedRect rect(cv::Point2f(134, 91), cv::Size(141, 293), -89);
+    cv::RotatedRect rect(cv::Point2f(134, 200), cv::Size(141, 293), -30);
     cv::Point2f pts[4];
     rect.points(pts);
     for (int i = 0; i < 4; i++) {

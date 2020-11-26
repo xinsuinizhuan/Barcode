@@ -9,26 +9,32 @@
 
 
 namespace cv {
+    //TODO 读取
     void cutImage(InputArray _src, OutputArray &_dst, RotatedRect rect) {
-        Mat src = _src.getMat();
-        Point2i center(src.cols / 2, src.rows / 2);
-        cv::Mat t_mat = cv::Mat::zeros(2, 3, CV_64F);
-        t_mat.at<double>(0, 0) = 1;
-        t_mat.at<double>(1, 1) = 1;
-        t_mat.at<double>(0, 2) = src.cols / 2 - rect.center.x;
-        t_mat.at<double>(1, 2) = src.rows / 2 - rect.center.y;
-        Mat src_copy;
-        warpAffine(src, src_copy, t_mat, _src.size(), INTER_NEAREST, BORDER_CONSTANT, Scalar(255));
-        double angle_offset = 0;
-        Size cut_size = rect.size;
-        if (rect.size.height > rect.size.width) {
-            angle_offset = 90;
-            cut_size.width = rect.size.height;
-            cut_size.height = rect.size.width;
+
+        Point2f vertices[4];
+        rect.points(vertices);
+        float height = rect.size.height;
+        float width = rect.size.width;
+
+        if(height > width) {
+            height = rect.size.width;
+            width = rect.size.height;
+            Point2f v0 = vertices[0];
+            for(int i = 0;i <= 2;i ++) {
+                vertices[i] = vertices[i+1];
+            }
+            vertices[3] = v0;
         }
-        Mat M = getRotationMatrix2D(center, rect.angle + angle_offset, 1);
-        warpAffine(src_copy, src_copy, M, _src.size(), INTER_NEAREST, BORDER_CONSTANT, Scalar(255));
-        getRectSubPix(src_copy, cut_size, center, _dst);
+        Point2f dst_vertices[] = {
+                Point2f(0, height - 1),
+                Point2f(0, 0),
+                Point2f(width - 1, 0),
+                Point2f(width - 1, height - 1) };
+        _dst.create(Size(width,height),CV_8UC1);
+        Mat M = getPerspectiveTransform(vertices, dst_vertices);
+        Mat dst = _dst.getMat();
+        warpPerspective(_src.getMat(), dst, M, _dst.size(), cv::INTER_LINEAR, BORDER_CONSTANT, Scalar(255));
     }
 
     void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters) {
