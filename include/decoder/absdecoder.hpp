@@ -1,5 +1,5 @@
 /*
-Copyright 2020 OpenCV Foundation
+Copyright 2020 ${ALL COMMITTERS}
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,25 +27,26 @@ limitations under the License.
  *   it will have ean13/8, Code128 , etc.. class extend this class
 */
 namespace cv {
-    class absdecoder {
-    public:
-        //input 1 row 2-value Mat, return decode string
-        virtual std::string decode(std::vector<uchar> bar, int start) const = 0;
+class absdecoder
+{
+public:
+    //input 1 row 2-value Mat, return decode string
+    virtual std::string decode(std::vector<uchar> bar, int start) const = 0;
+    
+    virtual std::string decodeAndDetect(std::vector<uchar> bar) const = 0;
+    
+    virtual std::string getName() const = 0;
+    
+    virtual ~absdecoder() = default;
 
-        virtual std::string decodeAndDetect(std::vector<uchar> bar) const = 0;
-
-        virtual std::string getName() const = 0;
-
-        virtual ~absdecoder() = default;
-
-    private:
-        virtual bool isValid(std::string result) const = 0;
-    };
+private:
+    virtual bool isValid(std::string result) const = 0;
+};
 
 
-    void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters);
+void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters);
 
-    void cutImage(InputArray _src, OutputArray &_dst, RotatedRect rect);
+void cutImage(InputArray _src, OutputArray &_dst, RotatedRect rect);
 }
 
 #endif //! __OPENCV_BARCODE_ABSDECODER_H__
