@@ -149,6 +149,25 @@ namespace cv {
 
     }
 
+    vector<RotatedRect> Detect::getLocalizationRects() {
+        if (purpose == ZOOMING) {
+            for (auto it = localization_rects.begin(); it < localization_rects.end(); it++) {
+                (*it).center.x /= coeff_expansion;
+                (*it).center.y /= coeff_expansion;
+                (*it).size.height /= coeff_expansion;
+                (*it).size.width /= coeff_expansion;
+            }
+        } else if (purpose == SHRINKING) {
+            for (auto it = localization_rects.begin(); it < localization_rects.end(); it++) {
+                (*it).center.x *= coeff_expansion;
+                (*it).center.y *= coeff_expansion;
+                (*it).size.height *= coeff_expansion;
+                (*it).size.width *= coeff_expansion;
+            }
+        }
+
+        return localization_rects;
+    }
 
     void Detect::localization() {
         localization_rects.clear();
@@ -276,7 +295,8 @@ namespace cv {
 
         // calculate variances, normalize and threshold so that low-variance areas are bright(255) and
         // high-variance areas are dark(0)
-        Mat raw_consistency = calConsistency();
+        calConsistency();
+        growImage();
 //#ifdef CV_DEBUG
 //        imshow("consistency", raw_consistency);
 //#endif
@@ -333,17 +353,17 @@ namespace cv {
         return barcode_orientation;
     }
 
-    Mat Detect::calConsistency() {
+    void Detect::calConsistency() {
         /* calculate variance of gradient directions around each pixel
         in the img_details.gradient_directions matrix
         */
         int right_col, left_col, top_row, bottom_row;
         float xy, x_sq, y_sq, d, rect_area;
-        Mat raw_consistency(resized_barcode.size(), CV_8U), orientation(resized_barcode.size(),
-                                                                        CV_32F);
+        consistency = Mat(resized_barcode.size(), CV_8U), orientation = Mat(resized_barcode.size(),
+                                                                            CV_32F);
         int width_offset = cvRound(0.05 * width / 2);
         int height_offset = cvRound(0.05 * height / 2);
-        const float THRESHOLD_AREA = float(width_offset * height_offset) * 2.0f, THRESHOLD_CONSISTENCY = 0.9f;
+        const float THRESHOLD_AREA = float(width_offset * height_offset) * 2.4f, THRESHOLD_CONSISTENCY = 0.9f;
 
 
 
@@ -352,7 +372,7 @@ namespace cv {
         //imshow("非零积分图", gradient_magnitude);
         for (int y = 0; y < height; y++) {
             //pixels_position.clear();
-            auto *consistency_row = raw_consistency.ptr<uint8_t>(y);
+            auto *consistency_row = consistency.ptr<uint8_t>(y);
             auto *orientation_row = orientation.ptr<float_t>(y);
             top_row = ((y - height_offset - 1) < 0) ? -1 : (y - height_offset - 1);
             bottom_row = ((y + height_offset) > height) ? height : (y + height_offset);
@@ -394,7 +414,13 @@ namespace cv {
 //                                                                                           Size(width_offset/2, height_offset/2)));
 //        morphologyEx(raw_consistency, raw_consistency, MORPH_ERODE, getStructuringElement(MorphShapes::MORPH_CROSS,
 //                                                                                          Size(3, 3)));
-        imshow("consistency", raw_consistency);
+        imshow("consistency", consistency);
+
+//        return consistency;
+
+    }
+
+    void Detect::growImage() {
         const float LOCAL_THRESHOLD_CONSISTENCY = 0.95, THRESHOLD_RADIAN = PI / 20, THRESHOLD_BLOCK_NUM =
                 width * height / 500.0, LOCAL_RATIO = 0.6;
         Point2d pToGrowing, pt;                       //待生长点位置
@@ -402,7 +428,7 @@ namespace cv {
         float pSrcValue, pCurValue;
         double rect_orientation;                               //当前生长点灰度值
         float sin_sum, cos_sum, counter;
-        Mat growImage = Mat::zeros(raw_consistency.size(), CV_8U);   //创建一个空白区域，填充为黑色
+        Mat growImage = Mat::zeros(consistency.size(), CV_8U);   //创建一个空白区域，填充为黑色
         //生长方向顺序数据
         int DIR[8][2] = {{-1, -1},
                          {0,  -1},
@@ -416,7 +442,7 @@ namespace cv {
 //        pSrcValue = srcImage.at<float_t>(pt.y, pt.x);         //记录生长点的灰度值
         for (int y = 0; y < height; y++) {
             //pixels_position.clear();
-            auto *consistency_row = raw_consistency.ptr<uint8_t>(y);
+            auto *consistency_row = consistency.ptr<uint8_t>(y);
 
             int x = 0;
             for (; x < width; x++) {
@@ -450,13 +476,13 @@ namespace cv {
                             (pToGrowing.y > height - 1))
                             continue;
 
-                        if (raw_consistency.at<uint8_t>(pToGrowing.y, pToGrowing.x) == 0)
+                        if (consistency.at<uint8_t>(pToGrowing.y, pToGrowing.x) == 0)
                             continue;
                         pCurValue = orientation.at<float_t>(pToGrowing.y, pToGrowing.x);
 
                         if (abs(pCurValue - pSrcValue) < THRESHOLD_RADIAN ||
                             abs(pCurValue - pSrcValue) > PI - THRESHOLD_RADIAN) {
-                            raw_consistency.at<uint8_t>(pToGrowing.y, pToGrowing.x) = 0;
+                            consistency.at<uint8_t>(pToGrowing.y, pToGrowing.x) = 0;
                             sin_sum += sin(2 * pCurValue);
                             cos_sum += cos(2 * pCurValue);
                             counter += 1;
@@ -499,24 +525,12 @@ namespace cv {
 //                localization_bbox.push_back(rect);
 //                bbox_scores.push_back(edge_num / rect.height / rect.width);
 //                bbox_orientations.push_back(local_orientation);
-                if (purpose == ZOOMING) {
-                    rect.center.x /= coeff_expansion;
-                    rect.center.y /= coeff_expansion;
-                    rect.size.height /= coeff_expansion;
-                    rect.size.width /= coeff_expansion;
-                } else if (purpose == SHRINKING) {
-                    rect.center.x *= coeff_expansion;
-                    rect.center.y *= coeff_expansion;
-                    rect.size.height *= coeff_expansion;
-                    rect.size.width *= coeff_expansion;
-                }
+
                 localization_rects.push_back(rect);
 
             }
 
 
         }
-        return raw_consistency;
-
     }
 }

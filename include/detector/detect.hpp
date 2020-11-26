@@ -37,7 +37,7 @@ namespace cv {
 
         void localization();
 
-        vector<RotatedRect> getLocalizationRects() { return localization_rects; }
+        vector<RotatedRect> getLocalizationRects();
 
 
     protected:
@@ -46,7 +46,7 @@ namespace cv {
         } purpose = UNCHANGED;
         double coeff_expansion = 1.0;
         int height, width;
-        Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, processed_barcode, integral_x_sq, integral_y_sq, integral_xy, gradient_density;
+        Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, processed_barcode, integral_x_sq, integral_y_sq, integral_xy, gradient_density, consistency, orientation;
         vector<RotatedRect> localization_rects;
 
         void findCandidates();
@@ -54,7 +54,9 @@ namespace cv {
 
         double getBarcodeOrientation(const vector<vector<Point> > &contours, int i);
 
-        Mat calConsistency();
+        void calConsistency();
+
+        void growImage();
 
         void connectComponents();
 
