@@ -22,6 +22,17 @@ int main(int argc, char **argv)
     clock_t start;
     std::vector<RotatedRect> rects;
     std::vector<string> decoded_info;
+    std::string right_result;
+    std::string dir = "./../test/wrong_decode/";
+    std::string postfix = ".jpg";
+    bool has_result = false;
+    for(int i = 0;i < argc;i ++) {
+        if(strcmp(argv[i], "-r") == 0 && i+1 < argc) {
+            right_result = argv[i+1];
+            has_result = true;
+        }
+    }
+    std::map<std::string, bool> img_map;
     
     if (strcmp(argv[1], "--webcam") == 0)
     {
@@ -38,10 +49,17 @@ int main(int argc, char **argv)
             int i = 0;
             for (auto &rect : rects)
             {
+                if(has_result && decoded_info[i].length() == 13 && right_result != decoded_info[i]) {
+                    if(img_map.find(decoded_info[i]) == img_map.end()) {
+                        img_map[decoded_info[i]] = true;
+                        imwrite(dir+decoded_info[i]+postfix, frame);
+                    }
+                }
                 rect.points(vertices);
                 for (int j = 0; j < 4; j++)
                     line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0), 2);
                 cv::putText(frame, decoded_info[i], vertices[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
+                
                 i++;
             }
             fps = 1.0f * CLOCKS_PER_SEC / (float) (clock() - start);

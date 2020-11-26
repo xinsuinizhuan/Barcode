@@ -28,22 +28,27 @@ namespace cv {
         CV_Assert(mat.channels() == 1);
         vector<string> will_return;
         Mat gray = mat.clone();
-        // assume the maximum proportion of barcode is half of max(width, height), thickest bar is
-        // 0.5*max(width,height)/95 * 4
-        int length = max(gray.rows, gray.cols);
-        int block_size = length/95 * 2 + 1;
         equalizeHist(gray,gray);
+#if CV_DEBUG
         imshow("hist", gray);
+#endif
         constexpr int PART = 16;
         for (const auto &rect : rects) {
             Mat bar_img;
             cutImage(gray, bar_img,rect);
-
-            resize(bar_img, bar_img, Size(300, bar_img.rows));
+#if CV_DEBUG
+            imshow("raw_bar", bar_img);
+#endif
+            if(bar_img.cols < 300) {
+                resize(bar_img, bar_img, Size(300, bar_img.rows));
+            }
+            int blocksize = (bar_img.cols / 95) * 4 + 1;
             //imshow("rawbar", bar_img);
-            adaptiveThreshold(bar_img,bar_img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 13, 1);
+            adaptiveThreshold(bar_img,bar_img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, blocksize, 1);
             imshow("barimg", bar_img);
             std::map<std::string, int> result_vote;
+            int vote_cnt = 0;
+            float total_vote = 0;
             std::string max_result = "ERROR";
             if(max(rect.size.height, rect.size.width) < EAN13LENGTH) {
                 will_return.push_back(max_result);
@@ -77,9 +82,9 @@ namespace cv {
                 cv::circle(bar_copy, end, 4, Scalar(0, 0, 255), 2);
                 imshow("barscan", bar_copy);
 #endif
-            int vote_cnt = 0;
             if (result.size() == 13)
             {
+                total_vote ++;
                 if (result_vote.find(result) == result_vote.end())
                 {
                     result_vote.insert(std::pair<std::string, int>(result, 1));
@@ -91,7 +96,9 @@ namespace cv {
                 if (result_vote[result] > vote_cnt)
                 {
                     vote_cnt = result_vote[result];
-                    max_result = result;
+                    if(total_vote > PART/2 && vote_cnt/total_vote > 0.5) {
+                        max_result = result;
+                    }
                 }
             }
             if (direction == -1)
