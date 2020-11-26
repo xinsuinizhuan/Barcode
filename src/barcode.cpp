@@ -68,7 +68,7 @@ bool BarcodeDetector::detect(InputArray img, CV_OUT std::vector<RotatedRect> &re
     bardet.localization();
     vector<RotatedRect> _rects = bardet.getLocalizationRects();
     rects.assign(_rects.begin(), _rects.end());
-    return true;
+    return !rects.empty();
 }
 
 bool BarcodeDetector::decode(InputArray img, const std::vector<RotatedRect> &rects, CV_OUT
@@ -79,12 +79,11 @@ bool BarcodeDetector::decode(InputArray img, const std::vector<RotatedRect> &rec
     {
         return false;
     }
-    CV_Assert(!rects.empty());
+//    CV_Assert(!rects.empty());
     ean_decoder decoder(TYPE_EAN13);
     vector<std::string> _decoded_info = decoder.rectToUcharlist(inarr, rects);
     decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
-    
-    return true;
+    return !decoded_info.empty();
 }
 
 bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT vector<std::string> &decoded_info, CV_OUT
@@ -95,24 +94,14 @@ bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT vector<std::string>
     {
         return false;
     }
-    this->detect(img, rects);
-    if (rects.empty())
+    bool ok = this->detect(img, rects);
+    if (!ok)
     {
         return false;
     }
+    
+    decoded_info.clear();
     this->decode(img, rects, decoded_info);
-//        Detect bardet;
-//        bardet.init(inarr);
-//        bardet.localization();
-//        vector<RotatedRect> _rects = bardet.getLocalizationRects();
-//        rects.assign(_rects.begin(), _rects.end());
-//        if (_rects.empty()) {
-//            return false;
-//        }
-//        ean_decoder decoder("");
-//
-//        vector<std::string> _decoded_info = decoder.rectToUcharlist(inarr, _rects);
-//        decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
     return true;
 }
 
