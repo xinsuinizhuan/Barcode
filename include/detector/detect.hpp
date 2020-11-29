@@ -48,12 +48,12 @@ namespace cv {
             return r1.size.area() > r2.size.area();
         }
 
-        void normalizeRegion(RotatedRect &rect);
+//        void normalizeRegion(RotatedRect &rect);
 
         void calConsistency(int window_size);
 
 
-        inline bool isValidCoord(const Point2f &coord) const;
+        static inline bool isValidCoord(const Point &coord, const Size &limit) ;
 
         static inline double computeOrientation(float y, float x);
 

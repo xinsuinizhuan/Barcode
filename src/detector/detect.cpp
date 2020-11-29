@@ -7,8 +7,8 @@
 namespace cv {
 
 
-void Detect::normalizeRegion(RotatedRect &rect)
-{
+//void Detect::normalizeRegion(RotatedRect &rect)
+//{
 //        Point2f start, p, adjust;
 //        float barcode_orientation = rect.angle + 90;
 //        if (rect.size.width < rect.size.height)
@@ -55,16 +55,16 @@ void Detect::normalizeRegion(RotatedRect &rect)
 //        else
 //            rect.size.height = norm(p - start);
 
-}
+//}
 
-inline bool Detect::isValidCoord(const Point2f &coord) const
+inline bool Detect::isValidCoord(const Point &coord, const Size &limit)
 {
-    if ((coord.x < 0) || (coord.y < 0))
+    if (((unsigned) coord.x < 0) || ((unsigned) coord.y < 0))
     {
         return false;
     }
     
-    if ((coord.x > width - 1.0) || (coord.y > height - 1.0))
+    if ((unsigned) coord.x > (unsigned) (limit.width - 1) || ((unsigned) coord.y > (unsigned) (limit.height - 1)))
     {
         return false;
     }
@@ -169,30 +169,10 @@ void Detect::localization()
     localization_bbox.clear();
     bbox_scores.clear();
     bbox_orientations.clear();
-
-#ifdef CV_DEBUG
-    clock_t start = clock();
-//        imshow("gray image", resized_barcode);
-
-    findCandidates();   // find areas with low variance in gradient direction
-    clock_t find_time = clock();
-    imshow("image", processed_barcode);
-
-//        connectComponents();
-
-
-//        dnn::NMSBoxes(localization_bbox, bbox_scores, 0.95, 0.2, bbox_indices);
-
-    clock_t locate_time = clock();
-
-    printf("Finding candidates costs %ld ms, locating barcodes costs %ld ms\n",
-           find_time - start,
-           locate_time - find_time);
-
-#else
+    
+    
     findCandidates();   // find areas with low variance in gradient direction
 //        dnn::NMSBoxes(localization_bbox, bbox_scores, 0.8, 0.2, bbox_indices);
-#endif
 
 
 }
@@ -207,64 +187,31 @@ vector<RotatedRect> Detect::getLocalizationRects()
 //        }
     localization_rects.clear();
     bbox_indices.clear();
-    dnn::NMSBoxes(localization_bbox, bbox_scores, 0, 0.1, bbox_indices);
+    RotatedRect rect;
+    const float THRESHOLD_SCORE = float(width * height) / 500;
+    dnn::NMSBoxes(localization_bbox, bbox_scores, THRESHOLD_SCORE, 0.1, bbox_indices);
     for (auto it = bbox_indices.begin(); it < bbox_indices.end(); it++)
     {
-        localization_rects.push_back(localization_bbox[*it]);
+        rect = localization_bbox[*it];
+        if (purpose == ZOOMING)
+        {
+            rect.center.x /= coeff_expansion;
+            rect.center.y /= coeff_expansion;
+            rect.size.height /= coeff_expansion;
+            rect.size.width /= coeff_expansion;
+        }
+        else if (purpose == SHRINKING)
+        {
+            rect.center.x *= coeff_expansion;
+            rect.center.y *= coeff_expansion;
+            rect.size.height *= coeff_expansion;
+            rect.size.width *= coeff_expansion;
+        }
+        localization_rects.push_back(rect);
     }
     
     return localization_rects;
 }
-
-//    void Detect::locateBarcodes() {
-//        std::vector<std::vector<Point> > contours;
-//        std::vector<Vec4i> hierarchy;
-//        findContours(processed_barcode, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
-//        double bounding_rect_area;
-//        RotatedRect minRect;
-//        double THRESHOLD_MIN_AREA = height * width * 0.005;
-//        for (auto &contour : contours) {
-//            double area = contourArea(contour);
-//            if (area < THRESHOLD_MIN_AREA) // ignore contour if it is of too small a region
-//                continue;
-//            minRect = minAreaRect(contour);
-//            bounding_rect_area = minRect.size.width * minRect.size.height;
-//            if ((area / bounding_rect_area) > 0.66) // check if contour is of a rectangular object
-//            {
-//
-////                double angle = getBarcodeOrientation(contours, i);
-////                if (angle == USE_ROTATED_RECT_ANGLE) {
-////                    printf("%f\n", minRect.angle);
-////                } else {
-////                    printf("%f %f\n", minRect.angle, angle);
-////                    while(angle>0)
-////                        angle-=90;
-////                    minRect.angle = angle;
-////                }
-////                normalizeRegion(minRect);
-//                if (minRect.size.width > minRect.size.height)
-//                    minRect.size.width = cvRound(minRect.size.width * 103.0 / 95.0);
-//                else minRect.size.height = cvRound(minRect.size.height * 103.0 / 95.0);
-//
-//
-//                if (purpose == ZOOMING) {
-//                    minRect.center.x /= coeff_expansion;
-//                    minRect.center.y /= coeff_expansion;
-//                    minRect.size.height /= coeff_expansion;
-//                    minRect.size.width /= coeff_expansion;
-//                } else if (purpose == SHRINKING) {
-//                    minRect.center.x *= coeff_expansion;
-//                    minRect.center.y *= coeff_expansion;
-//                    minRect.size.height *= coeff_expansion;
-//                    minRect.size.width *= coeff_expansion;
-//                }
-//
-//                localization_rects.push_back(minRect);
-//
-//            }
-//        }
-//    }
-
 
 
 void Detect::findCandidates()
@@ -415,8 +362,8 @@ void Detect::calConsistency(int window_size)
 void Detect::regionGrowing(int window_size)
 {
     const float LOCAL_THRESHOLD_CONSISTENCY = 0.98, THRESHOLD_RADIAN =
-            PI / 30, THRESHOLD_BLOCK_NUM = 20, LOCAL_RATIO = 0.4;
-    Point2d pToGrowing, pt;                       //待生长点位置
+            PI / 40, THRESHOLD_BLOCK_NUM = 20, LOCAL_RATIO = 0.4;
+    Point pt_to_grow, pt;                       //待生长点位置
     
     float src_value;                               //生长起点灰度值
     float cur_value;                               //当前生长点灰度值
@@ -449,49 +396,46 @@ void Detect::regionGrowing(int window_size)
             consistency_row[x] = 0;
             growingPoints.clear();
             growingImgPoints.clear();
-            
-            cur_value = orientation.at<float_t>(y, x);
+            pt = Point2d(x, y);
+            cur_value = orientation.at<float_t>(pt);
             sin_sum = sin(2 * cur_value);
             cos_sum = cos(2 * cur_value);
             counter = 1;
-            edge_num = edge_nums.at<float_t>(y, x);
-            pt = Point2d(x, y);
-            
+            edge_num = edge_nums.at<float_t>(pt);
             growingPoints.push_back(pt);
             growingImgPoints.push_back(pt);
             while (!growingPoints.empty())
             {
                 pt = growingPoints.back();
                 growingPoints.pop_back();
-                src_value = orientation.at<float_t>(pt.y, pt.x);
+                src_value = orientation.at<float_t>(pt);
                 
                 //growing in eight directions
                 for (int i = 0; i < 9; ++i)
                 {
-                    pToGrowing.x = pt.x + DIR[i][0];
-                    pToGrowing.y = pt.y + DIR[i][1];
+                    pt_to_grow.x = pt.x + DIR[i][0];
+                    pt_to_grow.y = pt.y + DIR[i][1];
                     //check if out of boundary
-                    if (pToGrowing.x < 0 || pToGrowing.y<0 || pToGrowing.x>(consistency.cols - 1) ||
-                        (pToGrowing.y > consistency.rows - 1))
+                    if (!isValidCoord(pt_to_grow, consistency.size()))
                     {
                         continue;
                     }
                     
-                    if (consistency.at<uint8_t>(pToGrowing.y, pToGrowing.x) == 0)
+                    if (consistency.at<uint8_t>(pt_to_grow) == 0)
                     {
                         continue;
                     }
-                    cur_value = orientation.at<float_t>(pToGrowing.y, pToGrowing.x);
+                    cur_value = orientation.at<float_t>(pt_to_grow);
                     if (abs(cur_value - src_value) < THRESHOLD_RADIAN ||
                         abs(cur_value - src_value) > PI - THRESHOLD_RADIAN)
                     {
-                        consistency.at<uint8_t>(pToGrowing.y, pToGrowing.x) = 0;
+                        consistency.at<uint8_t>(pt_to_grow) = 0;
                         sin_sum += sin(2 * cur_value);
                         cos_sum += cos(2 * cur_value);
                         counter += 1;
-                        edge_num += edge_nums.at<float_t>(pToGrowing.y, pToGrowing.x);
-                        growingPoints.push_back(pToGrowing);                 //将下一个生长点压入栈中
-                        growingImgPoints.push_back(pToGrowing);
+                        edge_num += edge_nums.at<float_t>(pt_to_grow);
+                        growingPoints.push_back(pt_to_grow);                 //将下一个生长点压入栈中
+                        growingImgPoints.push_back(pt_to_grow);
                     }
                 }
             }
@@ -506,9 +450,9 @@ void Detect::regionGrowing(int window_size)
             {
                 continue;
             }
-            RotatedRect rect = minAreaRect(growingImgPoints);
-            if (edge_num < rect.size.area() * float(window_size * window_size) * LOCAL_RATIO ||
-                counter < rect.size.area() * LOCAL_RATIO)
+            RotatedRect minRect = minAreaRect(growingImgPoints);
+            if (edge_num < minRect.size.area() * float(window_size * window_size) * LOCAL_RATIO ||
+                counter < minRect.size.area() * LOCAL_RATIO)
             {
                 continue;
             }
@@ -516,27 +460,29 @@ void Detect::regionGrowing(int window_size)
             
             double local_orientation = computeOrientation(cos_sum, sin_sum);
             // only orientation is approximately equal to the rectangle orientation
-            if (rect.size.width < rect.size.height)
+            if (minRect.size.width < minRect.size.height)
             {
-                rect_orientation = rect.angle <= 0 ? (rect.angle / 180 + 0.5) * PI : (rect.angle / 180 - 0.5) * PI;
+                rect_orientation =
+                        minRect.angle <= 0 ? (minRect.angle / 180 + 0.5) * PI : (minRect.angle / 180 - 0.5) * PI;
             }
             else
             {
-                rect_orientation = rect.angle / 180 * PI;
+                rect_orientation = minRect.angle / 180 * PI;
             }
             if (abs(local_orientation - rect_orientation) > THRESHOLD_RADIAN &&
                 abs(local_orientation - rect_orientation) < PI - THRESHOLD_RADIAN)
             {
                 continue;
             }
-            rect.size.width *= float(window_size + 1);
-            rect.size.height *= float(window_size + 1);
-            rect.center.x = (rect.center.x + 0.5) * window_size;
-            rect.center.y = (rect.center.y + 0.5) * window_size;
-            
-            std::cout << local_consistency << " " << local_orientation << " " << counter << " "
-                      << edge_num / rect.size.area() << std::endl;
-            localization_bbox.push_back(rect);
+            minRect.size.width *= float(window_size + 1);
+            minRect.size.height *= float(window_size + 1);
+            minRect.center.x = (minRect.center.x + 0.5) * window_size;
+            minRect.center.y = (minRect.center.y + 0.5) * window_size;
+#ifdef CV__DEBUG
+            std::cout << local_consistency << " " << local_orientation << " " << edge_num / (float) (width * height)
+                      << " " << edge_num / minRect.size.area() << std::endl;
+#endif
+            localization_bbox.push_back(minRect);
             
             
             bbox_scores.push_back(edge_num);
