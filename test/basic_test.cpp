@@ -2,9 +2,9 @@
 
 const std::string pre_path = R"(./../../)";
 std::string ean13_graphs[] = {
-//        "1_normal.png", "2_normal.png",
-//        "3_normal.jpg", "4_normal.png",
-//        "5_corner_small.jpg", "6_vertical_corner_small.jpg",
+        "1_normal.png", "2_normal.png",
+        "3_normal.jpg", "4_normal.png",
+        "5_corner_small.jpg", "6_vertical_corner_small.jpg",
         "7_tilt45.png", "8_tilt330.jpg", "9_dirty_tilt30.jpg",
         "10_dirty_graph.jpg", "11_tilt45.png",
         "12_middle.png",
@@ -25,6 +25,18 @@ TEST(basic_test, get_path) {
     std::cout << "current working directory" << buf << '\n';
 }
 
+TEST(basic_test, will_delete) {
+    using namespace cv;
+    std::string path = pre_path + R"(test/data/)";
+    cv::Mat frame = cv::imread(path + "real2.jpg");
+    {
+        Size dst_sz(frame.cols, frame.rows);
+        cv::Point2f center(static_cast<float>(frame.cols / 2), static_cast<float>(frame.rows / 2));
+        Mat rorate = cv::getRotationMatrix2D(center, 40, 1.0);
+        cv::warpAffine(frame, frame, rorate, dst_sz, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+    }
+    cv::imwrite(path + "treal2.jpg", frame);
+}
 
 TEST(basic_test, Detects) {
     for (const auto &item : public_graphs) {

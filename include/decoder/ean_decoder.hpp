@@ -24,13 +24,12 @@ namespace cv {
         string decode(vector<uchar> data, int start) const override;
 
         //Detect encode type
-        string decodeDirectly(InputArray _img) const override;
+        string decodeDirectly(InputArray img) const override;
 
         string getName() const override;
 
-        vector<string> rectToResults(Mat &mat, const std::vector<RotatedRect> &rects, int PART = 10) const;
+        vector<string> rectToResults(Mat &mat, const std::vector<RotatedRect> &rects) const;
 
-        string rectToResult(const Mat &gray, Mat &mat, const RotatedRect &rect, int PART = 10) const;
 
     private:
         string name; //EAN具体解码类别：EAN-13 / EAN-8
@@ -50,6 +49,13 @@ namespace cv {
                                                      uchar whiteFirst,
                                                      const vector<int> &pattern,
                                                      vector<int> counters);
+
+        string rectToResult(const Mat &gray, Mat &mat, const RotatedRect &rect, int PART, int directly) const;
+
+        string getString(const Mat &gray, const Point2f &begin, const Point2f &end) const;
+
+        void linesFromRect(const RotatedRect &rotatedRect, int angle, int PART,
+                           vector<std::pair<Point2f, Point2f>> &results) const;
 
     };
 

@@ -1,14 +1,17 @@
+#define _USE_MATH_DEFINES
+
 #include "decoder/ean_decoder.hpp"
 #include <iostream>
 #include <array>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
+#include <cmath>
 // three digit decode method from https://baike.baidu.com/item/EAN-13
 
 namespace cv {
     // default thought that mat is a matrix after binary-transfer.
     /*Input a mat and it's position rect, return the decode result */
-    vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &rects, int PART) const {
+    vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &rects) const {
         CV_Assert(mat.channels() == 1);
         vector<string> will_return;
         Mat gray = mat.clone();
@@ -20,9 +23,10 @@ namespace cv {
         imshow("hist", gray);
         adaptiveThreshold(gray, gray, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, block_size, 1);
         imshow("binary", gray);
-        //constexpr int PART = 10;
+        static int constexpr PART = 10;
+        will_return.reserve(rects.size());
         for (const auto &rect : rects) {
-            will_return.push_back(rectToResult(gray, mat, rect, PART));
+            will_return.push_back(rectToResult(gray, mat, rect, PART, false));
 #ifdef CV_DEBUG
             cv::imshow("circles", gray);
 #endif
@@ -30,38 +34,27 @@ namespace cv {
         return will_return;
     }
 
+
     // input image is
-    string ean_decoder::rectToResult(const Mat &gray, Mat &mat, const RotatedRect &rect, int PART) const {
+    string ean_decoder::rectToResult(const Mat &gray, Mat &mat, const RotatedRect &rect, int PART, int directly) const {
         std::map<std::string, int> result_vote;
         std::string max_result = "ERROR";
-        if (std::max(rect.size.height, rect.size.width) < bitsNum) {
+        if (std::max(rect.size.height, rect.size.width) < this->bitsNum) {
             return max_result;
         }
-        Point2f begin, end, vertices[4], cbegin, cend, step;
+        Point2f vertices[4];
         rect.points(vertices);
-        std::string result;
         double distance1 = cv::norm(vertices[0] - vertices[1]);
         double distance2 = cv::norm(vertices[1] - vertices[2]);
-        auto width_way = 3, height_way = 1;
-        if (distance1 > distance2) {
-            width_way = 1, height_way = 3;
+        vector<std::pair<Point2f, Point2f>> begin_and_ends;
+        linesFromRect(rect, distance1 > distance2, PART, begin_and_ends);
+        if (directly) {
+            linesFromRect(rect, distance1 <= distance2, PART, begin_and_ends);
         }
-        step = (vertices[0] - vertices[height_way]) / PART;
-        cbegin = (vertices[0] + vertices[height_way]) / 2;
-        cend = (vertices[width_way] + vertices[2]) / 2;
-        for (int i = 1, direction = 1; i <= PART / 2; direction = -1 * direction) {
-            vector<uchar> middle;
-            begin = cbegin + step * i * direction;
-            end = cend + step * i * direction;
-            LineIterator line = LineIterator(gray, begin, end);
-            middle.reserve(line.count);
-            for (int cnt = 0; cnt < line.count; cnt++, line++) {
-                middle.push_back(gray.at<uchar>(line.pos()));
-            }
-            result = this->decode(middle, 0);
-            if (result.size() != digitNumber) {
-                result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
-            }
+        for (const auto &pairs: begin_and_ends) {
+            const Point2f &begin = pairs.first;
+            const Point2f &end = pairs.second;
+            std::string result = getString(gray, begin, end);
 #ifdef CV_DEBUG
             cv::line(mat, begin, end, cv::Scalar(0, 255, 0));
             cv::line(mat, begin, end, Scalar(0, 0, 255), 2);
@@ -76,20 +69,65 @@ namespace cv {
                     max_result = result;
                 }
             }
-            if (direction == -1) {
-                i++;
-            }
         }
         return max_result;
     }
 
-    ean_decoder::ean_decoder(EAN name) {
-        if (name == EAN::TYPE13) {
-            bitsNum = EAN13LENGTH;
-            digitNumber = EAN13DIGITNUMBER;
-            this->name = "EAN-13";
-            //7 module encode a digit
+    string ean_decoder::getString(const Mat &gray, const Point2f &begin, const Point2f &end) const {
+        LineIterator line = LineIterator(gray, begin, end);
+        std::vector<uchar> middle;
+        middle.reserve(line.count);
+        for (int cnt = 0; cnt < line.count; cnt++, line++) {
+            middle.push_back(gray.at<uchar>(line.pos()));
         }
+        std::string result = decode(middle, 0);
+        if (result.size() != digitNumber) {
+            result = decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
+        }
+        return result;
+    }
+
+    /**@Prama img_size is the graph's size ,
+     * @Prama angle from [0,180)
+     * 0 is horizontal
+     * (0-90) top Left to bottom Right
+     * 90 vertical
+     * (90-180) lower left to upper right
+     * */
+    void ean_decoder::linesFromRect(const RotatedRect &rotatedRect, int angle, int PART,
+                                    vector<std::pair<Point2f, Point2f>> &results) const {
+        //bottom Left, top Left, top Right, bottom Right.
+        Point2f vertices[4];
+        rotatedRect.points(vertices);
+        auto width_way = 3, height_way = 1;
+        if (angle) {
+            width_way = 1, height_way = 3;
+        }
+        const Point2f &step = (vertices[height_way] - vertices[0]) / PART;
+        const Point2f &cbegin = vertices[0];
+        const Point2f &cend = vertices[width_way];
+        for (int i = 0; i < PART; ++i) {
+            results.emplace_back(cbegin + i * step, cend + i * step);
+        }
+        results.emplace_back(cbegin, cend);
+//         else if (angle < 90) {
+//            Point2f rightMid, leftMid;
+//            float length_of_short = img_size.width / std::tan(angle / M_PI);
+//            if (length_of_short > img_size.height) {
+//                rightMid = vertices[2] + Point2f{0, length_of_short};
+//                leftMid = vertices[0] - Point2f{0, length_of_short};
+//                Point2f divideWidth = vertices[2] / (PART / 3);
+//                Point2f divideHeight = Point2f{0, length_of_short} / (PART / 3);
+//                Point2f divideOtherHeight = leftMid / (PART / 3);
+//                for (int i = 0; i < PART / 3; i++) {
+//                    results.emplace_back(divideWidth * i, vertices[2] + divideHeight * i);
+//                    results.emplace_back(divideOtherHeight * i, divideOtherHeight + rightMid);
+//                    results.emplace_back(divideHeight * i + leftMid, vertices[0] + divideWidth * i);
+//                }
+//            } else {
+//
+//            }
+//        }
     }
 
     const vector<vector<int>> &get_A_or_C_Patterns() {
@@ -220,37 +258,24 @@ namespace cv {
         return result;
     }
 
-    string ean_decoder::decodeDirectly(InputArray _img) const {
-        // TODO
-        auto Mat = _img.getMat();
+    string ean_decoder::decodeDirectly(InputArray img) const {
+        auto Mat = img.getMat();
         auto gray = Mat.clone();
-        int block_size = Mat.cols / bitsNum * 2 + 1;
         cv::normalize(gray, gray, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
         cv::threshold(gray, gray, 0, 255, THRESH_BINARY | THRESH_OTSU);
+#ifdef CV_DEBUG
         cv::imshow("gray", gray);
-        auto rRect = RotatedRect(Point2f(Mat.cols / 2, Mat.rows / 2), Size2f(Mat.cols, Mat.rows), 0);
-        auto result = rectToResult(gray, Mat, rRect, 30);
+#endif
+        auto rRect = RotatedRect(Point2f(Mat.cols / 2, Mat.rows / 2),
+                                 Size2f(Mat.cols, Mat.rows), 0);
+        auto result = rectToResult(gray, Mat, rRect, 50, true);
+#ifdef CV_DEBUG
         cv::imshow("origin", Mat);
         cv::waitKey();
+#endif
         return result;
     }
 
-
-    string ean_decoder::getName() const {
-        return this->name;
-    }
-
-    bool ean_decoder::isValid(string result) const {
-        if (result.size() != this->digitNumber) {
-            return false;
-        }
-        int sum = 0;
-        for (int index = result.size() - 2, i = 1; index >= 0; index--, i++) {
-            int temp = result[index] - '0';
-            sum += (temp + ((i & 1) != 0 ? temp << 1 : 0));
-        }
-        return (result.back() - '0') == (10 - (sum % 10)) % 10;
-    }
 
     std::pair<int, int> ean_decoder::findGuardPatterns(const vector<uchar> &row,
                                                        int rowOffset,
@@ -304,4 +329,30 @@ namespace cv {
         return std::max(-1, bestMatch);
         // -1 is dismatch or means error.
     }
+
+    ean_decoder::ean_decoder(EAN name) {
+        if (name == EAN::TYPE13) {
+            bitsNum = EAN13LENGTH;
+            digitNumber = EAN13DIGITNUMBER;
+            this->name = "EAN-13";
+            //7 module encode a digit
+        }
+    }
+
+    string ean_decoder::getName() const {
+        return this->name;
+    }
+
+    bool ean_decoder::isValid(string result) const {
+        if (result.size() != this->digitNumber) {
+            return false;
+        }
+        int sum = 0;
+        for (int index = result.size() - 2, i = 1; index >= 0; index--, i++) {
+            int temp = result[index] - '0';
+            sum += (temp + ((i & 1) != 0 ? temp << 1 : 0));
+        }
+        return (result.back() - '0') == (10 - (sum % 10)) % 10;
+    }
+
 }

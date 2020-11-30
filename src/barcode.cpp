@@ -54,7 +54,7 @@ namespace cv {
             return false;
         }
         CV_Assert(!rects.empty());
-        ean_decoder decoder(EAN::TYPE13);
+        ean_decoder decoder{EAN::TYPE13};
         vector<std::string> _decoded_info = decoder.rectToResults(inarr, rects);
         decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
 
@@ -72,28 +72,16 @@ namespace cv {
             return false;
         }
         decode(img, rects, decoded_info);
-//        Detect bardet;
-//        bardet.init(inarr);
-//        bardet.localization();
-//        vector<RotatedRect> _rects = bardet.getLocalizationRects();
-//        rects.assign(_rects.begin(), _rects.end());
-//        if (_rects.empty()) {
-//            return false;
-//        }
-//        ean_decoder decoder("");
-//
-//        vector<std::string> _decoded_info = decoder.rectToResults(inarr, _rects);
-//        decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
         return true;
     }
 
 
-    bool BarcodeDetector::detectDirectly(InputArray img,CV_OUT string &decoded_info) const {
+    bool BarcodeDetector::detectDirectly(InputArray img, CV_OUT string &decoded_info) const {
         Mat inarr;
         if (!checkBarInputImage(img, inarr)) {
             return false;
         }
-        ean_decoder ean13(EAN::TYPE13);
+        ean_decoder ean13{EAN::TYPE13};
         decoded_info = ean13.decodeDirectly(inarr);
         if (!decoded_info.empty()) {
             return false;

@@ -43,9 +43,9 @@ namespace cv {
         CV_WRAP bool
         detectAndDecode(InputArray img, CV_OUT std::vector<std::string> &decoded_info, CV_OUT
                         std::vector<RotatedRect> &rects) const;
-        
+
         CV_WRAP bool
-        detectDirectly(InputArray img,CV_OUT string &decoded_info) const;
+        detectDirectly(InputArray img, CV_OUT string &decoded_info) const;
 
     protected:
         struct Impl;
