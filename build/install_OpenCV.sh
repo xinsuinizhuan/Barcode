@@ -47,10 +47,10 @@ cmake_opencv() {
   CMAKE_OPTIONS='-DBUILD_PERF_TESTS:BOOL=ON -DBUILD_TESTS:BOOL=ON -DINSTALL_TESTS:BOOL=ON \
   -DBUILD_DOCS:BOOL=OFF  -DWITH_CUDA:BOOL=OFF -DBUILD_EXAMPLES:BOOL=ON -DINSTALL_CREATE_DISTRIB=ON'
   cmake -G"${CMAKE_CONFIG_GENERATOR}" \
-      $CMAKE_OPTIONS \
-      -DOPENCV_EXTRA_MODULES_PATH="${myRepo}"/opencv_contrib/modules \
-      -DCMAKE_INSTALL_PREFIX="${myRepo}"/install/"$RepoSource" \
-      "${myRepo}/$RepoSource"
+    $CMAKE_OPTIONS \
+    -DOPENCV_EXTRA_MODULES_PATH="${myRepo}"/opencv_contrib/modules \
+    -DCMAKE_INSTALL_PREFIX="${myRepo}"/install/"$RepoSource" \
+    "${myRepo}/$RepoSource"
   echo "************************* ${Source_DIR} -->debug"
   cmake --build . --config debug -j"$(nproc)"
   cmake --build . --target install --config debug

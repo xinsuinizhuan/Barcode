@@ -1,7 +1,24 @@
+/*
+Copyright 2020 ${ALL COMMITTERS}
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 #include "decoder/binaryzation.hpp"
 
-namespace cv {
-    void adaptBinaryzation(InputArray src, OutputArray &dst) {
+namespace cv
+{
+    void adaptBinaryzation(InputArray src, OutputArray &dst)
+    {
         const int MAXIMUM = 1, MINIMUM = -1, NONE = 0;
         const uchar WHITE = 255, BLACK = 0;
         Mat gray_img = src.getMat();
@@ -10,9 +27,12 @@ namespace cv {
         //normalization to 1000 pixels
         Mat norm_img, d_norm_img;
         int length = 1000;
-        if (gray_img.cols > length) {
+        if (gray_img.cols > length)
+        {
             resize(gray_img, norm_img, Size(length, gray_img.rows), 0, 0, INTER_AREA);
-        } else {
+        }
+        else
+        {
             resize(gray_img, norm_img, Size(length, gray_img.rows), 0, 0, INTER_LINEAR);
         }
         norm_img.convertTo(norm_img, CV_64F);
@@ -25,7 +45,8 @@ namespace cv {
         using namespace std;
         ofstream outFile;
         outFile.open("./../../plot/data.csv", ios::out);
-        for (int i = 0; i < center.cols; i++) {
+        for (int i = 0; i < center.cols; i++)
+        {
             outFile << center.at<double>(0, i) << ",";
         }
         outFile << '\n';
@@ -35,7 +56,8 @@ namespace cv {
         dst.create(src.size(), CV_8UC1);
         Mat result(Size(norm_img.cols, norm_img.rows), CV_8UC1);
 
-        for (int row = 0; row < d_norm_img.rows; row++) {
+        for (int row = 0; row < d_norm_img.rows; row++)
+        {
 
             Mat tempRow = d_norm_img.rowRange(row, row + 1);
             double minVal, maxVal;
@@ -43,36 +65,54 @@ namespace cv {
             minMaxLoc(abs(tempRow), &minVal, &maxVal, &minIdx, &maxIdx);
             double threshold = 50;
             std::deque<std::pair<int, int>> extremes_que;
-            for (int col = 0; col < d_norm_img.cols; col++) {
+            for (int col = 0; col < d_norm_img.cols; col++)
+            {
                 double temp = d_norm_img.at<double>(row, col);
                 double abs_temp = abs(temp);
                 int pre_extreme = NONE, abs_pre_extreme_val = 0;
-                if (!extremes_que.empty()) {
+                if (!extremes_que.empty())
+                {
                     auto back = extremes_que.back();
                     pre_extreme = back.second;
                     abs_pre_extreme_val = d_norm_img.at<double>(row, back.first);
                 }
-                if (abs_temp > threshold) {
-                    if (temp > 0) {//可能的极大值点
-                        if (pre_extreme == MAXIMUM) {// 更新极大值
-                            if (abs_temp > abs_pre_extreme_val) {
+                if (abs_temp > threshold)
+                {
+                    if (temp > 0)
+                    { //可能的极大值点
+                        if (pre_extreme == MAXIMUM)
+                        { // 更新极大值
+                            if (abs_temp > abs_pre_extreme_val)
+                            {
                                 extremes_que.pop_back();
                                 extremes_que.emplace_back(col, MAXIMUM);
-                            } else {// 前一个是极大值
+                            }
+                            else
+                            { // 前一个是极大值
                                 //threshold = min(threshold, abs_temp/2);
                             }
-                        } else {
+                        }
+                        else
+                        {
                             extremes_que.emplace_back(col, MAXIMUM);
                         }
-                    } else {// 可能的极小值点
-                        if (pre_extreme == MINIMUM) {// 更新极小值
-                            if (abs_temp > abs_pre_extreme_val) {
+                    }
+                    else
+                    { // 可能的极小值点
+                        if (pre_extreme == MINIMUM)
+                        { // 更新极小值
+                            if (abs_temp > abs_pre_extreme_val)
+                            {
                                 extremes_que.pop_back();
                                 extremes_que.emplace_back(col, MINIMUM);
-                            } else {
+                            }
+                            else
+                            {
                                 //threshold = min(threshold, abs_temp/2);
                             }
-                        } else {
+                        }
+                        else
+                        {
                             extremes_que.emplace_back(col, MINIMUM);
                         }
                     }
@@ -80,17 +120,25 @@ namespace cv {
             }
             //二值化
             uchar signal;
-            if (extremes_que.empty()) {
-                signal = WHITE;
-            } else if (extremes_que.front().second == MAXIMUM) {
-                signal = BLACK;
-            } else {
+            if (extremes_que.empty())
+            {
                 signal = WHITE;
             }
-            for (int col = 0; col < result.cols; col++) {
-                if (!extremes_que.empty()) {
+            else if (extremes_que.front().second == MAXIMUM)
+            {
+                signal = BLACK;
+            }
+            else
+            {
+                signal = WHITE;
+            }
+            for (int col = 0; col < result.cols; col++)
+            {
+                if (!extremes_que.empty())
+                {
                     std::pair<int, int> extreme = extremes_que.front();
-                    if (col == extreme.first) {
+                    if (col == extreme.first)
+                    {
                         signal = ((signal == BLACK) ? WHITE : BLACK);
                         extremes_que.pop_front();
                     }
@@ -104,32 +152,40 @@ namespace cv {
     }
 
     // w has to be odd
-    void getMinMax(int row, int col, int w, Mat img, uchar &min, uchar &max) {
+    void getMinMax(int row, int col, int w, Mat img, uchar &min, uchar &max)
+    {
         int half_width = w / 2;
         min = 255;
         max = 0;
-        for (int offset_row = -1 * half_width; offset_row <= half_width; offset_row++) {
+        for (int offset_row = -1 * half_width; offset_row <= half_width; offset_row++)
+        {
             int temp_row = row + offset_row;
-            if (temp_row < 0 || temp_row >= img.rows) {
+            if (temp_row < 0 || temp_row >= img.rows)
+            {
                 continue;
             }
-            for (int offset_col = -1 * half_width; offset_col <= half_width; offset_col++) {
+            for (int offset_col = -1 * half_width; offset_col <= half_width; offset_col++)
+            {
                 int temp_col = col + offset_col;
-                if (temp_col < 0 || temp_col >= img.cols) {
+                if (temp_col < 0 || temp_col >= img.cols)
+                {
                     continue;
                 }
                 uchar temp_val = img.at<uchar>(temp_row, temp_col);
-                if (temp_val > max) {
+                if (temp_val > max)
+                {
                     max = temp_val;
                 }
-                if (temp_val < min) {
+                if (temp_val < min)
+                {
                     min = temp_val;
                 }
             }
         }
     }
 
-    void enhanceLocalBinaryzation(InputArray src, OutputArray &dst, int window_size, float alpha) {
+    void enhanceLocalBinaryzation(InputArray src, OutputArray &dst, int window_size, float alpha)
+    {
         Mat _src = src.getMat();
         dst.createSameSize(src, CV_8UC1);
         Mat _dst = dst.getMat();
@@ -139,28 +195,30 @@ namespace cv {
         const float *histRange = {range};
         int hist_size = 256;
         calcHist(&_src, 1, 0, Mat(), hist, 1, &hist_size, &histRange);
-//        int hist_w = 512, hist_h = 400;
-//        int bin_w = cvRound((double) hist_w / hist_size);
-//        Mat histImage(hist_h, hist_w, CV_8UC3, Scalar(0, 0, 0));
-//
-//        normalize(hist, hist, 0, histImage.rows, NORM_MINMAX, -1, Mat());
-//
-//        for (int i = 1; i < hist_size; i++) {
-//            line(histImage, Point(bin_w * (i - 1), hist_h - cvRound(hist.at<float>(i - 1))),
-//                 Point(bin_w * (i), hist_h - cvRound(hist.at<float>(i))),
-//                 Scalar(255, 0, 0), 2, 8, 0);
-//        }
-//
-//        imshow("Source image", _src);
-//        imshow("calcHist Demo", histImage);
+        //        int hist_w = 512, hist_h = 400;
+        //        int bin_w = cvRound((double) hist_w / hist_size);
+        //        Mat histImage(hist_h, hist_w, CV_8UC3, Scalar(0, 0, 0));
+        //
+        //        normalize(hist, hist, 0, histImage.rows, NORM_MINMAX, -1, Mat());
+        //
+        //        for (int i = 1; i < hist_size; i++) {
+        //            line(histImage, Point(bin_w * (i - 1), hist_h - cvRound(hist.at<float>(i - 1))),
+        //                 Point(bin_w * (i), hist_h - cvRound(hist.at<float>(i))),
+        //                 Scalar(255, 0, 0), 2, 8, 0);
+        //        }
+        //
+        //        imshow("Source image", _src);
+        //        imshow("calcHist Demo", histImage);
 
         cv::Mat accumulatedHist = hist.clone();
         //Eliminate grayscale outliers
         int threshold1 = -1;
         const uint A = total_pixel * 0.1;
-        for (int i = hist_size - 2; i >= 0; i--) {
+        for (int i = hist_size - 2; i >= 0; i--)
+        {
             accumulatedHist.at<float>(i) += accumulatedHist.at<float>(i + 1);
-            if (accumulatedHist.at<float>(i) >= A) {
+            if (accumulatedHist.at<float>(i) >= A)
+            {
                 threshold1 = i;
                 break;
             }
@@ -168,8 +226,10 @@ namespace cv {
 
         Mat threshold2(_src.rows, _src.cols, CV_32FC1, Scalar(0));
         Mat threshold3(_src.rows, _src.cols, CV_32FC1, Scalar(0));
-        for (int row = 0; row < threshold2.rows; row++) {
-            for (int col = 0; col < threshold2.cols; col++) {
+        for (int row = 0; row < threshold2.rows; row++)
+        {
+            for (int col = 0; col < threshold2.cols; col++)
+            {
                 uchar min, max;
                 getMinMax(row, col, window_size, _src, min, max);
                 threshold2.at<float>(row, col) = (min + max) / 2.0f;
@@ -183,34 +243,47 @@ namespace cv {
         float t1 = (1 + alpha) * threshold1;
         float t2 = (1 - alpha) * threshold1;
         float t3 = alpha * threshold1;
-        for (int row = 0; row < _src.rows; row++) {
-            for (int col = 0; col < _src.cols; col++) {
+        for (int row = 0; row < _src.rows; row++)
+        {
+            for (int col = 0; col < _src.cols; col++)
+            {
                 uchar temp_val = _src.at<uchar>(row, col);
-                if (temp_val > t1) {
+                if (temp_val > t1)
+                {
                     _dst.at<uchar>(row, col) = 255;
-                } else if (temp_val < t2) {
+                }
+                else if (temp_val < t2)
+                {
                     _dst.at<uchar>(row, col) = 0;
-                } else {
-                    if (threshold3.at<float>(row, col) > t3) {
-                        if (temp_val < threshold4.at<float>(row, col)) {
+                }
+                else
+                {
+                    if (threshold3.at<float>(row, col) > t3)
+                    {
+                        if (temp_val < threshold4.at<float>(row, col))
+                        {
                             _dst.at<uchar>(row, col) = 0;
-                        } else {
+                        }
+                        else
+                        {
                             _dst.at<uchar>(row, col) = 255;
                         }
-                    } else {
+                    }
+                    else
+                    {
                         float threshold3_temp = (threshold1 + threshold4.at<float>(row, col)) / 2.0f;
                         threshold3.at<float>(row, col) = threshold3_temp;
-                        if (temp_val < threshold3_temp) {
+                        if (temp_val < threshold3_temp)
+                        {
                             _dst.at<uchar>(row, col) = 0;
-                        } else {
+                        }
+                        else
+                        {
                             _dst.at<uchar>(row, col) = 255;
                         }
                     }
                 }
             }
         }
-
-
     }
-}
-
+} // namespace cv
