@@ -170,10 +170,25 @@ void Detect::localization()
     bbox_scores.clear();
     bbox_orientations.clear();
 
+    // get integral image
+    preprocess();
 
-    findCandidates();   // find areas with low variance in gradient direction
-//        dnn::NMSBoxes(localization_bbox, bbox_scores, 0.8, 0.2, bbox_indices);
+    float window_ratio = 0.01;
+    while (window_ratio <= 0.13)
+    {
+#ifdef CV_DEBUG
+        printf("window ratio: %f\n", window_ratio);
+#endif
+        calConsistency(cvRound(min(width, height) * window_ratio));
+        barcodeErode();
+#ifdef CV_DEBUG
+        imshow("consistency " + std::to_string(window_ratio), consistency);
+#endif
 
+        regionGrowing(cvRound(min(width, height) * window_ratio));
+        window_ratio += 0.02;
+
+    }
 
 }
 
@@ -214,7 +229,7 @@ vector<RotatedRect> Detect::getLocalizationRects()
 }
 
 
-void Detect::findCandidates()
+void Detect::preprocess()
 {
     gradient_direction = Mat::zeros(resized_barcode.size(), CV_32F);
     Mat scharr_x(resized_barcode.size(), CV_32F), scharr_y(resized_barcode.size(), CV_32F), temp;
@@ -258,33 +273,8 @@ void Detect::findCandidates()
     integral(scharr_x, temp, integral_x_sq, CV_32F, CV_32F);
     integral(scharr_y, temp, integral_y_sq, CV_32F, CV_32F);
     integral(scharr_x.mul(scharr_y), integral_xy, temp, CV_32F, CV_32F);
-    float window_ratio = 0.01;
-    while (window_ratio <= 0.13)
-    {
-#ifdef CV_DEBUG
-        printf("window ratio: %f\n", window_ratio);
-#endif
-        calConsistency(cvRound(min(width, height) * window_ratio));
-//        morphologyEx(consistency, consistency, MORPH_OPEN, getStructuringElement(MorphShapes::MORPH_CROSS, Size(3, 3)));
-        barcodeErode();
-#ifdef CV_DEBUG
-        imshow("consistency " + std::to_string(window_ratio), consistency);
-#endif
-
-        regionGrowing(cvRound(min(width, height) * window_ratio));
-        window_ratio += 0.02;
-
-    }
-//        adaptiveThreshold(raw_consistency,consistency,255,ADAPTIVE_THRESH_GAUSSIAN_C,THRESH_BINARY,11,0);
-//        threshold(raw_consistency, consistency, 220, 255, THRESH_BINARY);
-
-//        normalize(consistency, consistency, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
-
-//        threshold(consistency, consistency, 75, 255, THRESH_BINARY);
 
 
-
-//        processed_barcode = consistency;
 }
 
 void Detect::calConsistency(int window_size)
@@ -497,10 +487,6 @@ void Detect::regionGrowing(int window_size)
 void Detect::barcodeErode()
 {
 
-//    Mat diagonal = (Mat_<uint8_t>(3, 3) << 255, 0, 0, 0, 0, 0, 0, 0, 255);
-//    Mat skew_diagonal = (Mat_<uint8_t>(3, 3) << 0, 0, 255, 0, 0, 0, 255, 0, 0);
-//    Mat horizontal = (Mat_<uint8_t>(3, 3) << 0, 0, 0, 255, 0, 255, 0, 0, 0);
-//    Mat vertical = (Mat_<uint8_t>(3, 3) << 0, 255, 0, 0, 0, 0, 0, 255, 0);
     Mat m0, m1, m2, m3;
     dilate(consistency, m0, structuringElement[0]);
     dilate(consistency, m1, structuringElement[1]);

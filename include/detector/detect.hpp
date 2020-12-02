@@ -56,14 +56,15 @@ protected:
     } purpose = UNCHANGED;
     double coeff_expansion = 1.0;
     int height, width;
-    Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, processed_barcode, integral_x_sq, integral_y_sq, integral_xy, integral_edges, consistency, orientation, edge_nums;
+    Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, integral_x_sq, integral_y_sq, integral_xy, integral_edges, consistency, orientation, edge_nums;
+    // diagonal, skew_diagonal, horizontal, vertical
     Mat structuringElement[4] = {
             (Mat_<uint8_t>(3, 3) << 255, 0, 0, 0, 0, 0, 0, 0, 255),
             (Mat_<uint8_t>(3, 3) << 0, 0, 255, 0, 0, 0, 255, 0, 0),
             (Mat_<uint8_t>(3, 3) << 0, 0, 0, 255, 0, 255, 0, 0, 0),
             (Mat_<uint8_t>(3, 3) << 0, 255, 0, 0, 0, 0, 0, 255, 0)};
 
-    void findCandidates();
+    void preprocess();
 
     static int compare(const RotatedRect &r1, const RotatedRect &r2)
     {
