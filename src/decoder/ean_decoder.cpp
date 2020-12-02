@@ -29,12 +29,8 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
     CV_Assert(mat.channels() == 1);
     vector<string> will_return;
     Mat gray = mat.clone();
-    // assume the maximum proportion of barcode is half of max(width, height), thickest bar is
-    // 0.5*max(width,height)/95 * 4
-    int length = max(gray.rows, gray.cols);
-    int block_size = length / bitsNum * 2 + 1;
-    equalizeHist(gray, gray);
-#ifdef CV_DEBUG
+//        equalizeHist(gray,gray);
+#if CV_DEBUG
     imshow("hist", gray);
 #endif
     constexpr int PART = 16;
@@ -42,13 +38,21 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
     {
         Mat bar_img;
         cutImage(gray, bar_img, rect);
-        resize(bar_img, bar_img, Size(300, bar_img.rows));
-        //imshow("rawbar", bar_img);
-        adaptiveThreshold(bar_img, bar_img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 13, 1);
-#ifdef CV_DEBUG
-        imshow("barimg", bar_img);
+#if CV_DEBUG
+        imshow("raw_bar", bar_img);
 #endif
+        if (bar_img.cols < 300)
+        {
+            resize(bar_img, bar_img, Size(300, bar_img.rows));
+        }
+//        int blocksize = (bar_img.cols / 95) * 4 + 1;
+        //imshow("rawbar", bar_img);
+        threshold(bar_img, bar_img, 155, 255, THRESH_OTSU + THRESH_BINARY);
+//        adaptiveThreshold(bar_img, bar_img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, blocksize, 1);
+        imshow("barimg", bar_img);
         std::map<std::string, int> result_vote;
+        int vote_cnt = 0;
+        float total_vote = 0;
         std::string max_result = "ERROR";
         if (max(rect.size.height, rect.size.width) < EAN13LENGTH)
         {
@@ -67,17 +71,28 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
             Point2i step(0, bar_img.rows / PART);
             begin = Point2i(0, bar_img.rows / 2) + step * i * direction;
             end = Point2i(bar_img.cols - 1, bar_img.rows / 2) + step * i * direction;
-            result = lineDecodeToString(bar_img, begin, end);
+            LineIterator line = LineIterator(bar_img, begin, end);
+            middle.reserve(line.count);
+            for (int cnt = 0; cnt < line.count; cnt++, line++)
+            {
+                middle.push_back(bar_img.at<uchar>(line.pos()));
+            }
+            result = this->decode(middle, 0);
+            if (result.size() != 13)
+            {
+                result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
+            }
 #ifdef CV_DEBUG
+            
             cv::line(bar_copy, begin, end, cv::Scalar(0, 255, 0));
             //cv::line(mat,begin,end,Scalar(0,0,255),2);
             cv::circle(bar_copy, begin, 4, Scalar(255, 0, 0), 2);
             cv::circle(bar_copy, end, 4, Scalar(0, 0, 255), 2);
             imshow("barscan", bar_copy);
 #endif
-            int vote_cnt = 0;
-            if (result.size() == digitNumber)
+            if (result.size() == 13)
             {
+                total_vote++;
                 if (result_vote.find(result) == result_vote.end())
                 {
                     result_vote.insert(std::pair<std::string, int>(result, 1));
@@ -89,7 +104,10 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
                 if (result_vote[result] > vote_cnt)
                 {
                     vote_cnt = result_vote[result];
-                    max_result = result;
+                    if (vote_cnt / total_vote > 0.5)
+                    {
+                        max_result = result;
+                    }
                 }
             }
             if (direction == -1)
@@ -100,7 +118,7 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
         will_return.push_back(max_result);
     }
     return will_return;
-} // namespace cv
+}
 
 // input image is
 string ean_decoder::rectToResult(const Mat &bar_img, Mat &mat, const RotatedRect &rect, int PART, int directly) const
