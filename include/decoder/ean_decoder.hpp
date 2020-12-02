@@ -24,15 +24,13 @@ namespace cv {
 //extern struct EncodePair;
 using std::string;
 using std::vector;
-
+// TODO, EAN-8
+enum class EAN
+{
+    TYPE13 = 0, TYPE8
+};
 class ean_decoder : public absdecoder
 {
-
-    // TODO, EAN-8
-    enum class EAN
-    {
-        TYPE13 = 0, TYPE8
-    };
 public:
     explicit ean_decoder(EAN name);
 
@@ -40,6 +38,9 @@ public:
 
     //输入初始位置固定的2值化后的数据, 输出解码字符串
     string decode(vector<uchar> data, int start) const override;
+
+    //Detect encode type
+    string decodeDirectly(InputArray img) const override;
 
     string getName() const override;
 
@@ -64,13 +65,11 @@ private:
     findGuardPatterns(const vector<uchar> &row, int rowOffset, uchar whiteFirst, const vector<int> &pattern,
                       vector<int> counters);
 
-    string rectToResult(const Mat &bar_img, Mat &mat, const RotatedRect &rect, int PART, int directly) const;
-
-    void linesFromRect(const Size2i &shape, int angle, int PART, vector<std::pair<Point2f, Point2f>> &results) const;
-
-    string decodeDirectly(const _InputArray &img) const;
+    string rectToResult(const Mat &gray, Mat &mat, const RotatedRect &rect, int PART, int directly) const;
 
     string lineDecodeToString(const Mat &bar_img, const Point2i &begin, const Point2i &end) const;
+
+    void linesFromRect(const Size2i &shape, int angle, int PART, vector<std::pair<Point2f, Point2f>> &results) const;
 };
 
 Mat grayNomalization(Mat mat, double M0, double VAR0);

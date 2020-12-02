@@ -27,6 +27,7 @@ limitations under the License.
  *   it will have ean13/8, Code128 , etc.. class extend this class
 */
 namespace cv {
+
 class absdecoder
 {
 public:
@@ -43,10 +44,10 @@ private:
     virtual bool isValid(std::string result) const = 0;
 };
 
-
 void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters);
 
 void cutImage(InputArray _src, OutputArray &_dst, RotatedRect rect);
-}
+
+} // namespace cv
 
 #endif //! __OPENCV_BARCODE_ABSDECODER_H__

@@ -2,6 +2,7 @@
 # is inspired by and adapted after https://crascit.com/2015/07/25/cmake-gtest/
 # download and unpack googletest at configure time
 function(fetch_googletest _download_module_path _download_root)
+    find_package(Git REQUIRED)
     Output_variable(_download_module_path)
     Output_variable(_download_root)
     set(GOOGLETEST_DOWNLOAD_ROOT ${_download_root})
@@ -13,20 +14,12 @@ function(fetch_googletest _download_module_path _download_root)
     unset(GOOGLETEST_DOWNLOAD_ROOT)
 
     execute_process(
-            COMMAND
-            "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" .
+            COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" .
             WORKING_DIRECTORY
             ${_download_root}
     )
     execute_process(
-            COMMAND
-            "${CMAKE_COMMAND}" --build . --config debug
-            WORKING_DIRECTORY
-            ${_download_root}
-    )
-    execute_process(
-            COMMAND
-            "${CMAKE_COMMAND}" --build . --config release
+            COMMAND "${CMAKE_COMMAND}" --build . --config ${CMAKE_BUILD_TYPE}
             WORKING_DIRECTORY
             ${_download_root}
     )

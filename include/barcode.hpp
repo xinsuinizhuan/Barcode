@@ -29,7 +29,6 @@ public:
 
     ~BarcodeDetector();
 
-
     /** @brief Detects QR code in image and returns the quadrangle containing the code.
      @param img grayscale or color (BGR) image containing (or not) QR code.
      @param points Output vector of vertices of the minimum-area quadrangle containing the code.
@@ -43,9 +42,8 @@ public:
      @param rects vector of rotated rectangle found by detect() method (or some other algorithm).
      @param decoded_info UTF8-encoded output vector of string or empty vector of string if the codes cannot be decoded.
      */
-    CV_WRAP bool decode(InputArray img, const std::vector<RotatedRect> &rects, CV_OUT
-                        std::vector<std::string> &decoded_info) const;
-
+    CV_WRAP bool
+    decode(InputArray img, const std::vector<RotatedRect> &rects, CV_OUT std::vector<std::string> &decoded_info) const;
 
     /** @brief Both detects and decodes barcode
 
@@ -62,7 +60,6 @@ protected:
     struct Impl;
     Ptr<Impl> p;
 };
-}
-
+} // namespace cv
 
 #endif //BARCODE_BARCODE_HPP

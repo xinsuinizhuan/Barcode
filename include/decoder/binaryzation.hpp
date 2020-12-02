@@ -27,13 +27,13 @@ namespace cv {
 void adaptBinaryzation(cv::InputArray src, cv::OutputArray &dst);
 
 /**
- *
- * @param src source img, which has to be grayscale img
- * @param dst binary img
- * @param window_size used to calculate local threshold which has to be odd number
- * @param alpha (0, 1)
- */
+*
+* @param src source img, which has to be grayscale img
+* @param dst binary img
+* @param window_size used to calculate local threshold which has to be odd number
+* @param alpha (0, 1)
+*/
 void enhanceLocalBinaryzation(cv::InputArray src, cv::OutputArray &dst, int window_size, float alpha);
-}
+} // namespace cv
 
 #endif //__OPENCV_BARCODE_BINARYZATION_HPP__

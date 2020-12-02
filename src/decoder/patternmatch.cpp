@@ -71,7 +71,7 @@ inline int patternMatchVariance(std::vector<int> counters, const std::vector<int
     // We're going to fake floating-point math in integers. We just need to use more bits.
     // Scale up patternLength so that intermediate values below like scaledCounter will have
     // more "significant digits"
-    
+
     uint unitBarWidth = (total << INTEGER_MATH_SHIFT) / patternLength;
     maxIndividualVariance = (maxIndividualVariance * unitBarWidth) >> INTEGER_MATH_SHIFT;
     int totalVariance = 0;

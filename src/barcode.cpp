@@ -20,106 +20,104 @@ limitations under the License.
 #include "precomp.hpp"
 #include "barcode.hpp"
 
-namespace cv
+namespace cv {
+static bool checkBarInputImage(InputArray img, Mat &gray)
 {
-    static bool checkBarInputImage(InputArray img, Mat &gray)
+    CV_Assert(!img.empty());
+    CV_CheckDepthEQ(img.depth(), CV_8U, "");
+    if (img.cols() <= 20 || img.rows() <= 20)
     {
-        CV_Assert(!img.empty());
-        CV_CheckDepthEQ(img.depth(), CV_8U, "");
-        if (img.cols() <= 20 || img.rows() <= 20)
-        {
-            return false; // image data is not enough for providing reliable results
-        }
-        int incn = img.channels();
-        CV_Check(incn, incn == 1 || incn == 3 || incn == 4, "");
-        if (incn == 3 || incn == 4)
-        {
-            cvtColor(img, gray, COLOR_BGR2GRAY);
-        }
-        else
-        {
-            gray = img.getMat();
-        }
-        return true;
+        return false; // image data is not enough for providing reliable results
+    }
+    int incn = img.channels();
+    CV_Check(incn, incn == 1 || incn == 3 || incn == 4, "");
+    if (incn == 3 || incn == 4)
+    {
+        cvtColor(img, gray, COLOR_BGR2GRAY);
+    }
+    else
+    {
+        gray = img.getMat();
+    }
+    return true;
+}
+
+struct BarcodeDetector::Impl
+{
+public:
+    Impl() = default;
+
+    ~Impl() = default;
+};
+
+BarcodeDetector::BarcodeDetector() : p(new Impl)
+{
+}
+
+BarcodeDetector::~BarcodeDetector() = default;
+
+bool BarcodeDetector::detect(InputArray img, CV_OUT std::vector<RotatedRect> &rects) const
+{
+    Mat inarr;
+    if (!checkBarInputImage(img, inarr))
+    {
+        return false;
     }
 
-    struct BarcodeDetector::Impl
-    {
-    public:
-        Impl() = default;
+    Detect bardet;
+    bardet.init(inarr);
+    bardet.localization();
+    vector<RotatedRect> _rects = bardet.getLocalizationRects();
+    rects.assign(_rects.begin(), _rects.end());
+    return !rects.empty();
+}
 
-        ~Impl() = default;
-    };
-
-    BarcodeDetector::BarcodeDetector() : p(new Impl)
+bool BarcodeDetector::decode(InputArray img, const std::vector<RotatedRect> &rects, CV_OUT
+                             vector<std::string> &decoded_info) const
+{
+    Mat inarr;
+    if (!checkBarInputImage(img, inarr))
     {
+        return false;
     }
+    //    CV_Assert(!rects.empty());
+    ean_decoder decoder{EAN::TYPE13};
+    vector<std::string> _decoded_info = decoder.rectToResults(inarr, rects);
+    decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
+    return !decoded_info.empty();
+}
 
-    BarcodeDetector::~BarcodeDetector() = default;
-
-    bool BarcodeDetector::detect(InputArray img, CV_OUT std::vector<RotatedRect> &rects) const
+bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT vector<std::string> &decoded_info, CV_OUT
+                                      vector<RotatedRect> &rects) const
+{
+    Mat inarr;
+    if (!checkBarInputImage(img, inarr))
     {
-        Mat inarr;
-        if (!checkBarInputImage(img, inarr))
-        {
-            return false;
-        }
-
-        Detect bardet;
-        bardet.init(inarr);
-        bardet.localization();
-        vector<RotatedRect> _rects = bardet.getLocalizationRects();
-        rects.assign(_rects.begin(), _rects.end());
-        return !rects.empty();
+        return false;
     }
-
-    bool BarcodeDetector::decode(InputArray img, const std::vector<RotatedRect> &rects, CV_OUT vector<std::string> &decoded_info) const
+    bool ok = this->detect(img, rects);
+    if (!ok)
     {
-        Mat inarr;
-        if (!checkBarInputImage(img, inarr))
-        {
-            return false;
-            >>>>>>> dev
-        }
-        //    CV_Assert(!rects.empty());
-        ean_decoder decoder(TYPE_EAN13);
-        vector<std::string> _decoded_info = decoder.rectToResults(inarr, rects);
-        decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
-        return !decoded_info.empty();
+        return false;
     }
+    decoded_info.clear();
+    this->decode(img, rects, decoded_info);
+    return true;
+} // namespace cv
 
-    bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT vector<std::string> &decoded_info, CV_OUT vector<RotatedRect> &rects) const
+bool BarcodeDetector::detectDirectly(InputArray img, CV_OUT string &decoded_info) const
+{
+    Mat inarr;
+    if (!checkBarInputImage(img, inarr))
     {
-        Mat inarr;
-        if (!checkBarInputImage(img, inarr))
-        {
-            return false;
-        }
-        bool ok = this->detect(img, rects);
-        if (!ok)
-        {
-            return false;
-            >>>>>>> dev
-        }
-
-        decoded_info.clear();
-        this->decode(img, rects, decoded_info);
-        return true;
+        return false;
     }
-
-    bool BarcodeDetector::detectDirectly(InputArray img, CV_OUT string &decoded_info) const
+    ean_decoder ean13{EAN::TYPE13};
+    decoded_info = ean13.decodeDirectly(inarr);
+    if (!decoded_info.empty())
     {
-        Mat inarr;
-        if (!checkBarInputImage(img, inarr))
-        {
-            return false;
-        }
-        ean_decoder ean13{EAN::TYPE13};
-        decoded_info = ean13.decodeDirectly(inarr);
-        if (!decoded_info.empty())
-        {
-            return false;
-        }
-        return true;
+        return false;
     }
+    return true;
+}
 } // namespace cv

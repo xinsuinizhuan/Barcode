@@ -22,10 +22,9 @@ limitations under the License.
 #include "opencv2/opencv.hpp"
 #include <vector>
 
-#define PI 3.1415926535897932
+constexpr double PI = 3.1415926535897932;
 
 namespace cv {
-
 using std::vector;
 
 class Detect
@@ -53,7 +52,6 @@ protected:
 
     void findCandidates();
 
-
     double getBarcodeOrientation(const vector<vector<Point> > &contours, int i);
 
     void calConsistency();
@@ -65,7 +63,6 @@ protected:
     inline bool isValidCoord(const Point2f &coord) const;
 
     void normalizeRegion(RotatedRect &rect);
-
 
     void locateBarcodes();
 };

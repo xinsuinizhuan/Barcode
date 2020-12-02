@@ -73,17 +73,17 @@ TEST(basic_test, Detects)
     }
 }
 
-
 TEST(basic_test, Ean13Decodes)
 {
     cv::BarcodeDetector barcodeDetector;
     cv::Point2f points[4];
     auto count = 0;
     std::string path = pre_path + R"(test/ean13/)";
-    for (const auto &i: ean13_graphs)
+    for (const auto &i : ean13_graphs)
     {
         std::cout << i << ':' << std::endl;
         cv::Mat frame = cv::imread(path + i);
+        ASSERT_TRUE(!frame.empty());
         std::vector<cv::RotatedRect> rects;
         try
         {
@@ -102,16 +102,17 @@ TEST(basic_test, Ean13Decodes)
             std::cerr << std::string(2, ' ') << ex.what() << "No detect results\n";
             continue;
         }
+#ifdef CV_DEBUG
         for (const auto &rect : rects)
         {
             rect.points(points);
             for (int j = 0; j < 4; j++)
             {
-#ifdef CV_DEBUG
+
                 cv::line(frame, points[j % 4], points[(j + 1) % 4], cv::Scalar(0, 255, 0));
-#endif
             }
         }
+#endif
         bool judge = false;
         int exist_number = 0;
         for (const auto &result : results)
@@ -131,7 +132,6 @@ TEST(basic_test, Ean13Decodes)
 #endif
     }
     std::cout << std::end(ean13_graphs) - std::begin(ean13_graphs) << " " << count << std::endl;
-
 }
 
 TEST(basic_test, decodeDirectly)
@@ -139,7 +139,7 @@ TEST(basic_test, decodeDirectly)
     cv::BarcodeDetector barcodeDetector;
     auto count = 0;
     std::string path = pre_path + R"(test/ean13/)";
-    for (const auto &i: ean13_graphs)
+    for (const auto &i : ean13_graphs)
     {
         std::cout << i << ':' << std::endl;
         cv::Mat frame = cv::imread(path + i);

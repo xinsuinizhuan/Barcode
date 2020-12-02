@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     std::vector<string> decoded_info;
     string fps;
     bool ok;
-    
+
     if (strcmp(argv[1], "--webcam") == 0)
     {
         VideoCapture capture(0);
@@ -59,22 +59,22 @@ int main(int argc, char **argv)
                     i++;
                 }
             }
-            
+
             fps = "FPS: " + std::to_string(CLOCKS_PER_SEC / (clock() - start));
 //            std::cout << fps << " fps" << std::endl;
             cv::putText(frame, fps, Point2f(5, 10), cv::FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 255), 1);
-            
+
             imshow("bounding boxes", frame);
             if (waitKey(1) > 0)
             { break; }
         }
-        
+
     }
     else
     {
         frame = imread(argv[1]);
         start = clock();
-        
+
         ok = bardet.detectAndDecode(frame, decoded_info, rects);
         if (ok)
         {
@@ -100,15 +100,15 @@ int main(int argc, char **argv)
                 i++;
             }
         }
-        
-        
+
+
         fps = std::to_string(clock() - start) + " ms";
         cv::putText(frame, fps, Point2f(5, 10), cv::FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 255), 1);
         std::cout << fps << std::endl;
         imshow("bounding boxes", frame);
-        
+
         waitKey();
     }
     return 0;
-    
+
 }

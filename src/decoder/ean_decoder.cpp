@@ -119,10 +119,10 @@ string ean_decoder::rectToResult(const Mat &bar_img, Mat &mat, const RotatedRect
     double distance1 = cv::norm(vertices[0] - vertices[1]);
     double distance2 = cv::norm(vertices[1] - vertices[2]);
     vector<std::pair<Point2f, Point2f>> begin_and_ends;
-    linesFromRect(Size2i{bar_img.cols, bar_img.rows}, distance1 > distance2, PART, begin_and_ends);
+    linesFromRect(Size2i{bar_img.rows, bar_img.cols}, distance1 > distance2, PART, begin_and_ends);
     if (directly)
     {
-        linesFromRect(Size2i{bar_img.cols, bar_img.rows}, distance1 <= distance2, PART, begin_and_ends);
+        linesFromRect(Size2i{bar_img.rows, bar_img.cols}, distance1 <= distance2, PART, begin_and_ends);
     }
     for (const auto &pairs : begin_and_ends)
     {
@@ -178,14 +178,14 @@ void
 ean_decoder::linesFromRect(const Size2i &shape, int angle, int PART, vector<std::pair<Point2f, Point2f>> &results) const
 {
     //bottom Left, top Left, top Right, bottom Right.
-
-    Point2i step{0, shape.height / PART};
-    const Point2i cbegin{0, 0};
-    Point2i cend{shape.width - 1, shape.height / 2};
+    auto shapef = Size2f(shape);
+    Point2f step{0, shapef.width / PART};
+    const Point2f cbegin{0, 0};
+    Point2f cend{shapef.height - 1, 0};
     if (angle)
     {
-        step = {shape.width / 2, 0};
-        cend = {shape.width / 2, shape.height - 1};
+        step = {shapef.height / PART, 0};
+        cend = {0, shapef.width - 1};
     }
     for (int i = 0; i < PART; ++i)
     {

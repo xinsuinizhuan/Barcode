@@ -62,12 +62,12 @@ inline bool Detect::isValidCoord(const Point2f &coord) const
     {
         return false;
     }
-    
+
     if ((coord.x > width - 1.0) || (coord.y > height - 1.0))
     {
         return false;
     }
-    
+
     return true;
 }
 
@@ -93,12 +93,12 @@ static float calcRectSum(const Mat &integral, int right_col, int left_col, int t
     // does NOT perform any bounds checking
     float top_left, top_right, bottom_left, bottom_right;
     float sum;
-    
+
     bottom_right = integral.at<float>(bottom_row, right_col);
     top_right = (top_row == -1) ? 0 : integral.at<float>(top_row, right_col);
     top_left = (left_col == -1 || top_row == -1) ? 0 : integral.at<float>(top_row, left_col);
     bottom_left = (left_col == -1) ? 0 : integral.at<float>(bottom_row, left_col);
-    
+
     sum = (bottom_right - bottom_left - top_right + top_left);
     return sum;
 }
@@ -158,7 +158,7 @@ void Detect::init(const Mat &src)
     }
     //resized_barcode.convertTo(resized_barcode, CV_32FC3);
     //medianBlur(resized_barcode, resized_barcode, 3);
-    
+
 }
 
 vector<RotatedRect> Detect::getLocalizationRects()
@@ -183,7 +183,7 @@ vector<RotatedRect> Detect::getLocalizationRects()
             (*it).size.width *= coeff_expansion;
         }
     }
-    
+
     return localization_rects;
 }
 
@@ -254,8 +254,8 @@ void Detect::locateBarcodes()
             }
             else
             { minRect.size.height = cvRound(minRect.size.height * 103.0 / 95.0); }
-            
-            
+
+
             if (purpose == ZOOMING)
             {
                 minRect.center.x /= coeff_expansion;
@@ -270,9 +270,9 @@ void Detect::locateBarcodes()
                 minRect.size.height *= coeff_expansion;
                 minRect.size.width *= coeff_expansion;
             }
-            
+
             localization_rects.push_back(minRect);
-            
+
         }
     }
 }
@@ -292,9 +292,9 @@ void Detect::findCandidates()
 //        threshold(gradient_magnitude, gradient_magnitude, 16, 1, THRESH_BINARY);
 
 //        adaptiveThreshold(gradient_magnitude, gradient_magnitude, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 9, 0);
-    
+
     integral(gradient_magnitude, gradient_density, CV_32F);
-    
+
     //threshold(gradient_magnitude, gradient_magnitude, 50, 1, THRESH_BINARY);
 //        threshold(gradient_magnitude, gradient_magnitude, 48, 1, THRESH_BINARY);
 //        gradient_magnitude.convertTo(gradient_magnitude, CV_8U);
@@ -320,13 +320,13 @@ void Detect::findCandidates()
             }
         }
     }
-    
+
     integral(scharr_x, temp, integral_x_sq, CV_32F, CV_32F);
     integral(scharr_y, temp, integral_y_sq, CV_32F, CV_32F);
     integral(scharr_x.mul(scharr_y), integral_xy, temp, CV_32F, CV_32F);
-    
-    
-    
+
+
+
     // calculate variances, normalize and threshold so that low-variance areas are bright(255) and
     // high-variance areas are dark(0)
     calConsistency();
@@ -354,10 +354,10 @@ void Detect::connectComponents()
     int small = 8, large = 10;
     small_elemSE = getStructuringElement(MorphShapes::MORPH_ELLIPSE, Size(small, small));
     large_elemSE = getStructuringElement(MorphShapes::MORPH_ELLIPSE, Size(large, large));
-    
+
     dilate(processed_barcode, processed_barcode, small_elemSE);
     erode(processed_barcode, processed_barcode, large_elemSE);
-    
+
     erode(processed_barcode, processed_barcode, small_elemSE);
     dilate(processed_barcode, processed_barcode, large_elemSE);
 }
@@ -365,18 +365,18 @@ void Detect::connectComponents()
 double Detect::getBarcodeOrientation(const vector<vector<Point> > &contours, int i)
 {
     // get mean angle within contour region so we can rotate by that amount
-    
+
     Mat mask = Mat::zeros(processed_barcode.size(), CV_8U);
     Mat temp_directions = Mat::zeros(processed_barcode.size(), CV_8U);
     Mat temp_magnitudes = Mat::zeros(processed_barcode.size(), CV_8U);
-    
+
     drawContours(mask, contours, i, Scalar(255), -1); // -1 thickness to fill contour
     bitwise_and(gradient_direction, mask, temp_directions);
     bitwise_and(gradient_magnitude, mask, temp_magnitudes);
-    
+
     // gradient_direction now contains non-zero values only where there is a gradient
     // mask now contains angles only for pixels within region enclosed by contour
-    
+
     double barcode_orientation = cv::sum(temp_directions)[0];
     int num_NonZero = countNonZero(temp_magnitudes);
     if (num_NonZero == 0)
@@ -387,7 +387,7 @@ double Detect::getBarcodeOrientation(const vector<vector<Point> > &contours, int
     {
         barcode_orientation = barcode_orientation / num_NonZero;
     }
-    
+
     return barcode_orientation;
 }
 
@@ -402,11 +402,11 @@ void Detect::calConsistency()
     int width_offset = cvRound(0.05 * width / 2);
     int height_offset = cvRound(0.05 * height / 2);
     const float THRESHOLD_AREA = float(width_offset * height_offset) * 2.4f, THRESHOLD_CONSISTENCY = 0.9f;
-    
-    
-    
+
+
+
     // set angle to 0 at all points where gradient magnitude is 0 i.e. where there are no edges
-    
+
     //imshow("非零积分图", gradient_magnitude);
     for (int y = 0; y < height; y++)
     {
@@ -418,12 +418,12 @@ void Detect::calConsistency()
         int pos = 0;
         for (; pos < width; pos++)
         {
-            
+
             // then calculate the column locations of the rectangle and set them to -1
             // if they are outside the matrix bounds
             left_col = ((pos - width_offset - 1) < 0) ? -1 : (pos - width_offset - 1);
             right_col = ((pos + width_offset) > width) ? width : (pos + width_offset);
-            
+
             //we had an integral image to count non-zero elements
             rect_area = calcRectSum(gradient_density, right_col, left_col, top_row, bottom_row);
             if (rect_area < THRESHOLD_AREA)
@@ -435,7 +435,7 @@ void Detect::calConsistency()
             x_sq = calcRectSum(integral_x_sq, right_col, left_col, top_row, bottom_row);
             y_sq = calcRectSum(integral_y_sq, right_col, left_col, top_row, bottom_row);
             xy = calcRectSum(integral_xy, right_col, left_col, top_row, bottom_row);
-            
+
             // get the values of the rectangle corners from the integral image - 0 if outside bounds
             d = sqrt((x_sq - y_sq) * (x_sq - y_sq) + 4 * xy * xy) / (x_sq + y_sq);
             if (d > THRESHOLD_CONSISTENCY)
@@ -447,12 +447,12 @@ void Detect::calConsistency()
             {
                 consistency_row[pos] = 0;
 //                    orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
-            
+
             }
-            
-            
+
+
         }
-        
+
     }
 //        morphologyEx(raw_consistency, raw_consistency, MORPH_DILATE, getStructuringElement(MorphShapes::MORPH_RECT,
 //                                                                                           Size(width_offset/2, height_offset/2)));
@@ -474,20 +474,20 @@ void Detect::growImage()
     double rect_orientation;                               //当前生长点灰度值
     float sin_sum, cos_sum, counter;
     //生长方向顺序数据
-    float DIR[8][2] = {{  -1, -1}
-                       , {0 , -1}
-                       , {1 , -1}
-                       , {1 , 0}
-                       , {1 , 1}
-                       , {0 , 1}
-                       , {-1, 1}
-                       , {-1, 0}};
+    float DIR[8][2] = {{-1, -1},
+                       {0,  -1},
+                       {1,  -1},
+                       {1,  0},
+                       {1,  1},
+                       {0,  1},
+                       {-1, 1},
+                       {-1, 0}};
     vector<Point2f> to_grow_points, growing_points;
     for (int y = 0; y < height; y++)
     {
         //pixels_position.clear();
         auto *consistency_row = consistency.ptr<uint8_t>(y);
-        
+
         int x = 0;
         for (; x < width; x++)
         {
@@ -506,7 +506,7 @@ void Detect::growImage()
             cos_sum = cos(2 * cur_value);
             counter = 1;
             pt = Point2f(x, y);
-            
+
             to_grow_points.push_back(pt);
             growing_points.push_back(pt);
             while (!to_grow_points.empty())
@@ -514,23 +514,23 @@ void Detect::growImage()
                 pt = to_grow_points.back();
                 to_grow_points.pop_back();
                 src_value = orientation.at<float_t>(pt.y, pt.x);
-                
+
                 //growing in eight directions
                 for (int i = 0; i < 9; ++i)
                 {
                     pt_to_grow.x = pt.x + DIR[i][0];
                     pt_to_grow.y = pt.y + DIR[i][1];
-                    
+
                     //check if out of boundary
                     if (!isValidCoord(pt_to_grow))
                     { continue; }
-                    
+
                     if (consistency.at<uint8_t>(pt_to_grow.y, pt_to_grow.x) == 0)
                     {
                         continue;
                     }
                     cur_value = orientation.at<float_t>(pt_to_grow.y, pt_to_grow.x);
-                    
+
                     if (abs(cur_value - src_value) < THRESHOLD_RADIAN ||
                         abs(cur_value - src_value) > PI - THRESHOLD_RADIAN)
                     {
@@ -549,7 +549,7 @@ void Detect::growImage()
             {
                 continue;
             }
-            
+
             float local_consistency = (sin_sum * sin_sum + cos_sum * cos_sum) / counter / counter;
             // minimum local gradient orientation consistency
             if (local_consistency < LOCAL_THRESHOLD_CONSISTENCY)
@@ -564,8 +564,8 @@ void Detect::growImage()
             {
                 continue;
             }
-            
-            
+
+
             double local_orientation = computeOrientation(cos_sum, sin_sum);
             // only orientation is approximately equal to the rectangle orientation
             if (rect.size.width < rect.size.height)
@@ -588,12 +588,12 @@ void Detect::growImage()
 //                localization_bbox.push_back(rect);
 //                bbox_scores.push_back(edge_num / rect.height / rect.width);
 //                bbox_orientations.push_back(local_orientation);
-            
+
             localization_rects.push_back(rect);
-            
+
         }
-        
-        
+
+
     }
 }
 }

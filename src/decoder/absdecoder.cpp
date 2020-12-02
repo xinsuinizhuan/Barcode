@@ -21,33 +21,33 @@ limitations under the License.
 
 
 namespace cv {
-    //TODO 读取
-    void cutImage(InputArray _src, OutputArray &_dst, RotatedRect rect) {
+//TODO 读取
+void cutImage(InputArray _src, OutputArray &_dst, RotatedRect rect)
+{
 
-        Point2f vertices[4];
-        rect.points(vertices);
-        int height = rect.size.height;
-        int width = rect.size.width;
+    Point2f vertices[4];
+    rect.points(vertices);
+    int height = rect.size.height;
+    int width = rect.size.width;
 
-        if(height > width) {
-            height = rect.size.width;
-            width = rect.size.height;
-            Point2f v0 = vertices[0];
-            for(int i = 0;i <= 2;i ++) {
-                vertices[i] = vertices[i+1];
-            }
-            vertices[3] = v0;
+    if (height > width)
+    {
+        height = rect.size.width;
+        width = rect.size.height;
+        Point2f v0 = vertices[0];
+        for (int i = 0; i <= 2; i++)
+        {
+            vertices[i] = vertices[i + 1];
         }
-        Point2f dst_vertices[] = {
-                Point2f(0, height - 1),
-                Point2f(0, 0),
-                Point2f(width - 1, 0),
-                Point2f(width - 1, height - 1) };
-        _dst.create(Size(width,height),CV_8UC1);
-        Mat M = getPerspectiveTransform(vertices, dst_vertices);
-        Mat dst = _dst.getMat();
-        warpPerspective(_src.getMat(), dst, M, _dst.size(), cv::INTER_LINEAR, BORDER_CONSTANT, Scalar(255));
+        vertices[3] = v0;
     }
+    Point2f dst_vertices[] = {
+            Point2f(0, height - 1), Point2f(0, 0), Point2f(width - 1, 0), Point2f(width - 1, height - 1)};
+    _dst.create(Size(width, height), CV_8UC1);
+    Mat M = getPerspectiveTransform(vertices, dst_vertices);
+    Mat dst = _dst.getMat();
+    warpPerspective(_src.getMat(), dst, M, _dst.size(), cv::INTER_LINEAR, BORDER_CONSTANT, Scalar(255));
+}
 
 void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters)
 {

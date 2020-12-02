@@ -2,6 +2,7 @@
   <code_scheme name="Project" version="173">
     <Objective-C>
       <option name="INDENT_NAMESPACE_MEMBERS" value="0" />
+      <option name="INDENT_DIRECTIVE_AS_CODE" value="true" />
       <option name="FUNCTION_BRACE_PLACEMENT" value="2" />
       <option name="HEADER_GUARD_STYLE_PATTERN" value=" __OPENCV_BARCODE_${FILE_NAME}_HPP__" />
     </Objective-C>
