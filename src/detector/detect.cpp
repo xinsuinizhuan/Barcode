@@ -3,7 +3,9 @@
 //
 #include "detector/detect.hpp"
 
+
 namespace cv {
+
 
 //void Detect::normalizeRegion(RotatedRect &rect)
 //{
@@ -106,30 +108,30 @@ void Detect::init(const Mat &src)
 {
     barcode = src.clone();
     const double min_side = std::min(src.size().width, src.size().height);
-    //        const double max_side = std::max(src.size().width, src.size().height);
+//        const double max_side = std::max(src.size().width, src.size().height);
 
-    //        if (barcode.rows > 512) {
-    //            width = (int) (barcode.cols * (512 * 1.0 / barcode.rows));
-    //            height = 512;
-    //
-    //            resize(barcode, resized_barcode, Size(width, height), 0, 0, INTER_AREA);
-    //            coeff_expansion = barcode.rows / (1.0 * resized_barcode.rows);
-    //
-    //        } else {
-    //            width = barcode.cols;
-    //            height = barcode.rows;
-    //            resized_barcode = barcode.clone();
-    //            coeff_expansion = 1.0;
-    //        }
-    //        if (max_side < 320.0) {
-    //            purpose = ZOOMING;
-    //            purpose = ZOOMING;
-    //            coeff_expansion = 320.0 / max_side;
-    //            width = cvRound(src.size().width * coeff_expansion);
-    //            height = cvRound(src.size().height * coeff_expansion);
-    //            Size new_size(width, height);
-    //            resize(src, resized_barcode, new_size, 0, 0, INTER_LINEAR);
-    //        } else
+//        if (barcode.rows > 512) {
+//            width = (int) (barcode.cols * (512 * 1.0 / barcode.rows));
+//            height = 512;
+//
+//            resize(barcode, resized_barcode, Size(width, height), 0, 0, INTER_AREA);
+//            coeff_expansion = barcode.rows / (1.0 * resized_barcode.rows);
+//
+//        } else {
+//            width = barcode.cols;
+//            height = barcode.rows;
+//            resized_barcode = barcode.clone();
+//            coeff_expansion = 1.0;
+//        }
+//        if (max_side < 320.0) {
+//            purpose = ZOOMING;
+//            purpose = ZOOMING;
+//            coeff_expansion = 320.0 / max_side;
+//            width = cvRound(src.size().width * coeff_expansion);
+//            height = cvRound(src.size().height * coeff_expansion);
+//            Size new_size(width, height);
+//            resize(src, resized_barcode, new_size, 0, 0, INTER_LINEAR);
+//        } else
     if (min_side > 1024.0)
     {
         purpose = SHRINKING;
@@ -139,15 +141,15 @@ void Detect::init(const Mat &src)
         Size new_size(width, height);
         resize(src, resized_barcode, new_size, 0, 0, INTER_AREA);
     }
-        //        else if (min_side < 512.0) {
-        //            purpose = ZOOMING;
-        //            coeff_expansion = 512.0 / min_side;
-        //            width = cvRound(src.size().width * coeff_expansion);
-        //            height = cvRound(src.size().height * coeff_expansion);
-        //            Size new_size(width, height);
-        //            resize(src, resized_barcode, new_size, 0, 0, INTER_LINEAR);
-        //
-        //        }
+//        else if (min_side < 512.0) {
+//            purpose = ZOOMING;
+//            coeff_expansion = 512.0 / min_side;
+//            width = cvRound(src.size().width * coeff_expansion);
+//            height = cvRound(src.size().height * coeff_expansion);
+//            Size new_size(width, height);
+//            resize(src, resized_barcode, new_size, 0, 0, INTER_LINEAR);
+//
+//        }
     else
     {
         purpose = UNCHANGED;
@@ -158,7 +160,9 @@ void Detect::init(const Mat &src)
     }
     //resized_barcode.convertTo(resized_barcode, CV_32FC3);
     medianBlur(resized_barcode, resized_barcode, 3);
+
 }
+
 
 void Detect::localization()
 {
@@ -166,17 +170,21 @@ void Detect::localization()
     bbox_scores.clear();
     bbox_orientations.clear();
 
-    findCandidates(); // find areas with low variance in gradient direction
-    //        dnn::NMSBoxes(localization_bbox, bbox_scores, 0.8, 0.2, bbox_indices);
+
+    findCandidates();   // find areas with low variance in gradient direction
+//        dnn::NMSBoxes(localization_bbox, bbox_scores, 0.8, 0.2, bbox_indices);
+
+
 }
+
 
 vector<RotatedRect> Detect::getLocalizationRects()
 {
 
-    //        std::sort(localization_rects.begin(), localization_rects.end(), compare);
-    //        for (auto it = localization_rects.begin(); it < localization_rects.end(); it++) {
-    //            std::cout << (*it).size.area() << std::endl;
-    //        }
+//        std::sort(localization_rects.begin(), localization_rects.end(), compare);
+//        for (auto it = localization_rects.begin(); it < localization_rects.end(); it++) {
+//            std::cout << (*it).size.area() << std::endl;
+//        }
     localization_rects.clear();
     bbox_indices.clear();
     RotatedRect rect;
@@ -205,6 +213,7 @@ vector<RotatedRect> Detect::getLocalizationRects()
     return localization_rects;
 }
 
+
 void Detect::findCandidates()
 {
     gradient_direction = Mat::zeros(resized_barcode.size(), CV_32F);
@@ -215,14 +224,14 @@ void Detect::findCandidates()
     magnitude(scharr_x, scharr_y, gradient_magnitude);
     threshold(gradient_magnitude, gradient_magnitude, 32, 1, THRESH_BINARY);
     gradient_magnitude.convertTo(gradient_magnitude, CV_8U);
-    //        imshow("mag", gradient_magnitude);
-    //        normalize(gradient_magnitude, gradient_magnitude, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
-    //        adaptiveThreshold(gradient_magnitude, gradient_magnitude, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 9, 0);
+//        imshow("mag", gradient_magnitude);
+//        normalize(gradient_magnitude, gradient_magnitude, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
+//        adaptiveThreshold(gradient_magnitude, gradient_magnitude, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 9, 0);
     integral(gradient_magnitude, integral_edges, CV_32F);
 
     //threshold(gradient_magnitude, gradient_magnitude, 50, 1, THRESH_BINARY);
-    //        threshold(gradient_magnitude, gradient_magnitude, 48, 1, THRESH_BINARY);
-    //        gradient_magnitude.convertTo(gradient_magnitude, CV_8U);
+//        threshold(gradient_magnitude, gradient_magnitude, 48, 1, THRESH_BINARY);
+//        gradient_magnitude.convertTo(gradient_magnitude, CV_8U);
     for (int y = 0; y < height; y++)
     {
         //pixels_position.clear();
@@ -255,28 +264,34 @@ void Detect::findCandidates()
 #ifdef CV_DEBUG
         printf("window ratio: %f\n", window_ratio);
 #endif
-
         calConsistency(cvRound(min(width, height) * window_ratio));
-        morphologyEx(consistency, consistency, MORPH_OPEN, getStructuringElement(MorphShapes::MORPH_CROSS, Size(3, 3)));
+//        morphologyEx(consistency, consistency, MORPH_OPEN, getStructuringElement(MorphShapes::MORPH_CROSS, Size(3, 3)));
+        barcodeErode();
+#ifdef CV_DEBUG
+        imshow("consistency " + std::to_string(window_ratio), consistency);
+#endif
 
         regionGrowing(cvRound(min(width, height) * window_ratio));
         window_ratio += 0.02;
+
     }
-    //        adaptiveThreshold(raw_consistency,consistency,255,ADAPTIVE_THRESH_GAUSSIAN_C,THRESH_BINARY,11,0);
-    //        threshold(raw_consistency, consistency, 220, 255, THRESH_BINARY);
+//        adaptiveThreshold(raw_consistency,consistency,255,ADAPTIVE_THRESH_GAUSSIAN_C,THRESH_BINARY,11,0);
+//        threshold(raw_consistency, consistency, 220, 255, THRESH_BINARY);
 
-    //        normalize(consistency, consistency, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
+//        normalize(consistency, consistency, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
 
-    //        threshold(consistency, consistency, 75, 255, THRESH_BINARY);
+//        threshold(consistency, consistency, 75, 255, THRESH_BINARY);
 
-    //        processed_barcode = consistency;
+
+
+//        processed_barcode = consistency;
 }
 
 void Detect::calConsistency(int window_size)
 {
     /* calculate variance of gradient directions around each pixel
-in the img_details.gradient_directions matrix
-*/
+    in the img_details.gradient_directions matrix
+    */
     int right_col, left_col, top_row, bottom_row;
     float xy, x_sq, y_sq, d, rect_area;
     const float THRESHOLD_AREA = float(window_size * window_size) * 0.5f, THRESHOLD_CONSISTENCY = 0.85f;
@@ -314,7 +329,6 @@ in the img_details.gradient_directions matrix
             {
                 // 有梯度的点占比小于阈值则视为平滑区域
                 consistency_row[pos] = 0;
-                //                    orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
                 continue;
             }
 
@@ -326,7 +340,7 @@ in the img_details.gradient_directions matrix
             d = sqrt((x_sq - y_sq) * (x_sq - y_sq) + 4 * xy * xy) / (x_sq + y_sq);
             if (d > THRESHOLD_CONSISTENCY)
             {
-                consistency_row[pos] = cvRound(d * 255);
+                consistency_row[pos] = 255;
                 orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
                 edge_nums_row[pos] = rect_area;
                 rectangle(barcode, Point2d(left_col, top_row), Point2d(right_col, bottom_row), 255);
@@ -334,25 +348,19 @@ in the img_details.gradient_directions matrix
             else
             {
                 consistency_row[pos] = 0;
-                //                    orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
             }
-            //                variance.at<float_t>(y, pos) = data;
         }
     }
-    //        morphologyEx(raw_consistency, raw_consistency, MORPH_DILATE, getStructuringElement(MorphShapes::MORPH_RECT,
-    //                                                                                           Size(3, 3)));
-    //        morphologyEx(raw_consistency, raw_consistency, MORPH_ERODE, getStructuringElement(MorphShapes::MORPH_CROSS,
-    //                                                                                          Size(3, 3)));
 }
 
 void Detect::regionGrowing(int window_size)
 {
     const float LOCAL_THRESHOLD_CONSISTENCY = 0.98, THRESHOLD_RADIAN =
             PI / 40, THRESHOLD_BLOCK_NUM = 20, LOCAL_RATIO = 0.4;
-    Point pt_to_grow, pt; //待生长点位置
+    Point pt_to_grow, pt;                       //待生长点位置
 
-    float src_value; //生长起点灰度值
-    float cur_value; //当前生长点灰度值
+    float src_value;                               //生长起点灰度值
+    float cur_value;                               //当前生长点灰度值
     float edge_num;
     double rect_orientation;
     float sin_sum, cos_sum, counter;
@@ -420,7 +428,7 @@ void Detect::regionGrowing(int window_size)
                         cos_sum += cos(2 * cur_value);
                         counter += 1;
                         edge_num += edge_nums.at<float_t>(pt_to_grow);
-                        growingPoints.push_back(pt_to_grow); //将下一个生长点压入栈中
+                        growingPoints.push_back(pt_to_grow);                 //将下一个生长点压入栈中
                         growingImgPoints.push_back(pt_to_grow);
                     }
                 }
@@ -442,7 +450,7 @@ void Detect::regionGrowing(int window_size)
             {
                 continue;
             }
-            //                printf("counter ratio: %f\n", counter / rect.size.area());
+//                printf("counter ratio: %f\n", counter / rect.size.area());
 
             double local_orientation = computeOrientation(cos_sum, sin_sum);
             // only orientation is approximately equal to the rectangle orientation
@@ -465,19 +473,68 @@ void Detect::regionGrowing(int window_size)
             minRect.center.x = (minRect.center.x + 0.5) * window_size;
             minRect.center.y = (minRect.center.y + 0.5) * window_size;
 #ifdef CV__DEBUG
-            std::cout << local_consistency << " " << local_orientation << " " << edge_num / (float)(width * height)
+            std::cout << local_consistency << " " << local_orientation << " " << edge_num / (float) (width * height)
                       << " " << edge_num / minRect.size.area() << std::endl;
 #endif
             localization_bbox.push_back(minRect);
 
+
             bbox_scores.push_back(edge_num);
             bbox_orientations.push_back(local_orientation);
-            //                rectangle(resized_barcode, rect, 127);
-            //                imshow("grow image", resized_barcode);
+//                rectangle(resized_barcode, rect, 127);
+//                imshow("grow image", resized_barcode);
+
+
         }
+
+
     }
 
-    //        return growImage.clone();
+//        return growImage.clone();
 }
 
-} // namespace cv
+
+void Detect::barcodeErode()
+{
+
+//    Mat diagonal = (Mat_<uint8_t>(3, 3) << 255, 0, 0, 0, 0, 0, 0, 0, 255);
+//    Mat skew_diagonal = (Mat_<uint8_t>(3, 3) << 0, 0, 255, 0, 0, 0, 255, 0, 0);
+//    Mat horizontal = (Mat_<uint8_t>(3, 3) << 0, 0, 0, 255, 0, 255, 0, 0, 0);
+//    Mat vertical = (Mat_<uint8_t>(3, 3) << 0, 255, 0, 0, 0, 0, 0, 255, 0);
+    Mat m0, m1, m2, m3;
+    dilate(consistency, m0, structuringElement[0]);
+    dilate(consistency, m1, structuringElement[1]);
+    dilate(consistency, m2, structuringElement[2]);
+    dilate(consistency, m3, structuringElement[3]);
+    int sum;
+    for (int y = 0; y < consistency.rows; y++)
+    {
+        auto consistency_row = consistency.ptr<uint8_t>(y);
+        auto m0_row = m0.ptr<uint8_t>(y);
+        auto m1_row = m1.ptr<uint8_t>(y);
+        auto m2_row = m2.ptr<uint8_t>(y);
+        auto m3_row = m3.ptr<uint8_t>(y);
+
+        int pos;
+        for (pos = 0; pos < consistency.cols; pos++)
+        {
+            if (consistency_row[pos] == 0)
+            {
+                continue;
+            }
+            sum = m0_row[pos] + m1_row[pos] + m2_row[pos] + m3_row[pos];
+            //more than 2 group
+            if (sum > 600)
+            {
+                consistency_row[pos] = 255;
+            }
+            else
+            {
+                consistency_row[pos] = 0;
+            }
+        }
+    }
+}
+
+
+}
