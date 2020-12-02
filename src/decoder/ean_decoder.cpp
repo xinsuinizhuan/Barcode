@@ -30,9 +30,7 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
     vector<string> will_return;
     Mat gray = mat.clone();
 //        equalizeHist(gray,gray);
-#if CV_DEBUG
-    imshow("hist", gray);
-#endif
+
     constexpr int PART = 16;
     for (const auto &rect : rects)
     {
@@ -83,7 +81,7 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
                 result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
             }
 #ifdef CV_DEBUG
-            
+
             cv::line(bar_copy, begin, end, cv::Scalar(0, 255, 0));
             //cv::line(mat,begin,end,Scalar(0,0,255),2);
             cv::circle(bar_copy, begin, 4, Scalar(255, 0, 0), 2);

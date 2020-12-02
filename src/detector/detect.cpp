@@ -159,8 +159,13 @@ void Detect::init(const Mat &src)
         resized_barcode = barcode.clone();
     }
     //resized_barcode.convertTo(resized_barcode, CV_32FC3);
+    #ifdef CV_DEBUG
+    imshow("src", resized_barcode);
+    #endif
     medianBlur(resized_barcode, resized_barcode, 3);
-
+#ifdef CV_DEBUG
+    imshow("blurred src", resized_barcode);
+#endif
 }
 
 
@@ -172,23 +177,49 @@ void Detect::localization()
 
     // get integral image
     preprocess();
-
+    #ifdef CV_DEBUG
+    debug_proposals = resized_barcode.clone();
+    #endif
     float window_ratio = 0.01;
+    int window_size;
     while (window_ratio <= 0.13)
     {
+        window_size = cvRound(min(width, height) * window_ratio);
 #ifdef CV_DEBUG
         printf("window ratio: %f\n", window_ratio);
+        debug_img = resized_barcode.clone();
 #endif
-        calConsistency(cvRound(min(width, height) * window_ratio));
+        calConsistency(window_size);
+        #ifdef CV_DEBUG
+        //        imshow("block img " + std::to_string(window_ratio), debug_img);
+        #endif
         barcodeErode();
 #ifdef CV_DEBUG
-        imshow("consistency " + std::to_string(window_ratio), consistency);
+        debug_img = resized_barcode.clone();
+        for (int y = 0; y < consistency.rows; y++)
+        {
+            //pixels_position.clear();
+            auto *consistency_row = consistency.ptr<uint8_t>(y);
+
+            int x = 0;
+            for (; x < consistency.cols; x++)
+            {
+                if (consistency_row[x] == 0)
+                { continue; }
+                rectangle(debug_img, Point2d(x * window_size, y * window_size),
+                          Point2d(min((x + 1) * window_size, width), min((y + 1) * window_size, height)), 255);
+
+            }
+        }
+        imshow("erode block " + std::to_string(window_ratio), debug_img);
 #endif
+        regionGrowing(window_size);
 
-        regionGrowing(cvRound(min(width, height) * window_ratio));
         window_ratio += 0.02;
-
     }
+    #ifdef CV_DEBUG
+    imshow("grow image", debug_proposals);
+    #endif
 
 }
 
@@ -203,7 +234,7 @@ vector<RotatedRect> Detect::getLocalizationRects()
     localization_rects.clear();
     bbox_indices.clear();
     RotatedRect rect;
-    const float THRESHOLD_SCORE = float(width * height) / 500;
+    const float THRESHOLD_SCORE = float(width * height) / 1000;
     dnn::NMSBoxes(localization_bbox, bbox_scores, THRESHOLD_SCORE, 0.1, bbox_indices);
     for (auto it = bbox_indices.begin(); it < bbox_indices.end(); it++)
     {
@@ -333,7 +364,9 @@ void Detect::calConsistency(int window_size)
                 consistency_row[pos] = 255;
                 orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
                 edge_nums_row[pos] = rect_area;
-                rectangle(barcode, Point2d(left_col, top_row), Point2d(right_col, bottom_row), 255);
+                #ifdef CV_DEBUG
+                rectangle(debug_img, Point2d(left_col, top_row), Point2d(right_col, bottom_row), 255);
+                #endif
             }
             else
             {
@@ -462,7 +495,7 @@ void Detect::regionGrowing(int window_size)
             minRect.size.height *= float(window_size + 1);
             minRect.center.x = (minRect.center.x + 0.5) * window_size;
             minRect.center.y = (minRect.center.y + 0.5) * window_size;
-#ifdef CV__DEBUG
+#ifdef CV_DEBUG
             std::cout << local_consistency << " " << local_orientation << " " << edge_num / (float) (width * height)
                       << " " << edge_num / minRect.size.area() << std::endl;
 #endif
@@ -471,9 +504,12 @@ void Detect::regionGrowing(int window_size)
 
             bbox_scores.push_back(edge_num);
             bbox_orientations.push_back(local_orientation);
-//                rectangle(resized_barcode, rect, 127);
-//                imshow("grow image", resized_barcode);
-
+            #ifdef CV_DEBUG
+            Point2f vertices[4];
+            minRect.points(vertices);
+            for (int i = 0; i < 4; i++)
+                line(debug_proposals, vertices[i], vertices[(i + 1) % 4], 127, 2);
+            #endif
 
         }
 
