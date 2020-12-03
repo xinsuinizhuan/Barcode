@@ -7,6 +7,7 @@ set -eoux pipefail
 # 5. 在git bash 中运行此脚本 ./installOCV
 # 重点在于调用的cmake.exe需要为windows系统中的,使其可以调用msvc的编译器
 myRepo=$(pwd)
+Source_DIR=myRepo
 CMAKE_CONFIG_GENERATOR="Visual Studio 16 2019"
 make_dir() {
   mkdir -p Build/opencv
@@ -14,7 +15,7 @@ make_dir() {
   mkdir -p Install/opencv
 }
 clone_opencv() {
-  if [[ ! -d "$myRepo/opencv" ]]; then
+  if [[ ! -d "${myRepo}/opencv" ]]; then
     echo "cloning opencv"
     git clone https://gitclone.com/github.com/opencv/opencv.git
   else
@@ -22,7 +23,7 @@ clone_opencv() {
     git pull --rebase
     cd ..
   fi
-  if [[ ! -d "$myRepo/opencv_contrib" ]]; then
+  if [[ ! -d "${myRepo}/opencv_contrib" ]]; then
     echo "cloning opencv_contrib"
     git clone https://gitclone.com/github.com/opencv/opencv_contrib.git
   else
@@ -33,7 +34,7 @@ clone_opencv() {
 }
 ensure_mkdir() {
   # 检查配置目录是否创建好了
-  if [ ! -d "$myRepo/Build/opencv" ] || [ ! -d "$myRepo/Install/opencv" ] || [ ! -d "$myRepo/Build/opencv_contrib" ]; then
+  if [ ! -d "${myRepo}/Build/opencv" ] || [ ! -d "${myRepo}/Install/opencv" ] || [ ! -d "${myRepo}/Build/opencv_contrib" ]; then
     echo "no env dir. creating..."
     mkdir -p Build/opencv
     mkdir -p Build/opencv_contrib
@@ -43,14 +44,20 @@ ensure_mkdir() {
 cmake_opencv() {
   RepoSource=opencv
   pushd Build/$RepoSource
-  CMAKE_OPTIONS='-DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF  -DWITH_CUDA:BOOL=OFF -DBUILD_EXAMPLES:BOOL=ON -DINSTALL_CREATE_DISTRIB=ON'
-  cmake -G"$CMAKE_CONFIG_GENERATOR" $CMAKE_OPTIONS -DOPENCV_EXTRA_MODULES_PATH="$myRepo"/opencv_contrib/modules -DCMAKE_INSTALL_PREFIX="$myRepo"/install/"$RepoSource" "$myRepo/$RepoSource"
-  echo "************************* $Source_DIR -->debug"
-  cmake --build . --config debug
-  echo "************************* $Source_DIR -->release"
-  cmake --build . --config release
-  cmake --build . --target install --config release
+  CMAKE_OPTIONS='-DBUILD_PERF_TESTS:BOOL=ON -DBUILD_TESTS:BOOL=ON -DINSTALL_TESTS:BOOL=ON \
+  -DBUILD_DOCS:BOOL=OFF  -DWITH_CUDA:BOOL=OFF -DBUILD_EXAMPLES:BOOL=ON -DINSTALL_CREATE_DISTRIB=ON'
+  cmake -G"${CMAKE_CONFIG_GENERATOR}" \
+    $CMAKE_OPTIONS \
+    -DOPENCV_EXTRA_MODULES_PATH="${myRepo}"/opencv_contrib/modules \
+    -DCMAKE_INSTALL_PREFIX="${myRepo}"/install/"$RepoSource" \
+    "${myRepo}/$RepoSource"
+  echo "************************* ${Source_DIR} -->debug"
+  cmake --build . --config debug -j"$(nproc)"
   cmake --build . --target install --config debug
+
+  echo "************************* ${Source_DIR} -->release"
+  cmake --build . --config release -j"$(nproc)"
+  cmake --build . --target install --config release
   popd
 }
 

@@ -1,5 +1,5 @@
 function(Output_variable arg)
-    MESSAGE("${arg}: " ${${arg}})
+    MESSAGE("${arg}: ${${arg}}")
 endfunction()
 function(Output_Paths)
     Output_variable(OpenCV_DIR)
