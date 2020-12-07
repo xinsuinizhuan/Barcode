@@ -30,7 +30,7 @@ TEST(binaryzation_test, BinaryzationTest)
 
 TEST(binaryzation_test, ImgUnitTest)
 {
-    std::string img_path = R"(../../test/data/integration_test_data/3.jpg)";
+    std::string img_path = R"(../../test/data/integration_test_data/24.jpg)";
     cv::BarcodeDetector bardet;
     cv::Mat frame = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
     cv::Mat decodeFrame = frame.clone();
