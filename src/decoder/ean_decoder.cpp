@@ -29,7 +29,7 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
     CV_Assert(mat.channels() == 1);
     vector<string> will_return;
     Mat gray = mat.clone();
-//        equalizeHist(gray,gray);
+    //equalizeHist(gray,gray);
 
     constexpr int PART = 16;
     for (const auto &rect : rects)
@@ -43,10 +43,10 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
         {
             resize(bar_img, bar_img, Size(300, bar_img.rows));
         }
-//        int blocksize = (bar_img.cols / 95) * 4 + 1;
+        //int blocksize = (bar_img.cols / 95) * 4 + 1;
         //imshow("rawbar", bar_img);
         threshold(bar_img, bar_img, 155, 255, THRESH_OTSU + THRESH_BINARY);
-//        adaptiveThreshold(bar_img, bar_img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, blocksize, 1);
+        //adaptiveThreshold(bar_img, bar_img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, blocksize, 1);
         imshow("barimg", bar_img);
         std::map<std::string, int> result_vote;
         int vote_cnt = 0;
@@ -310,8 +310,7 @@ string ean_decoder::decode(vector<uchar> data, int start) const
     {
         return "size wrong";
     }
-    vector<int> gurad_counters{0, 0, 0};
-    start = findGuardPatterns(data, start, false, BEGIN_PATTERN(), gurad_counters).second;
+    start = findStartGuardPatterns(data).second;
     vector<int> counters = {0, 0, 0, 0};
     int end = data.size();
     uint32_t first_char_bit = 0;
@@ -369,6 +368,31 @@ string ean_decoder::decodeDirectly(InputArray img) const
     return result;
 }
 
+std::pair<int,int> ean_decoder:: findStartGuardPatterns(const vector<uchar> &row)
+{
+    bool isfind = false;
+    std::pair<int, int> start_range{0,-1};
+    int next_start = 0;
+    while (!isfind)
+    {
+        vector<int> gurad_counters{0, 0, 0};
+        start_range = findGuardPatterns(row,next_start,BLACK,BEGIN_PATTERN(),gurad_counters);
+        int start = start_range.first;
+        next_start = start_range.second;
+        int quiet_start = start - (next_start - start);
+        isfind = true;
+        if(quiet_start > 0)
+        {
+            for(int i = quiet_start;i < start;i ++)
+            {
+                if(row[i] == BLACK)
+                    isfind = false;
+            }
+        }
+    }
+    return start_range;
+}
+
 std::pair<int, int>
 ean_decoder::findGuardPatterns(const vector<uchar> &row, int rowOffset, uchar whiteFirst, const vector<int> &pattern,
                                vector<int> counters)
@@ -378,7 +402,6 @@ ean_decoder::findGuardPatterns(const vector<uchar> &row, int rowOffset, uchar wh
     int width = row.size();
     uchar isWhite = whiteFirst ? WHITE : BLACK;
     rowOffset = std::find(row.cbegin() + rowOffset, row.cend(), isWhite) - row.cbegin();
-    //rowOffset = whiteFirst ? row.getNextUnset(rowOffset) : row.getNextSet(rowOffset);
     int counterPosition = 0;
     int patternStart = rowOffset;
     for (int x = rowOffset; x < width; x++)

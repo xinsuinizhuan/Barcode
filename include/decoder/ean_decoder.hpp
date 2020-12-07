@@ -64,6 +64,7 @@ private:
     static std::pair<int, int>
     findGuardPatterns(const vector<uchar> &row, int rowOffset, uchar whiteFirst, const vector<int> &pattern,
                       vector<int> counters);
+    static std::pair<int,int> findStartGuardPatterns(const vector<uchar> &row);
 
     string rectToResult(const Mat &gray, Mat &mat, const RotatedRect &rect, int PART, int directly) const;
 

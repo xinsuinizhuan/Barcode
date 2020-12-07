@@ -2,7 +2,7 @@
 
 TEST(binaryzation_test, BinaryzationTest)
 {
-    cv::Mat image = imread("../test/data/real.jpg", cv::IMREAD_GRAYSCALE);
+    cv::Mat image = imread("../../test/data/real.jpg", cv::IMREAD_GRAYSCALE);
     imshow("img", image);
     cv::Mat dst = image.clone();
     //pre process
@@ -30,7 +30,7 @@ TEST(binaryzation_test, BinaryzationTest)
 
 TEST(binaryzation_test, ImgUnitTest)
 {
-    std::string img_path = R"(./../test/wrong_decode/0904649700058.jpg)";
+    std::string img_path = R"(../../test/data/integration_test_data/4.jpg)";
     cv::BarcodeDetector bardet;
     cv::Mat frame = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
     cv::Mat decodeFrame = frame.clone();
