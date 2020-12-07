@@ -2,7 +2,7 @@
 
 ## 运行测试
 
-在test模块下的`integration_testing`是通过率测试，会比较本次样例通过率和上一次通过率(测试的接口是detectAndDecode)，请保证每次commit前通过此测试。
+在test模块下的`integration_testing`是通过率测试，会比较本次样例通过率和上一次通过率(测试的接口是detectAndDecode)，请保证每次commit前通过此测试。tips：最好用release版本，不然太多图了。宁可Error也不要错读。
 
 ## 添加新的测试样例
 

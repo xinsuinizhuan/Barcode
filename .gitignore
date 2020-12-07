@@ -18,6 +18,8 @@ OpenCVPath.cmake
 mono_crash.*
 
 # Build results
+test/wrong_decode
+test/screenshot
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/

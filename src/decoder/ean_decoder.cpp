@@ -29,8 +29,6 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
     CV_Assert(mat.channels() == 1);
     vector<string> will_return;
     Mat gray = mat.clone();
-    //equalizeHist(gray,gray);
-
     constexpr int PART = 16;
     for (const auto &rect : rects)
     {
@@ -39,12 +37,17 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
 #if CV_DEBUG
         imshow("raw_bar", bar_img);
 #endif
-        if (bar_img.cols < 300)
+        if (bar_img.cols < 500)
         {
-            resize(bar_img, bar_img, Size(300, bar_img.rows));
+            resize(bar_img, bar_img, Size(500, bar_img.rows));
         }
+
         //int blocksize = (bar_img.cols / 95) * 4 + 1;
-        //imshow("rawbar", bar_img);
+        //pre processing
+        Mat blur;
+        GaussianBlur(bar_img, blur, Size(0, 0), 25);
+        addWeighted(bar_img, 2, blur, -1, 0, bar_img);
+        imshow("preprocess", bar_img);
         threshold(bar_img, bar_img, 155, 255, THRESH_OTSU + THRESH_BINARY);
         //adaptiveThreshold(bar_img, bar_img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, blocksize, 1);
         imshow("barimg", bar_img);
@@ -81,11 +84,11 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
                 result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
             }
 #ifdef CV_DEBUG
-
+            std::pair<int,int> start_p = findStartGuardPatterns(middle);
+            cv::circle(bar_copy,cv::Point2f(start_p.second,begin.y),4, Scalar(0, 0, 0), 2);
             cv::line(bar_copy, begin, end, cv::Scalar(0, 255, 0));
             //cv::line(mat,begin,end,Scalar(0,0,255),2);
-            cv::circle(bar_copy, begin, 4, Scalar(255, 0, 0), 2);
-            cv::circle(bar_copy, end, 4, Scalar(0, 0, 255), 2);
+            cv::circle(bar_copy, begin, 6, Scalar(0, 0, 0), 2);
             imshow("barscan", bar_copy);
 #endif
             if (result.size() == 13)
@@ -341,6 +344,10 @@ string ean_decoder::decode(vector<uchar> data, int start) const
         decode_result[i + 7] = static_cast<char>('0' + bestMatch);
         start = std::accumulate(counters.cbegin(), counters.cend(), start);
     }
+    if(findGuardPatterns(data,start,false,BEGIN_PATTERN(),vector<int>(BEGIN_PATTERN().size())).second == -1)
+    {
+        return "ERROR";
+    }
     string result = string(decode_result);
     if (!isValid(result))
     {
@@ -433,7 +440,7 @@ ean_decoder::findGuardPatterns(const vector<uchar> &row, int rowOffset, uchar wh
         }
     }
     will_return.second = rowOffset;
-    return will_return;
+    return will_return;//todo throw exception
 }
 
 int
