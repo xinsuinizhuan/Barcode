@@ -44,9 +44,15 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
 
         //int blocksize = (bar_img.cols / 95) * 4 + 1;
         //pre processing
+        //equalizeHist(bar_img,bar_img);
+        //Scalar m = mean(bar_img);
+        //std::cout << m << std::endl;
         Mat blur;
+
         GaussianBlur(bar_img, blur, Size(0, 0), 25);
         addWeighted(bar_img, 2, blur, -1, 0, bar_img);
+
+        bar_img.convertTo(bar_img,CV_8UC1,1,-20);
         imshow("preprocess", bar_img);
         threshold(bar_img, bar_img, 155, 255, THRESH_OTSU + THRESH_BINARY);
         //adaptiveThreshold(bar_img, bar_img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, blocksize, 1);
@@ -84,8 +90,12 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
                 result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
             }
 #ifdef CV_DEBUG
-            std::pair<int,int> start_p = findStartGuardPatterns(middle);
-            cv::circle(bar_copy,cv::Point2f(start_p.second,begin.y),4, Scalar(0, 0, 0), 2);
+            try
+            {
+                std::pair<int,int> start_p = findStartGuardPatterns(middle);
+                cv::circle(bar_copy,cv::Point2f(start_p.second,begin.y),4, Scalar(0, 0, 0), 2);
+            }
+            catch (GuardPatternsNotFindException & e){}
             cv::line(bar_copy, begin, end, cv::Scalar(0, 255, 0));
             //cv::line(mat,begin,end,Scalar(0,0,255),2);
             cv::circle(bar_copy, begin, 6, Scalar(0, 0, 0), 2);
@@ -292,7 +302,14 @@ const std::array<char, 32> &FIRST_CHAR_ARRAY()
 string ean_decoder::decodeOuter(vector<uchar> data)
 {
     vector<int> guradCounters{0, 0, 0};
-    std::pair<int, int> temp = findGuardPatterns(data, 0, false, BEGIN_PATTERN(), guradCounters);
+    std::pair<int, int> temp;
+    try
+    {
+        temp = findGuardPatterns(data, 0, false, BEGIN_PATTERN(), guradCounters);
+    } catch (GuardPatternsNotFindException &e)
+    {
+        return "ERROR";
+    }
     int start = temp.first;
     return decode(data, start);
 }
@@ -308,52 +325,56 @@ string ean_decoder::decode(vector<uchar> data, int start) const
 {
     // at least it should have EAN13LENGTH's bits
     // else it can not decode at all
+    string result;
     char decode_result[14]{'\0'};
     if (data.size() - start < bitsNum)
     {
         return "size wrong";
     }
-    start = findStartGuardPatterns(data).second;
-    vector<int> counters = {0, 0, 0, 0};
-    int end = data.size();
-    uint32_t first_char_bit = 0;
-    // [1,6] are left part of EAN, [7,12] are right part, index 0 is calculated by left part
-    for (int i = 1; i < 7 && start < end; ++i)
+    try
     {
-        int bestMatch = decodeDigit(data, counters, start, get_AB_Patterns());
-        if (bestMatch == -1)
+        start = findStartGuardPatterns(data).second;
+        vector<int> counters = {0, 0, 0, 0};
+        int end = data.size();
+        uint32_t first_char_bit = 0;
+        // [1,6] are left part of EAN, [7,12] are right part, index 0 is calculated by left part
+        for (int i = 1; i < 7 && start < end; ++i)
         {
-            return "ERROR";
+            int bestMatch = decodeDigit(data, counters, start, get_AB_Patterns());
+            if (bestMatch == -1)
+            {
+                return "ERROR";
+            }
+            decode_result[i] = static_cast<char>('0' + bestMatch % 10);
+            start = std::accumulate(counters.cbegin(), counters.cend(), start);
+            first_char_bit |= (bestMatch >= 10) << i;
         }
-        decode_result[i] = static_cast<char>('0' + bestMatch % 10);
-        start = std::accumulate(counters.cbegin(), counters.cend(), start);
-        first_char_bit |= (bestMatch >= 10) << i;
-    }
-    decode_result[0] = static_cast<char>(FIRST_CHAR_ARRAY()[first_char_bit >> 2] + '0');
-    // why there need >> 2?
-    // first, the i in for-cycle is begin in 1
-    // second, the first i = 1 is always
-    start = findGuardPatterns(data, start, true, MIDDLE_PATTERN(), vector<int>(MIDDLE_PATTERN().size())).second;
-    for (int i = 0; i < 6 && start < end; ++i)
-    {
-        int bestMatch = decodeDigit(data, counters, start, get_A_or_C_Patterns());
-        if (bestMatch == -1)
+        decode_result[0] = static_cast<char>(FIRST_CHAR_ARRAY()[first_char_bit >> 2] + '0');
+        // why there need >> 2?
+        // first, the i in for-cycle is begin in 1
+        // second, the first i = 1 is always
+        start = findGuardPatterns(data, start, true, MIDDLE_PATTERN(), vector<int>(MIDDLE_PATTERN().size())).second;
+        for (int i = 0; i < 6 && start < end; ++i)
         {
-            return "ERROR";
+            int bestMatch = decodeDigit(data, counters, start, get_A_or_C_Patterns());
+            if (bestMatch == -1)
+            {
+                return "ERROR";
+            }
+            decode_result[i + 7] = static_cast<char>('0' + bestMatch);
+            start = std::accumulate(counters.cbegin(), counters.cend(), start);
         }
-        decode_result[i + 7] = static_cast<char>('0' + bestMatch);
-        start = std::accumulate(counters.cbegin(), counters.cend(), start);
+        findGuardPatterns(data,start,false,BEGIN_PATTERN(),vector<int>(BEGIN_PATTERN().size()));
+        result = string(decode_result);
+        if (!isValid(result))
+        {
+            return "Wrong: " + result.append(string(13 - result.size(), ' '));
+        }
     }
-    if(findGuardPatterns(data,start,false,BEGIN_PATTERN(),vector<int>(BEGIN_PATTERN().size())).second == -1)
+    catch (GuardPatternsNotFindException& e)
     {
         return "ERROR";
     }
-    string result = string(decode_result);
-    if (!isValid(result))
-    {
-        return "Wrong: " + result.append(string(13 - result.size(), ' '));
-    }
-    //TODO throw exception
     return result;
 }
 
@@ -386,15 +407,13 @@ std::pair<int,int> ean_decoder:: findStartGuardPatterns(const vector<uchar> &row
         start_range = findGuardPatterns(row,next_start,BLACK,BEGIN_PATTERN(),gurad_counters);
         int start = start_range.first;
         next_start = start_range.second;
-        int quiet_start = start - (next_start - start);
-        isfind = true;
-        if(quiet_start > 0)
+        int quiet_start = max(start - (next_start - start),0);
+        isfind = quiet_start != start;
+
+        for(int i = quiet_start;i < start;i ++)
         {
-            for(int i = quiet_start;i < start;i ++)
-            {
-                if(row[i] == BLACK)
-                    isfind = false;
-            }
+            if(row[i] == BLACK)
+                isfind = false;
         }
     }
     return start_range;
@@ -404,7 +423,6 @@ std::pair<int, int>
 ean_decoder::findGuardPatterns(const vector<uchar> &row, int rowOffset, uchar whiteFirst, const vector<int> &pattern,
                                vector<int> counters)
 {
-    std::pair<int, int> will_return{rowOffset, -1};
     int patternLength = pattern.size();
     int width = row.size();
     uchar isWhite = whiteFirst ? WHITE : BLACK;
@@ -439,8 +457,7 @@ ean_decoder::findGuardPatterns(const vector<uchar> &row, int rowOffset, uchar wh
             isWhite = (std::numeric_limits<uchar>::max() - isWhite);
         }
     }
-    will_return.second = rowOffset;
-    return will_return;//todo throw exception
+    throw cv::GuardPatternsNotFindException("pattern not find");
 }
 
 int

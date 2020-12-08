@@ -21,7 +21,7 @@ TEST(integration_testing, detect_and_decode)
     float correctness = verifyer.getCorrectness();
     if(correctness >= last_correctness - 0.00001)
     {
-        std::cout << "pass rate: " << correctness*100 << "%" << std::endl;
+        std::cout << "pass rate: " << correctness*100 << "%" << "last: " << last_correctness * 100 << "%"<< std::endl;
         std::ofstream correctness_file;
         correctness_file.open(path);
         if(correctness_file.is_open())

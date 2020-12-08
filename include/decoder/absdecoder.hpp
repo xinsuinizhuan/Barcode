@@ -17,6 +17,7 @@ limitations under the License.
 #define __OPENCV_BARCODE_ABSDECODER_H__
 
 #include "opencv2/core/mat.hpp"
+#include "opencv2/core.hpp"
 #include <utility>
 #include <vector>
 #include <string>
@@ -47,6 +48,13 @@ private:
 void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters);
 
 void cutImage(InputArray _src, OutputArray &_dst, RotatedRect rect);
+
+class GuardPatternsNotFindException:Exception
+{
+public:
+    GuardPatternsNotFindException(const std::string& msg): Exception(0, msg, "", __FILE__, __LINE__){}
+};
+
 
 } // namespace cv
 
