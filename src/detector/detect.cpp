@@ -158,10 +158,6 @@ void Detect::init(const Mat &src)
         height = src.size().height;
         resized_barcode = barcode.clone();
     }
-    //resized_barcode.convertTo(resized_barcode, CV_32FC3);
-    #ifdef CV_DEBUG
-    imshow("src", resized_barcode);
-    #endif
     medianBlur(resized_barcode, resized_barcode, 3);
 #ifdef CV_DEBUG
     imshow("blurred src", resized_barcode);
@@ -186,8 +182,8 @@ void Detect::localization()
     {
         window_size = cvRound(min(width, height) * window_ratio);
 #ifdef CV_DEBUG
-        printf("window ratio: %f\n", window_ratio);
-        debug_img = resized_barcode.clone();
+//        printf("window ratio: %f\n", window_ratio);
+//        debug_img = resized_barcode.clone();
 #endif
         calConsistency(window_size);
         #ifdef CV_DEBUG
@@ -195,30 +191,30 @@ void Detect::localization()
         #endif
         barcodeErode();
 #ifdef CV_DEBUG
-        debug_img = resized_barcode.clone();
-        for (int y = 0; y < consistency.rows; y++)
-        {
-            //pixels_position.clear();
-            auto *consistency_row = consistency.ptr<uint8_t>(y);
-
-            int x = 0;
-            for (; x < consistency.cols; x++)
-            {
-                if (consistency_row[x] == 0)
-                { continue; }
-                rectangle(debug_img, Point2d(x * window_size, y * window_size),
-                          Point2d(min((x + 1) * window_size, width), min((y + 1) * window_size, height)), 255);
-
-            }
-        }
-        imshow("erode block " + std::to_string(window_ratio), debug_img);
+//        debug_img = resized_barcode.clone();
+//        for (int y = 0; y < consistency.rows; y++)
+//        {
+//            //pixels_position.clear();
+//            auto *consistency_row = consistency.ptr<uint8_t>(y);
+//
+//            int x = 0;
+//            for (; x < consistency.cols; x++)
+//            {
+//                if (consistency_row[x] == 0)
+//                { continue; }
+//                rectangle(debug_img, Point2d(x * window_size, y * window_size),
+//                          Point2d(min((x + 1) * window_size, width), min((y + 1) * window_size, height)), 255);
+//
+//            }
+//        }
+//        imshow("erode block " + std::to_string(window_ratio), debug_img);
 #endif
         regionGrowing(window_size);
 
         window_ratio += 0.02;
     }
     #ifdef CV_DEBUG
-    imshow("grow image", debug_proposals);
+//    imshow("grow image", debug_proposals);
     #endif
 
 }
@@ -365,7 +361,7 @@ void Detect::calConsistency(int window_size)
                 orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
                 edge_nums_row[pos] = rect_area;
                 #ifdef CV_DEBUG
-                rectangle(debug_img, Point2d(left_col, top_row), Point2d(right_col, bottom_row), 255);
+//                rectangle(debug_img, Point2d(left_col, top_row), Point2d(right_col, bottom_row), 255);
                 #endif
             }
             else
@@ -505,10 +501,10 @@ void Detect::regionGrowing(int window_size)
             bbox_scores.push_back(edge_num);
             bbox_orientations.push_back(local_orientation);
             #ifdef CV_DEBUG
-            Point2f vertices[4];
-            minRect.points(vertices);
-            for (int i = 0; i < 4; i++)
-                line(debug_proposals, vertices[i], vertices[(i + 1) % 4], 127, 2);
+//            Point2f vertices[4];
+//            minRect.points(vertices);
+//            for (int i = 0; i < 4; i++)
+//                line(debug_proposals, vertices[i], vertices[(i + 1) % 4], 127, 2);
             #endif
 
         }

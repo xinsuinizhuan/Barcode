@@ -3,14 +3,15 @@
 //
 #include "barcode.hpp"
 #include <direct.h>
+
 void showInfo(cv::Mat frame, std::vector<std::string> infos)
 {
     //Prompt
-    infos.push_back("type \'s\' to capture screenshot");
+    infos.emplace_back("type \'s\' to capture screenshot");
     cv::Point2f start(5, 10);
     cv::Point2f step(0, 10);
 
-    for (std::string info : infos)
+    for (const std::string &info : infos)
     {
         cv::putText(frame, info, start, cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(0, 0, 255), 1);
         start += step;
@@ -23,7 +24,7 @@ int main(int argc, char **argv)
     using namespace cv;
     std::cout << __DATE__ << " " << __TIME__ << std::endl;
     char *buffer;
-    buffer = getcwd(NULL, 0);
+    buffer = _getcwd(nullptr, 0);
     std::cout << buffer << std::endl;
     if (argc < 2)
     {
@@ -45,7 +46,7 @@ int main(int argc, char **argv)
     std::string test_dir = "../../test/";
     std::string postfix = ".jpg";
     std::vector<string> wrong_results;
-    int total_cnt = 0;
+//    int total_cnt = 0;
     bool has_result = false;
     for (int i = 0; i < argc; i++)
     {
@@ -131,10 +132,14 @@ int main(int argc, char **argv)
                 replace(date.begin(), date.end(), ':', '_');
                 std::string path = test_dir + "screenshot/";
 
-                if(imwrite(path+date+postfix, frame_copy))
-                    std::cout << "save success " << path+date+postfix << std::endl;
+                if (imwrite(path + date + postfix, frame_copy))
+                {
+                    std::cout << "save success " << path + date + postfix << std::endl;
+                }
                 else
-                    std::cout << "fail" << path+date+postfix << std::endl;
+                {
+                    std::cout << "fail" << path + date + postfix << std::endl;
+                }
             }
             else if (key > 0)
             {
