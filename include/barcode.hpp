@@ -33,9 +33,8 @@ public:
     /** @brief Detects Barcode in image and returns the rectangle(s) containing the code.
      *
      * @param img grayscale or color (BGR) image containing (or not) Barcode.
-     * @param rects positions of detected barcodes' corners on input image.
-     * most std::vector< std::vector< cv::Point2f> > found during detect.
-     * For N detected barcodes, the dimensions of this array will be [N][4].
+     * @param rects Output vector of vector of vertices of the minimum-area rotated rectangle containing the codes.
+     * For N detected barcodes, the dimensions of this array should be [N][4].
      * Order of four points in vector< Point2f> is bottomLeft, topLeft, topRight, bottomRight.
      */
     CV_WRAP bool detect(InputArray img, OutputArrayOfArrays rects) const;
@@ -44,8 +43,7 @@ public:
      * Returns UTF8-encoded output string or empty string if the code cannot be decoded.
      *
      * @param img grayscale or color (BGR) image containing bar code.
-     * @param rects positions of detected barcodes' corners on input image.
-     * std::vector< std::vector< cv::Point2f> > found by detect() method (or some other algorithm).
+     * @param rects vector of rotated rectangle vertices found by detect() method (or some other algorithm).
      * For N detected barcodes, the dimensions of this array should be [N][4].
      * Order of four points in vector<Point2f> is bottomLeft, topLeft, topRight, bottomRight.
      * @param decoded_info UTF8-encoded output vector of string or empty vector of string if the codes cannot be decoded.
@@ -56,13 +54,10 @@ public:
 
      * @param img grayscale or color (BGR) image containing barcode.
      * @param decoded_info UTF8-encoded output vector of string(s) or empty vector of string if the codes cannot be decoded.
-     * @param rects positions of detected barcodes' corners on input image.
-     * std::vector< std::vector< cv::Point2f> > found during detect.
-     * For N detected barcodes, the dimensions of this array will be [N][4].
-     * Order of four points in vector< Point2f> is bottomLeft, topLeft, topRight, bottomRight.
+     * @param rects optional output vector of vertices of the found  barcode rectangle. Will be empty if not found.
      */
     CV_WRAP bool
-    detectAndDecode(InputArray img, CV_OUT std::vector <std::string> &decoded_info, OutputArrayOfArrays rects) const;
+    detectAndDecode(InputArray img, CV_OUT std::vector <std::string> &decoded_info, OutputArrayOfArrays rects = noArray()) const;
 
     /** @brief Decode without detects
      *
