@@ -43,7 +43,7 @@ private:
 
 stringvec explode(const std::string &s, const char &c)
 {
-    std::string buff{""};
+    std::string buff;
     stringvec v;
 
     for (auto n:s)
