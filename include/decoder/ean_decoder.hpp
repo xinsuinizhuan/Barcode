@@ -70,7 +70,7 @@ private:
 
     string lineDecodeToString(const Mat &bar_img, const Point2i &begin, const Point2i &end) const;
 
-    void linesFromRect(const Size2i &shape, int angle, int PART, vector<std::pair<Point2f, Point2f>> &results) const;
+    void linesFromRect(const Size2i &shape, int angle, int PART, vector<std::pair<Point2i, Point2i>> &results) const;
 };
 
 Mat grayNomalization(Mat mat, double M0, double VAR0);

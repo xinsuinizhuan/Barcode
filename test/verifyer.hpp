@@ -4,18 +4,23 @@
 
 #ifndef __OPENCV_BARCODE_VERIFYER_HPP__
 #define __OPENCV_BARCODE_VERIFYER_HPP__
+
 #include "barcode.hpp"
 #include <windows.h>
+#include <utility>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <regex>
-typedef std::vector<std::string> stringvec;
+
+using stringvec = std::vector<std::string>;
+using datasetType = std::unordered_map<std::string, std::string>;
+
 class Verifyer
 {
 public:
     std::string data_dir;
     std::string result_file_path;
-    std::map<std::string,std::string> dataset;
+    datasetType dataset;
     float total_case_num;
     float correct_case_num;
 private:
@@ -24,48 +29,63 @@ private:
 
 public:
     Verifyer(std::string data_dir, std::string result_file_path, stringvec postfixes);
+
     void verify();
-    float getCorrectness();
+
+    float getCorrectness() const;
+
     void reset();
+
 private:
     void buildDataSet();
 
 };
-const stringvec explode(const std::string& s, const char& c)
+
+stringvec explode(const std::string &s, const char &c)
 {
     std::string buff{""};
     stringvec v;
 
-    for(auto n:s)
+    for (auto n:s)
     {
-        if(n != c) buff+=n; else
-        if(n == c && buff != "") { v.push_back(buff); buff = ""; }
+        if (n != c)
+        { buff += n; }
+        else if (n == c && !buff.empty())
+        {
+            v.push_back(buff);
+            buff = "";
+        }
     }
-    if(buff != "") v.push_back(buff);
+    if (!buff.empty())
+    { v.push_back(buff); }
 
     return v;
 }
 
-void read_directory(const std::string& name, stringvec & v, const stringvec postfixes)
+void read_directory(const std::string &name, stringvec &v, const stringvec& postfixes)
 {
-    std::string pattern(name);
-    pattern.append("\\*");
+    std::string pattern{name};
+    pattern.append(R"(\*)");
     WIN32_FIND_DATA data;
     HANDLE hFind;
-    if ((hFind = FindFirstFile(pattern.c_str(), &data)) != INVALID_HANDLE_VALUE) {
-        do {
-            std::string filename(data.cFileName);
-            std::string reg_args = "";
-            for(auto str : postfixes)
+    if ((hFind = FindFirstFile(pattern.c_str(), &data)) != INVALID_HANDLE_VALUE)
+    {
+        do
+        {
+            std::string filename{data.cFileName};
+            std::string reg_args;
+            for (const auto &str : postfixes)
             {
-                if(reg_args.length() != 0)
+                if (reg_args.length() != 0)
+                {
                     reg_args.append("|");
-                reg_args.append("(.*\\.");
+                }
+                reg_args.append(R"((.*\.)");
                 reg_args.append(str);
                 reg_args.append(")");
             }
             std::regex rx(reg_args);
-            if(std::regex_match(filename, rx))
+            if (std::regex_match(filename, rx))
             {
                 v.push_back(filename);
             }
@@ -75,13 +95,11 @@ void read_directory(const std::string& name, stringvec & v, const stringvec post
     }
 }
 
-Verifyer::Verifyer(std::string data_dir, std::string result_file_path, stringvec postfixes)
+Verifyer::Verifyer(std::string data_dir, std::string result_file_path, stringvec postfixes) : data_dir(
+        std::move(data_dir)), result_file_path(std::move(result_file_path)), postfixes(std::move(postfixes)),
+                                                                                              total_case_num(0.0f),
+                                                                                              correct_case_num(0.0f)
 {
-    this->data_dir = data_dir;
-    this->result_file_path = result_file_path;
-    this->postfixes = postfixes;
-    this->total_case_num = 0;
-    this->correct_case_num = 0;
     buildDataSet();
 }
 
@@ -92,7 +110,7 @@ void Verifyer::reset()
     dataset.clear();
 }
 
-float Verifyer::getCorrectness()
+float Verifyer::getCorrectness() const
 {
     return correct_case_num / total_case_num;
 }
@@ -100,24 +118,28 @@ float Verifyer::getCorrectness()
 void Verifyer::verify()
 {
     stringvec imgs_name;
-    read_directory(data_dir,imgs_name, postfixes);
-    for(auto img_name : imgs_name)
+    read_directory(data_dir, imgs_name, postfixes);
+    for (const auto &img_name : imgs_name)
     {
         total_case_num++;
-        cv::Mat img = cv::imread(data_dir+img_name);
+        cv::Mat img = cv::imread(data_dir + img_name);
         std::vector<cv::RotatedRect> rects;
         stringvec infos;
         barcodeDetector.detectAndDecode(img, infos, rects);
-        if(infos.size() == 1)// 暂时先这么干
+        if (infos.size() == 1)// 暂时先这么干
         {
             std::string result = infos[0];
-            if(dataset.find(img_name) != dataset.end())
+            if (dataset.find(img_name) != dataset.end())
             {
-                if(result == dataset[img_name])
-                    correct_case_num ++;
+                if (result == dataset[img_name])
+                {
+                    correct_case_num++;
+                }
                 else
-                    printf("wrong case:%s, wrong result:%s, right result:%s\n", img_name.c_str(),
-                           infos[0].c_str(), dataset[img_name].c_str());
+                {
+                    printf("wrong case:%s, wrong result:%s, right result:%s\n", img_name.c_str(), infos[0].c_str(),
+                           dataset[img_name].c_str());
+                }
             }
 
         }
@@ -134,13 +156,13 @@ void Verifyer::buildDataSet()
     std::ifstream result_file;
     result_file.open(result_file_path);
     std::string line;
-    if(result_file.is_open())
+    if (result_file.is_open())
     {
-        while(std::getline(result_file,line))
+        while (std::getline(result_file, line))
         {
-            stringvec result = explode(line,',');
+            stringvec result = explode(line, ',');
             std::string filename = result[0];
-            if(dataset.find(filename) == dataset.end())
+            if (dataset.find(filename) == dataset.end())
             {
                 dataset[filename] = result[1];//todo 改成多个
             }
@@ -149,4 +171,5 @@ void Verifyer::buildDataSet()
 
     result_file.close();
 }
+
 #endif //__OPENCV_BARCODE_VERIFYER_HPP__
