@@ -22,6 +22,7 @@ limitations under the License.
 #include "decoder/binaryzation.hpp"
 
 namespace cv {
+namespace barcode {
 class CV_EXPORTS_W BarcodeDetector
 {
 public:
@@ -29,37 +30,46 @@ public:
 
     ~BarcodeDetector();
 
-    /** @brief Detects QR code in image and returns the quadrangle containing the code.
-     @param img grayscale or color (BGR) image containing (or not) QR code.
-     @param points Output vector of vertices of the minimum-area quadrangle containing the code.
+    /** @brief Detects Barcode in image and returns the rectangle(s) containing the code.
+     *
+     * @param img grayscale or color (BGR) image containing (or not) Barcode.
+     * @param points Output vector of vector of vertices of the minimum-area rotated rectangle containing the codes.
+     * For N detected barcodes, the dimensions of this array should be [N][4].
+     * Order of four points in vector< Point2f> is bottomLeft, topLeft, topRight, bottomRight.
      */
-    CV_WRAP bool detect(InputArray img, CV_OUT std::vector<RotatedRect> &rects) const;
+    CV_WRAP bool detect(InputArray img, OutputArray points) const;
 
     /** @brief Decodes barcode in image once it's found by the detect() method.
-
-     Returns UTF8-encoded output string or empty string if the code cannot be decoded.
-     @param img grayscale or color (BGR) image containing bar code.
-     @param rects vector of rotated rectangle found by detect() method (or some other algorithm).
-     @param decoded_info UTF8-encoded output vector of string or empty vector of string if the codes cannot be decoded.
+     * Returns UTF8-encoded output string or empty string if the code cannot be decoded.
+     *
+     * @param img grayscale or color (BGR) image containing bar code.
+     * @param points vector of rotated rectangle vertices found by detect() method (or some other algorithm).
+     * For N detected barcodes, the dimensions of this array should be [N][4].
+     * Order of four points in vector<Point2f> is bottomLeft, topLeft, topRight, bottomRight.
+     * @param decoded_info UTF8-encoded output vector of string or empty vector of string if the codes cannot be decoded.
      */
-    CV_WRAP bool
-    decode(InputArray img, const std::vector<RotatedRect> &rects, CV_OUT std::vector<std::string> &decoded_info) const;
+    CV_WRAP bool decode(InputArray img, InputArray points, CV_OUT std::vector<std::string> &decoded_info) const;
 
     /** @brief Both detects and decodes barcode
 
-     @param img grayscale or color (BGR) image containing QR code.
-     @param rects optional output array of vertices of the found QR code quadrangle. Will be empty if not found.
-     @param decoded_info UTF8-encoded output vector of string or empty vector of string if the codes cannot be decoded.
+     * @param img grayscale or color (BGR) image containing barcode.
+     * @param decoded_info UTF8-encoded output vector of string(s) or empty vector of string if the codes cannot be decoded.
+     * @param points optional output vector of vertices of the found  barcode rectangle. Will be empty if not found.
      */
-    CV_WRAP bool detectAndDecode(InputArray img, CV_OUT std::vector<std::string> &decoded_info, CV_OUT
-                                 std::vector<RotatedRect> &rects) const;
+    CV_WRAP bool detectAndDecode(InputArray img, CV_OUT std::vector<std::string> &decoded_info,
+                                 OutputArray points = noArray()) const;
 
-    CV_WRAP bool detectDirectly(InputArray img, CV_OUT string &decoded_info) const;
+    /** @brief Decode without detects
+     *
+     * @param img grayscale or color (BGR) image containing barcode.
+     * @param decoded_info UTF8-encoded output of string or empty string if the codes do not contain barcode.
+    */
+    CV_WRAP bool decodeDirectly(InputArray img, CV_OUT std::string &decoded_info) const;
 
 protected:
     struct Impl;
     Ptr<Impl> p;
 };
-} // namespace cv
-
-#endif //BARCODE_BARCODE_HPP
+}
+} // cv::barcode::
+#endif //__OPENCV_BARCODE_HPP__

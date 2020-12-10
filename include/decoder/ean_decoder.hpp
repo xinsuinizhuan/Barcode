@@ -29,6 +29,7 @@ enum class EAN
 {
     TYPE13 = 0, TYPE8
 };
+
 class ean_decoder : public absdecoder
 {
 public:
@@ -46,7 +47,7 @@ public:
 
     string decodeOuter(vector<uchar> data);
 
-    vector<string> rectToResults(Mat &mat, const std::vector<RotatedRect> &rects) const;
+    vector<string> rectToResults(Mat &mat, const vector<vector<Point2f>> &pointsArrays) const;
 
 private:
     string name; //EAN具体解码类别：EAN-13 / EAN-8
@@ -64,13 +65,14 @@ private:
     static std::pair<int, int>
     findGuardPatterns(const vector<uchar> &row, int rowOffset, uchar whiteFirst, const vector<int> &pattern,
                       vector<int> counters);
-    static std::pair<int,int> findStartGuardPatterns(const vector<uchar> &row);
 
-    string rectToResult(const Mat &gray, Mat &mat, const RotatedRect &rect, int PART, int directly) const;
+    static std::pair<int, int> findStartGuardPatterns(const vector<uchar> &row);
+
+    string rectToResult(const Mat &gray, Mat &mat, const vector<Point2f> &points, int PART, int directly) const;
 
     string lineDecodeToString(const Mat &bar_img, const Point2i &begin, const Point2i &end) const;
 
-    void linesFromRect(const Size2i &shape, int angle, int PART, vector<std::pair<Point2f, Point2f>> &results) const;
+    void linesFromRect(const Size2i &shape, int angle, int PART, vector<std::pair<Point2i, Point2i>> &results) const;
 };
 
 Mat grayNomalization(Mat mat, double M0, double VAR0);

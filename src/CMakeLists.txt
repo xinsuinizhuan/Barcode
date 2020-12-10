@@ -16,7 +16,7 @@ target_link_libraries(BarCode ${OpenCV_LIBS})
 
 add_executable(${PROJECT_NAME}_main_debug
         ${SRC_FILES}
-        ./main_debug.cpp
+        ../test/main_debug.cpp
         )
 
 target_link_libraries(${PROJECT_NAME}_main_debug ${OpenCV_LIBS})

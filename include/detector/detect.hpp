@@ -32,22 +32,22 @@ using std::pair;
 class Detect
 {
 private:
-    const int USE_ROTATED_RECT_ANGLE = 361;
     vector<RotatedRect> localization_rects;
-
-
     vector<RotatedRect> localization_bbox;
     vector<float> bbox_scores;
     vector<int> bbox_indices;
     vector<float> bbox_orientations;
+    vector<vector<Point2f>> transformation_points;
 
 public:
     void init(const Mat &src);
 
     void localization();
 
-    vector<RotatedRect> getLocalizationRects();
+    vector<vector<Point2f>> getTransformationPoints()
+    { return transformation_points; }
 
+    bool computeTransformationPoints();
 
 protected:
     enum resize_direction
@@ -56,7 +56,7 @@ protected:
     } purpose = UNCHANGED;
     double coeff_expansion = 1.0;
     int height, width;
-    Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, integral_x_sq, integral_y_sq, integral_xy, integral_edges, consistency, orientation, edge_nums;
+    Mat barcode, resized_barcode, gradient_magnitude, integral_x_sq, integral_y_sq, integral_xy, integral_edges, consistency, orientation, edge_nums;
     // diagonal, skew_diagonal, horizontal, vertical
     #ifdef CV_DEBUG
     Mat debug_img, debug_proposals;
