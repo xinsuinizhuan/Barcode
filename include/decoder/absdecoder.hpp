@@ -52,7 +52,7 @@ void cutImage(InputArray _src, OutputArray &_dst,const std::vector<Point2f>& rec
 class GuardPatternsNotFindException:Exception
 {
 public:
-    GuardPatternsNotFindException(const std::string& msg): Exception(0, msg, "", __FILE__, __LINE__){}
+    explicit GuardPatternsNotFindException(const std::string& msg): Exception(0, msg, "", __FILE__, __LINE__){}
 };
 
 

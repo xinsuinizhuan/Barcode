@@ -24,16 +24,16 @@ limitations under the License.
 namespace cv {
 // default thought that mat is a matrix after binary-transfer.
 /*Input a mat and it's position rect, return the decode result */
-vector<string> ean_decoder::rectToResults(Mat &mat, const vector<vector<Point2f>> &rects) const
+vector<string> ean_decoder::rectToResults(Mat &mat, const vector<vector<Point2f>> &pointsArrays) const
 {
     CV_Assert(mat.channels() == 1);
     vector<string> will_return;
     Mat gray = mat.clone();
     constexpr int PART = 16;
-    for (const auto &rect : rects)
+    for (const auto &points : pointsArrays)
     {
         Mat bar_img;
-        cutImage(gray, bar_img, rect);
+        cutImage(gray, bar_img, points);
 #if CV_DEBUG
         imshow("raw_bar", bar_img);
 #endif
@@ -41,139 +41,76 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<vector<Point2f>
         {
             resize(bar_img, bar_img, Size(500, bar_img.rows));
         }
-
-        //int blocksize = (bar_img.cols / 95) * 4 + 1;
-        //pre processing
-        //equalizeHist(bar_img,bar_img);
-        //Scalar m = mean(bar_img);
-        //std::cout << m << std::endl;
-        Mat blur;
-
-        GaussianBlur(bar_img, blur, Size(0, 0), 25);
-        addWeighted(bar_img, 2, blur, -1, 0, bar_img);
-
-        bar_img.convertTo(bar_img, CV_8UC1, 1, -20);
-        imshow("preprocess", bar_img);
-        threshold(bar_img, bar_img, 155, 255, THRESH_OTSU + THRESH_BINARY);
-        //adaptiveThreshold(bar_img, bar_img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, blocksize, 1);
-        imshow("barimg", bar_img);
-        std::map<std::string, int> result_vote;
-        int vote_cnt = 0;
-        float total_vote = 0;
-        std::string max_result = "ERROR";
-        int rect_size_height = cv::norm(rect[0] - rect[1]);
-        int rect_size_width = cv::norm(rect[1] - rect[2]);
-        if (max(rect_size_height, rect_size_width) < EAN13LENGTH)
-        {
-            will_return.push_back(max_result);
-            continue;
-        }
-#ifdef CV_DEBUG
-        Mat bar_copy = bar_img.clone();
-#endif
-        Point2i begin;
-        Point2i end;
-        std::string result;
-        for (int i = 1, direction = 1; i <= PART / 2; direction = -1 * direction)
-        {
-            vector<uchar> middle;
-            Point2i step(0, bar_img.rows / PART);
-            begin = Point2i(0, bar_img.rows / 2) + step * i * direction;
-            end = Point2i(bar_img.cols - 1, bar_img.rows / 2) + step * i * direction;
-            LineIterator line = LineIterator(bar_img, begin, end);
-            middle.reserve(line.count);
-            for (int cnt = 0; cnt < line.count; cnt++, line++)
-            {
-                middle.push_back(bar_img.at<uchar>(line.pos()));
-            }
-            result = this->decode(middle, 0);
-            if (result.size() != 13)
-            {
-                result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
-            }
-#ifdef CV_DEBUG
-            try
-            {
-                std::pair<int, int> start_p = findStartGuardPatterns(middle);
-                cv::circle(bar_copy, cv::Point2f(start_p.second, begin.y), 4, Scalar(0, 0, 0), 2);
-            } catch (GuardPatternsNotFindException &e)
-            {}
-            cv::line(bar_copy, begin, end, cv::Scalar(0, 255, 0));
-            //cv::line(mat,begin,end,Scalar(0,0,255),2);
-            cv::circle(bar_copy, begin, 6, Scalar(0, 0, 0), 2);
-            imshow("barscan", bar_copy);
-#endif
-            if (result.size() == 13)
-            {
-                total_vote++;
-                if (result_vote.find(result) == result_vote.end())
-                {
-                    result_vote.insert(std::pair<std::string, int>(result, 1));
-                }
-                else
-                {
-                    result_vote[result] += 1;
-                }
-                if (result_vote[result] > vote_cnt)
-                {
-                    vote_cnt = result_vote[result];
-                    if (vote_cnt / total_vote > 0.5)
-                    {
-                        max_result = result;
-                    }
-                }
-            }
-            if (direction == -1)
-            {
-                i++;
-            }
-        }
+        string max_result = rectToResult(bar_img, mat, points, PART, false);
         will_return.push_back(max_result);
     }
     return will_return;
 }
 
 // input image is
-string ean_decoder::rectToResult(const Mat &bar_img, Mat &mat, const RotatedRect &rect, int PART, int directly) const
+string
+ean_decoder::rectToResult(const Mat &bar_img, Mat &mat, const vector<Point2f> &points, int PART, int directly) const
 {
+    Mat blur;
+    GaussianBlur(bar_img, blur, Size(0, 0), 25);
+    addWeighted(bar_img, 2, blur, -1, 0, bar_img);
+    bar_img.convertTo(bar_img, CV_8UC1, 1, -20);
+    imshow("preprocess", bar_img);
+    threshold(bar_img, bar_img, 155, 255, THRESH_OTSU + THRESH_BINARY);
+#ifdef CV_DEBUG
+    imshow("barimg", bar_img);
+#endif
     std::map<std::string, int> result_vote;
+    int vote_cnt = 0;
+    int total_vote = 0;
     std::string max_result = "ERROR";
-    if (std::max(rect.size.height, rect.size.width) < this->bitsNum)
+    auto rect_size_height = cv::norm(points[0] - points[1]);
+    auto rect_size_width = cv::norm(points[1] - points[2]);
+    if (max(rect_size_height, rect_size_width) < EAN13LENGTH)
     {
         return max_result;
     }
 #ifdef CV_DEBUG
     Mat bar_copy = bar_img.clone();
 #endif
-    Point2f vertices[4];
-    rect.points(vertices);
-    double distance1 = cv::norm(vertices[0] - vertices[1]);
-    double distance2 = cv::norm(vertices[1] - vertices[2]);
-    vector<std::pair<Point2f, Point2f>> begin_and_ends;
-    linesFromRect(Size2i{bar_img.rows, bar_img.cols}, distance1 > distance2, PART, begin_and_ends);
+    vector<std::pair<Point2i, Point2i>> begin_and_ends;
+    linesFromRect(Size2i{bar_img.rows, bar_img.cols}, true, PART, begin_and_ends);
     if (directly)
     {
-        linesFromRect(Size2i{bar_img.rows, bar_img.cols}, distance1 <= distance2, PART, begin_and_ends);
+        linesFromRect(Size2i{bar_img.rows, bar_img.cols}, false, PART, begin_and_ends);
     }
-    for (const auto &pairs : begin_and_ends)
+    std::string result;
+    for (const auto &i: begin_and_ends)
     {
-        const Point2f &begin = pairs.first;
-        const Point2f &end = pairs.second;
-        std::string result = lineDecodeToString(bar_img, begin, end);
+        vector<uchar> middle;
+        const auto &begin = i.first;
+        const auto &end = i.second;
+        result = lineDecodeToString(bar_img, begin, end);
 #ifdef CV_DEBUG
-        cv::line(mat, begin, end, cv::Scalar(0, 255, 0));
-        cv::line(mat, begin, end, Scalar(0, 0, 255), 2);
-        cv::circle(mat, begin, 4, Scalar(255, 0, 0), 2);
-        cv::circle(mat, end, 4, Scalar(0, 0, 255), 2);
-#endif
-        int vote_cnt = 0;
-        if (result.size() == digitNumber)
+        try
         {
-            result_vote[result] += 1; // if not exist, it will automatically create key-value pair
+            std::pair<int, int> start_p = findStartGuardPatterns(middle);
+            cv::circle(bar_copy, cv::Point2f(start_p.second, begin.y), 4, Scalar(0, 0, 0), 2);
+        } catch (GuardPatternsNotFindException &e)
+        {}
+        cv::line(bar_copy, begin, end, cv::Scalar(0, 255, 0));
+        //cv::line(mat,begin,end,Scalar(0,0,255),2);
+        cv::circle(bar_copy, begin, 6, Scalar(0, 0, 0), 2);
+        cv::circle(bar_copy, end, 6, Scalar(0, 0, 0), 2);
+        imshow("barscan", bar_copy);
+        //cv::waitKey(0);
+#endif
+        if (result.size() == this->digitNumber)
+        {
+            total_vote++;
+            result_vote[result] += 1;
             if (result_vote[result] > vote_cnt)
             {
                 vote_cnt = result_vote[result];
-                max_result = result;
+                if ((vote_cnt << 1) > total_vote)
+                {
+                    max_result = result;
+                }
             }
         }
     }
@@ -206,21 +143,24 @@ string ean_decoder::lineDecodeToString(const Mat &bar_img, const Point2i &begin,
 * (90-180) lower left to upper right
 * */
 void
-ean_decoder::linesFromRect(const Size2i &shape, int angle, int PART, vector<std::pair<Point2f, Point2f>> &results) const
+ean_decoder::linesFromRect(const Size2i &shape, int angle, int PART, vector<std::pair<Point2i, Point2i>> &results) const
 {
-    //bottom Left, top Left, top Right, bottom Right.
     auto shapef = Size2f(shape);
-    Point2f step{0, shapef.width / PART};
-    const Point2f cbegin{0, 0};
-    Point2f cend{shapef.height - 1, 0};
+    Point2i step = Point2i(shapef.height / PART, 0);
+    Point2i cend = Point2i(shapef.height / 2, shapef.width - 1);
+    Point2i cbegin = Point2i(shapef.height / 2, shapef.width / 2);
+
     if (angle)
     {
-        step = {shapef.height / PART, 0};
-        cend = {0, shapef.width - 1};
+        step = Point2i(0, shapef.width / PART);
+        cbegin = Point2i(0, shapef.width / 2);
+        cend = Point2i(shapef.height - 1, shapef.width / 2);
     }
-    for (int i = 0; i < PART; ++i)
+    results.reserve(PART + 1);
+    for (int i = 1; i <= PART / 2; ++i)
     {
         results.emplace_back(cbegin + i * step, cend + i * step);
+        results.emplace_back(cbegin - i * step, cend - i * step);
     }
     results.emplace_back(cbegin, cend);
 }
@@ -246,7 +186,7 @@ const vector<vector<int>> &get_A_or_C_Patterns()
 const vector<vector<int>> &get_AB_Patterns()
 {
     static const vector<vector<int>> AB_Patterns = [] {
-        auto AB_Patterns_inited = vector<vector<int>>(20, vector<int>(PATTERN_LENGTH, 0));
+        auto AB_Patterns_inited = vector<vector<int >>(20, vector<int>(PATTERN_LENGTH, 0));
         std::copy(get_A_or_C_Patterns().cbegin(), get_A_or_C_Patterns().cend(), AB_Patterns_inited.begin());
         //AB pattern is
         int offset = 10;
@@ -383,17 +323,13 @@ string ean_decoder::decodeDirectly(InputArray img) const
 {
     auto Mat = img.getMat();
     auto gray = Mat.clone();
-    cv::normalize(gray, gray, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
-    cv::threshold(gray, gray, 0, 255, THRESH_BINARY | THRESH_OTSU);
-#ifdef CV_DEBUG
-    cv::imshow("gray", gray);
-#endif
-    auto rRect = RotatedRect(Point2f(Mat.cols / 2, Mat.rows / 2), Size2f(Mat.cols, Mat.rows), 0);
-    auto result = rectToResult(gray, Mat, rRect, 50, true);
-#ifdef CV_DEBUG
-    cv::imshow("origin", Mat);
-    cv::waitKey();
-#endif
+    constexpr int PART = 50;
+//    auto rRect = RotatedRect(Point2f(Mat.cols / 2, Mat.rows / 2), Size2f(Mat.cols, Mat.rows), 0);
+//    Point2f points_array[4];
+//    rRect.points(points_array);
+    vector<Point2f> real_rect{
+            Point2f(0, Mat.rows), Point2f(0, 0), Point2f(Mat.cols, 0), Point2f(Mat.cols, Mat.rows)};
+    string result = rectToResult(Mat, gray, real_rect, PART, true);
     return result;
 }
 
@@ -409,8 +345,7 @@ std::pair<int, int> ean_decoder::findStartGuardPatterns(const vector<uchar> &row
         int start = start_range.first;
         next_start = start_range.second;
         int quiet_start = max(start - (next_start - start), 0);
-        isfind = quiet_start != start;
-
+        isfind = (quiet_start != start);
         for (int i = quiet_start; i < start; i++)
         {
             if (row[i] == BLACK)
@@ -512,4 +447,4 @@ bool ean_decoder::isValid(string result) const
     }
     return (result.back() - '0') == (10 - (sum % 10)) % 10;
 }
-} // namespace cv
+}
