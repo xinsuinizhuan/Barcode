@@ -2,8 +2,8 @@
 // Created by YitaiWTQ on 2020/12/6.
 //
 
-#ifndef __OPENCV_BARCODE_VERIFYER_HPP__
-#define __OPENCV_BARCODE_VERIFYER_HPP__
+#ifndef __OPENCV_BARCODE_VERIFIER_HPP__
+#define __OPENCV_BARCODE_VERIFIER_HPP__
 
 #include "barcode.hpp"
 #include <windows.h>
@@ -15,7 +15,7 @@
 using stringvec = std::vector<std::string>;
 using datasetType = std::unordered_map<std::string, std::string>;
 
-class Verifyer
+class Verifier
 {
 public:
     std::string data_dir;
@@ -28,7 +28,7 @@ private:
     stringvec postfixes;
 
 public:
-    Verifyer(std::string data_dir, std::string result_file_path, stringvec postfixes);
+    Verifier(std::string data_dir, std::string result_file_path, stringvec postfixes);
 
     void verify();
 
@@ -95,7 +95,7 @@ void read_directory(const std::string &name, stringvec &v, const stringvec& post
     }
 }
 
-Verifyer::Verifyer(std::string data_dir, std::string result_file_path, stringvec postfixes) : data_dir(
+Verifier::Verifier(std::string data_dir, std::string result_file_path, stringvec postfixes) : data_dir(
         std::move(data_dir)), result_file_path(std::move(result_file_path)), postfixes(std::move(postfixes)),
                                                                                               total_case_num(0.0f),
                                                                                               correct_case_num(0.0f)
@@ -103,19 +103,19 @@ Verifyer::Verifyer(std::string data_dir, std::string result_file_path, stringvec
     buildDataSet();
 }
 
-void Verifyer::reset()
+void Verifier::reset()
 {
     this->total_case_num = 0;
     this->correct_case_num = 0;
     dataset.clear();
 }
 
-float Verifyer::getCorrectness() const
+float Verifier::getCorrectness() const
 {
     return correct_case_num / total_case_num;
 }
 
-void Verifyer::verify()
+void Verifier::verify()
 {
     stringvec imgs_name;
     read_directory(data_dir, imgs_name, postfixes);
@@ -123,7 +123,7 @@ void Verifyer::verify()
     {
         total_case_num++;
         cv::Mat img = cv::imread(data_dir+img_name);
-        std::vector<std::vector<cv::Point2f>> points;
+        std::vector<cv::Point2f> points;
         stringvec infos;
         barcodeDetector.detectAndDecode(img, infos, points);
         if(infos.size() == 1)// 暂时先这么干
@@ -151,7 +151,7 @@ void Verifyer::verify()
 
 }
 
-void Verifyer::buildDataSet()
+void Verifier::buildDataSet()
 {
     std::ifstream result_file;
     result_file.open(result_file_path);
@@ -172,4 +172,4 @@ void Verifyer::buildDataSet()
     result_file.close();
 }
 
-#endif //__OPENCV_BARCODE_VERIFYER_HPP__
+#endif //__OPENCV_BARCODE_VERIFIER_HPP__

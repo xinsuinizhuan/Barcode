@@ -34,7 +34,6 @@ int main(int argc, char **argv)
     }
     barcode::BarcodeDetector bardet;
     Mat frame;
-    Point2f vertices[4];
     clock_t start;
     std::vector<Point2f> points;
     std::vector<string> decoded_info;
@@ -87,7 +86,7 @@ int main(int argc, char **argv)
                             wrong_results.push_back(decoded_info[bar_idx]);
                         }
                     }
-                    cv::putText(frame, decoded_info[bar_idx], vertices[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
+                    cv::putText(frame, decoded_info[bar_idx], barcode_contour[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
                     if (decoded_info[bar_idx] == "ERROR")
                     {
                         for (int j = 0; j < 4; j++)
@@ -161,7 +160,7 @@ int main(int argc, char **argv)
                 vector<Point> barcode_contour(points.begin() + i, points.begin() + i + 4);
                 std::cout << decoded_info[bar_idx] << std::endl;
 
-                cv::putText(frame, decoded_info[bar_idx], vertices[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
+                cv::putText(frame, decoded_info[bar_idx], barcode_contour[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
                 if (decoded_info[bar_idx] == "ERROR")
                 {
                     for (int j = 0; j < 4; j++)

@@ -1,5 +1,5 @@
 #include "test_precomp.hpp"
-#include "verifyer.hpp"
+#include "verifier.hpp"
 
 TEST(integration_testing, detect_and_decode)
 {
@@ -18,7 +18,7 @@ TEST(integration_testing, detect_and_decode)
     std::vector<std::string> img_types = {"jpg", "png"};
     std::string data_path{pre_path + "test/data/integration_test_data/"};
     std::string result_file{pre_path + "test/data/integration_test_data/result.csv"};
-    Verifyer verifyer{data_path, result_file, img_types};
+    Verifier verifyer{data_path, result_file, img_types};
     verifyer.verify();
     float correctness = verifyer.getCorrectness();
     if (correctness >= last_correctness - 0.00001)
