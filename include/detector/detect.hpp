@@ -93,6 +93,5 @@ protected:
 };
 }
 
-
 #endif //__OPENCV_BARCODE_DETECT_HPP__
 

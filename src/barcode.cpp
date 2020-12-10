@@ -120,7 +120,7 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, CV_OUT std::vect
         }
     }
     CV_Assert(!src_points.empty());
-    ean_decoder decoder{EAN::TYPE13};
+    ean13_decoder decoder;
     vector<std::string> _decoded_info = decoder.rectToResults(inarr, src_points);
     decoded_info.clear();
     decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
@@ -156,7 +156,7 @@ bool BarcodeDetector::decodeDirectly(InputArray img, CV_OUT string &decoded_info
     {
         return false;
     }
-    ean_decoder ean13{EAN::TYPE13};
+    ean13_decoder ean13;
     decoded_info = ean13.decodeDirectly(inarr);
     if (!decoded_info.empty())
     {

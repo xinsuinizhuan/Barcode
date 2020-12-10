@@ -13,26 +13,32 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-//
-// Created by nanos on 2020/10/1.
-//
-#ifndef __OPENCV_BARCODE_PATTERNMATCH_HPP__
-#define __OPENCV_BARCODE_PATTERNMATCH_HPP__
 
-#include <vector>
-#include <numeric>
-#include <utility>
+#ifndef __OPENCV_BARCODE_EAN13_DECODER_HPP__
+#define __OPENCV_BARCODE_EAN13_DECODER_HPP__
+
+#include "decoder/upcean_decoder.hpp"
 #include "opencv2/core/mat.hpp"
-#include "barcode_data.hpp"
 
 namespace cv {
+//extern struct EncodePair;
+using std::string;
+using std::vector;
 
-int patternMatch(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividual);
+class ean13_decoder : public upcean_decoder
+{
+public:
+    ean13_decoder();
 
-inline int
-patternMatchConsieDistance(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividualVariance);
+    ~ean13_decoder() override = default;
 
-inline int patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance);
-}
+    //输入初始位置固定的2值化后的数据, 输出解码字符串
 
-#endif //! __OPENCV_BARCODE_PATTERNMATCH_HPP__
+private:
+    string decode(vector<uchar> data, int start) const override;
+
+    bool isValid(string result) const override;
+
+};
+} // namespace cv
+#endif // !__OPENCV_BARCODE_EAN13_DECODER_HPP__

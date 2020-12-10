@@ -18,7 +18,7 @@ limitations under the License.
 #define __OPENCV_BARCODE_HPP__
 
 #include "detector/detect.hpp"
-#include "decoder/ean_decoder.hpp"
+#include "decoder/ean13_decoder.hpp"
 #include "decoder/binaryzation.hpp"
 
 namespace cv {
