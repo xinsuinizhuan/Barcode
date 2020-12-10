@@ -19,7 +19,7 @@ public:
     float total_case_num;
     float correct_case_num;
 private:
-    cv::BarcodeDetector barcodeDetector;
+    cv::barcode::BarcodeDetector barcodeDetector;
     stringvec postfixes;
 
 public:
@@ -105,9 +105,9 @@ void Verifyer::verify()
     {
         total_case_num++;
         cv::Mat img = cv::imread(data_dir+img_name);
-        std::vector<cv::RotatedRect> rects;
+        std::vector<std::vector<cv::Point2f>> points;
         stringvec infos;
-        barcodeDetector.detectAndDecode(img, infos, rects);
+        barcodeDetector.detectAndDecode(img, infos, points);
         if(infos.size() == 1)// 暂时先这么干
         {
             std::string result = infos[0];

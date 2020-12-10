@@ -10,6 +10,7 @@ std::string public_graphs[] = {
 TEST(basic_test, build_objects)
 {
     using namespace cv;
+    using namespace barcode;
     BarcodeDetector bardet;
 }
 
@@ -24,6 +25,7 @@ TEST(basic_test, get_path)
 TEST(basic_test, will_delete)
 {
     using namespace cv;
+    using namespace barcode;
     std::string path = pre_path + R"(test/data/)";
     cv::Mat frame = cv::imread(path + "real2.jpg");
     {
@@ -57,7 +59,7 @@ TEST(basic_test, Detects)
         for (int i = 0; i < rects.cols; i += 4)
         {
             std::vector<cv::Point2f> points = rects.colRange(i, i + 4);
-            
+
             for (int j = 0; j < 4; j++)
             {
                 cv::line(frame, points[j % 4], points[(j + 1) % 4], cv::Scalar(0, 255, 0));
@@ -86,7 +88,7 @@ TEST(basic_test, Detects)
 
 TEST(basic_test, Ean13Decodes)
 {
-    cv::BarcodeDetector barcodeDetector;
+    cv::barcode::BarcodeDetector barcodeDetector;
     cv::Point2f points[4];
     auto count = 0;
     std::string path = pre_path + R"(test/ean13/)";
@@ -147,7 +149,7 @@ TEST(basic_test, Ean13Decodes)
 
 TEST(basic_test, decodeDirectly)
 {
-    cv::BarcodeDetector barcodeDetector;
+    cv::barcode::BarcodeDetector barcodeDetector;
     auto count = 0;
     std::string path = pre_path + R"(test/ean13/)";
     for (const auto &i : ean13_graphs)
@@ -158,7 +160,7 @@ TEST(basic_test, decodeDirectly)
         std::string result;
         try
         {
-            barcodeDetector.detectDirectly(frame, result);
+            barcodeDetector.decodeDirectly(frame, result);
         } catch (cv::Exception &ex)
         {
             std::cerr << std::string(2, ' ') << ex.what() << "No detect results\n";

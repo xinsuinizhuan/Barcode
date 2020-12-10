@@ -46,7 +46,7 @@ public:
 
     string decodeOuter(vector<uchar> data);
 
-    vector<string> rectToResults(Mat &mat, const std::vector<RotatedRect> &rects) const;
+    vector<string> rectToResults(Mat &mat, const vector<vector<Point2f>> &rects) const;
 
 private:
     string name; //EAN具体解码类别：EAN-13 / EAN-8

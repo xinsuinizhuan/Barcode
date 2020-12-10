@@ -22,26 +22,23 @@ limitations under the License.
 
 namespace cv {
 //TODO 读取
-void cutImage(InputArray _src, OutputArray &_dst, RotatedRect rect)
+void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &rects)
 {
 
-    Point2f vertices[4];
-    rect.points(vertices);
-    int height = rect.size.height;
-    int width = rect.size.width;
+    auto vertices = rects;
+//    Point2f vertices[4];
+//    rect.points(vertices);
+    int height = cv::norm(vertices[0] - vertices[1]);
+    int width = cv::norm(vertices[1] - vertices[2]);
 
     if (height > width)
     {
-        height = rect.size.width;
-        width = rect.size.height;
+        std::swap(height, width);
         Point2f v0 = vertices[0];
-        for (int i = 0; i <= 2; i++)
-        {
-            vertices[i] = vertices[i + 1];
-        }
-        vertices[3] = v0;
+        vertices.erase(vertices.begin());
+        vertices.push_back(v0);
     }
-    Point2f dst_vertices[] = {
+    std::vector<Point2f> dst_vertices{
             Point2f(0, height - 1), Point2f(0, 0), Point2f(width - 1, 0), Point2f(width - 1, height - 1)};
     _dst.create(Size(width, height), CV_8UC1);
     Mat M = getPerspectiveTransform(vertices, dst_vertices);

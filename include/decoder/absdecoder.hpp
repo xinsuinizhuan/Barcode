@@ -47,7 +47,7 @@ private:
 
 void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters);
 
-void cutImage(InputArray _src, OutputArray &_dst, RotatedRect rect);
+void cutImage(InputArray _src, OutputArray &_dst,const std::vector<Point2f>& rect);
 
 class GuardPatternsNotFindException:Exception
 {

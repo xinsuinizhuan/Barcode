@@ -24,7 +24,7 @@ limitations under the License.
 namespace cv {
 // default thought that mat is a matrix after binary-transfer.
 /*Input a mat and it's position rect, return the decode result */
-vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &rects) const
+vector<string> ean_decoder::rectToResults(Mat &mat, const vector<vector<Point2f>> &rects) const
 {
     CV_Assert(mat.channels() == 1);
     vector<string> will_return;
@@ -52,7 +52,7 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
         GaussianBlur(bar_img, blur, Size(0, 0), 25);
         addWeighted(bar_img, 2, blur, -1, 0, bar_img);
 
-        bar_img.convertTo(bar_img,CV_8UC1,1,-20);
+        bar_img.convertTo(bar_img, CV_8UC1, 1, -20);
         imshow("preprocess", bar_img);
         threshold(bar_img, bar_img, 155, 255, THRESH_OTSU + THRESH_BINARY);
         //adaptiveThreshold(bar_img, bar_img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, blocksize, 1);
@@ -61,7 +61,9 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
         int vote_cnt = 0;
         float total_vote = 0;
         std::string max_result = "ERROR";
-        if (max(rect.size.height, rect.size.width) < EAN13LENGTH)
+        int rect_size_height = cv::norm(rect[0] - rect[1]);
+        int rect_size_width = cv::norm(rect[1] - rect[2]);
+        if (max(rect_size_height, rect_size_width) < EAN13LENGTH)
         {
             will_return.push_back(max_result);
             continue;
@@ -92,10 +94,10 @@ vector<string> ean_decoder::rectToResults(Mat &mat, const vector<RotatedRect> &r
 #ifdef CV_DEBUG
             try
             {
-                std::pair<int,int> start_p = findStartGuardPatterns(middle);
-                cv::circle(bar_copy,cv::Point2f(start_p.second,begin.y),4, Scalar(0, 0, 0), 2);
-            }
-            catch (GuardPatternsNotFindException & e){}
+                std::pair<int, int> start_p = findStartGuardPatterns(middle);
+                cv::circle(bar_copy, cv::Point2f(start_p.second, begin.y), 4, Scalar(0, 0, 0), 2);
+            } catch (GuardPatternsNotFindException &e)
+            {}
             cv::line(bar_copy, begin, end, cv::Scalar(0, 255, 0));
             //cv::line(mat,begin,end,Scalar(0,0,255),2);
             cv::circle(bar_copy, begin, 6, Scalar(0, 0, 0), 2);
@@ -364,14 +366,13 @@ string ean_decoder::decode(vector<uchar> data, int start) const
             decode_result[i + 7] = static_cast<char>('0' + bestMatch);
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
         }
-        findGuardPatterns(data,start,false,BEGIN_PATTERN(),vector<int>(BEGIN_PATTERN().size()));
+        findGuardPatterns(data, start, false, BEGIN_PATTERN(), vector<int>(BEGIN_PATTERN().size()));
         result = string(decode_result);
         if (!isValid(result))
         {
             return "Wrong: " + result.append(string(13 - result.size(), ' '));
         }
-    }
-    catch (GuardPatternsNotFindException& e)
+    } catch (GuardPatternsNotFindException &e)
     {
         return "ERROR";
     }
@@ -396,24 +397,26 @@ string ean_decoder::decodeDirectly(InputArray img) const
     return result;
 }
 
-std::pair<int,int> ean_decoder:: findStartGuardPatterns(const vector<uchar> &row)
+std::pair<int, int> ean_decoder::findStartGuardPatterns(const vector<uchar> &row)
 {
     bool isfind = false;
-    std::pair<int, int> start_range{0,-1};
+    std::pair<int, int> start_range{0, -1};
     int next_start = 0;
     while (!isfind)
     {
         vector<int> gurad_counters{0, 0, 0};
-        start_range = findGuardPatterns(row,next_start,BLACK,BEGIN_PATTERN(),gurad_counters);
+        start_range = findGuardPatterns(row, next_start, BLACK, BEGIN_PATTERN(), gurad_counters);
         int start = start_range.first;
         next_start = start_range.second;
-        int quiet_start = max(start - (next_start - start),0);
+        int quiet_start = max(start - (next_start - start), 0);
         isfind = quiet_start != start;
 
-        for(int i = quiet_start;i < start;i ++)
+        for (int i = quiet_start; i < start; i++)
         {
-            if(row[i] == BLACK)
+            if (row[i] == BLACK)
+            {
                 isfind = false;
+            }
         }
     }
     return start_range;

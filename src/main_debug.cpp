@@ -69,7 +69,7 @@ int main(int argc, char **argv)
             start = clock();
             capture.read(frame);
             Mat frame_copy = frame.clone();
-            ok = bardet.detectAndDecode(frame, decoded_info, rects);
+            ok = bardet.detectAndDecode(frame, decoded_info, points);
             if (ok)
             {
                 for (auto &info:decoded_info)
@@ -89,17 +89,17 @@ int main(int argc, char **argv)
                             wrong_results.push_back(decoded_info[i]);
                         }
                     }
-                    rect.points(vertices);
+//                    rect.points(vertices);
                     cv::putText(frame, decoded_info[i], vertices[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
                     if (decoded_info[i] == "ERROR")
                     {
                         for (int j = 0; j < 4; j++)
-                            line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 0, 255), 2);
+                            line(frame, rect[j], rect[(j + 1) % 4], Scalar(0, 0, 255), 2);
                     }
                     else
                     {
                         for (int j = 0; j < 4; j++)
-                            line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0), 2);
+                            line(frame, rect[j], rect[(j + 1) % 4], Scalar(0, 255, 0), 2);
                     }
                     i++;
                 }
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
         frame = imread(argv[1]);
         start = clock();
 
-        ok = bardet.detectAndDecode(frame, decoded_info, rects);
+        ok = bardet.detectAndDecode(frame, decoded_info, points);
         if (ok)
         {
             for (auto &info:decoded_info)
@@ -162,19 +162,18 @@ int main(int argc, char **argv)
                 std::cout << info << std::endl;
             }
             int i = 0;
-            for (auto &rect : rects)
+            for (auto &rect : points)
             {
-                rect.points(vertices);
                 cv::putText(frame, decoded_info[i], vertices[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
                 if (decoded_info[i] == "ERROR")
                 {
                     for (int j = 0; j < 4; j++)
-                        line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 0, 255), 2);
+                        line(frame, rect[j], rect[(j + 1) % 4], Scalar(0, 0, 255), 2);
                 }
                 else
                 {
                     for (int j = 0; j < 4; j++)
-                        line(frame, vertices[j], vertices[(j + 1) % 4], Scalar(0, 255, 0), 2);
+                        line(frame, rect[j], rect[(j + 1) % 4], Scalar(0, 255, 0), 2);
                 }
                 i++;
             }
