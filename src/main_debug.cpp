@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     Mat frame;
     Point2f vertices[4];
     clock_t start;
-    std::vector<vector<Point2f>> points;
+    std::vector<Point2f> points;
     std::vector<string> decoded_info;
     string fps;
     bool ok;
@@ -72,37 +72,35 @@ int main(int argc, char **argv)
             ok = bardet.detectAndDecode(frame, decoded_info, points);
             if (ok)
             {
-                for (auto &info:decoded_info)
+                for (size_t i = 0; i < points.size(); i += 4)
                 {
-                    std::cout << info << std::endl;
-                }
-                int i = 0;
-                for (auto &rect : points)
-                {
-                    if (has_result && decoded_info[i].length() == 13 && right_result != decoded_info[i])
+                    size_t bar_idx = i / 4;
+                    vector<Point> barcode_contour(points.begin() + i, points.begin() + i + 4);
+                    std::cout << decoded_info[bar_idx] << std::endl;
+                    if (has_result && decoded_info[bar_idx].length() == 13 && right_result != decoded_info[bar_idx])
                     {
-                        if (img_map.find(decoded_info[i]) == img_map.end())
+                        if (img_map.find(decoded_info[bar_idx]) == img_map.end())
                         {
                             std::string dir = test_dir + "wrong_decode/";
-                            img_map[decoded_info[i]] = true;
-                            imwrite(dir + decoded_info[i] + postfix, frame);
-                            wrong_results.push_back(decoded_info[i]);
+                            img_map[decoded_info[bar_idx]] = true;
+                            imwrite(dir + decoded_info[bar_idx] + postfix, frame);
+                            wrong_results.push_back(decoded_info[bar_idx]);
                         }
                     }
-//                    rect.points(vertices);
-                    cv::putText(frame, decoded_info[i], vertices[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
-                    if (decoded_info[i] == "ERROR")
+                    cv::putText(frame, decoded_info[bar_idx], vertices[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
+                    if (decoded_info[bar_idx] == "ERROR")
                     {
                         for (int j = 0; j < 4; j++)
-                            line(frame, rect[j], rect[(j + 1) % 4], Scalar(0, 0, 255), 2);
+                            line(frame, barcode_contour[j], barcode_contour[(j + 1) % 4], Scalar(0, 0, 255), 2);
                     }
                     else
                     {
                         for (int j = 0; j < 4; j++)
-                            line(frame, rect[j], rect[(j + 1) % 4], Scalar(0, 255, 0), 2);
+                            line(frame, barcode_contour[j], barcode_contour[(j + 1) % 4], Scalar(0, 255, 0), 2);
                     }
-                    i++;
                 }
+
+
             }
 
             fps = "FPS: " + std::to_string(CLOCKS_PER_SEC / (clock() - start));
@@ -113,7 +111,7 @@ int main(int argc, char **argv)
             if (has_result)
             {
                 infos.push_back("right result: " + right_result);
-                for (auto info:wrong_results)
+                for (const auto &info:wrong_results)
                 {
                     infos.push_back("wrong result: " + info);
                 }
@@ -157,29 +155,27 @@ int main(int argc, char **argv)
         ok = bardet.detectAndDecode(frame, decoded_info, points);
         if (ok)
         {
-            for (auto &info:decoded_info)
+            for (size_t i = 0; i < points.size(); i += 4)
             {
-                std::cout << info << std::endl;
-            }
-            int i = 0;
-            for (auto &rect : points)
-            {
-                cv::putText(frame, decoded_info[i], vertices[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
-                if (decoded_info[i] == "ERROR")
+                size_t bar_idx = i / 4;
+                vector<Point> barcode_contour(points.begin() + i, points.begin() + i + 4);
+                std::cout << decoded_info[bar_idx] << std::endl;
+
+                cv::putText(frame, decoded_info[bar_idx], vertices[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
+                if (decoded_info[bar_idx] == "ERROR")
                 {
                     for (int j = 0; j < 4; j++)
-                        line(frame, rect[j], rect[(j + 1) % 4], Scalar(0, 0, 255), 2);
+                        line(frame, barcode_contour[j], barcode_contour[(j + 1) % 4], Scalar(0, 0, 255), 2);
                 }
                 else
                 {
                     for (int j = 0; j < 4; j++)
-                        line(frame, rect[j], rect[(j + 1) % 4], Scalar(0, 255, 0), 2);
+                        line(frame, barcode_contour[j], barcode_contour[(j + 1) % 4], Scalar(0, 255, 0), 2);
                 }
-                i++;
             }
+
+
         }
-
-
         fps = std::to_string(clock() - start) + " ms";
         cv::putText(frame, fps, Point2f(5, 10), cv::FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 255), 1);
         std::cout << fps << std::endl;

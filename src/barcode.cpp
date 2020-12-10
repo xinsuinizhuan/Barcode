@@ -106,7 +106,6 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, CV_OUT std::vect
     {
         return false;
     }
-    //    CV_Assert(!rects.empty());
     CV_Assert(points.size().width > 0);
     CV_Assert((points.size().width % 4) == 0);
     vector<vector<Point2f> > src_points;

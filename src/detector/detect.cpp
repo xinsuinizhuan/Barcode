@@ -224,9 +224,6 @@ bool Detect::computeTransformationPoints()
     bbox_indices.clear();
     transformation_points.clear();
 
-    if (localization_bbox.empty())
-    { return false; }
-
     RotatedRect rect;
     Point2f temp[4];
     const float THRESHOLD_SCORE = float(width * height) / 1000;
@@ -258,7 +255,7 @@ bool Detect::computeTransformationPoints()
         transformation_points.push_back(points);
     }
 
-    return true;
+    return !transformation_points.empty();
 }
 
 
