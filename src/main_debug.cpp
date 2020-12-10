@@ -32,12 +32,11 @@ int main(int argc, char **argv)
                "./main_debug <input_file>\n");
         exit(-1);
     }
-    BarcodeDetector bardet;
-    ean_decoder ean13_decoder{EAN::TYPE13};
+    barcode::BarcodeDetector bardet;
     Mat frame;
     Point2f vertices[4];
     clock_t start;
-    std::vector<RotatedRect> rects;
+    std::vector<vector<Point2f>> points;
     std::vector<string> decoded_info;
     string fps;
     bool ok;
@@ -78,7 +77,7 @@ int main(int argc, char **argv)
                     std::cout << info << std::endl;
                 }
                 int i = 0;
-                for (auto &rect : rects)
+                for (auto &rect : points)
                 {
                     if (has_result && decoded_info[i].length() == 13 && right_result != decoded_info[i])
                     {

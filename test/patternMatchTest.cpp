@@ -57,7 +57,7 @@ TEST(patternMatch, compare)
 
 TEST(patternMatch, Pictrue)
 {
-    cv::BarcodeDetector bardet;
+    cv::barcode::BarcodeDetector bardet;
     std::string graphs[] = {"ZXing2.png"};
     cv::Point2f points[4];
     //

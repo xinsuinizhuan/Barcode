@@ -182,8 +182,8 @@ void Detect::localization()
     {
         window_size = cvRound(min(width, height) * window_ratio);
 #ifdef CV_DEBUG
-//        printf("window ratio: %f\n", window_ratio);
-//        debug_img = resized_barcode.clone();
+        //        printf("window ratio: %f\n", window_ratio);
+        //        debug_img = resized_barcode.clone();
 #endif
         calConsistency(window_size);
         #ifdef CV_DEBUG
@@ -191,47 +191,47 @@ void Detect::localization()
         #endif
         barcodeErode();
 #ifdef CV_DEBUG
-//        debug_img = resized_barcode.clone();
-//        for (int y = 0; y < consistency.rows; y++)
-//        {
-//            //pixels_position.clear();
-//            auto *consistency_row = consistency.ptr<uint8_t>(y);
-//
-//            int x = 0;
-//            for (; x < consistency.cols; x++)
-//            {
-//                if (consistency_row[x] == 0)
-//                { continue; }
-//                rectangle(debug_img, Point2d(x * window_size, y * window_size),
-//                          Point2d(min((x + 1) * window_size, width), min((y + 1) * window_size, height)), 255);
-//
-//            }
-//        }
-//        imshow("erode block " + std::to_string(window_ratio), debug_img);
+        //        debug_img = resized_barcode.clone();
+        //        for (int y = 0; y < consistency.rows; y++)
+        //        {
+        //            //pixels_position.clear();
+        //            auto *consistency_row = consistency.ptr<uint8_t>(y);
+        //
+        //            int x = 0;
+        //            for (; x < consistency.cols; x++)
+        //            {
+        //                if (consistency_row[x] == 0)
+        //                { continue; }
+        //                rectangle(debug_img, Point2d(x * window_size, y * window_size),
+        //                          Point2d(min((x + 1) * window_size, width), min((y + 1) * window_size, height)), 255);
+        //
+        //            }
+        //        }
+        //        imshow("erode block " + std::to_string(window_ratio), debug_img);
 #endif
         regionGrowing(window_size);
 
         window_ratio += 0.02;
     }
     #ifdef CV_DEBUG
-//    imshow("grow image", debug_proposals);
+    //    imshow("grow image", debug_proposals);
     #endif
 
 }
 
-
-vector<RotatedRect> Detect::getLocalizationRects()
+bool Detect::computeTransformationPoints()
 {
-
-//        std::sort(localization_rects.begin(), localization_rects.end(), compare);
-//        for (auto it = localization_rects.begin(); it < localization_rects.end(); it++) {
-//            std::cout << (*it).size.area() << std::endl;
-//        }
-    localization_rects.clear();
     bbox_indices.clear();
+    transformation_points.clear();
+
+    if (localization_bbox.empty())
+    { return false; }
+
     RotatedRect rect;
+    Point2f temp[4];
     const float THRESHOLD_SCORE = float(width * height) / 1000;
     dnn::NMSBoxes(localization_bbox, bbox_scores, THRESHOLD_SCORE, 0.1, bbox_indices);
+
     for (auto it = bbox_indices.begin(); it < bbox_indices.end(); it++)
     {
         rect = localization_bbox[*it];
@@ -249,16 +249,21 @@ vector<RotatedRect> Detect::getLocalizationRects()
             rect.size.height *= coeff_expansion;
             rect.size.width *= coeff_expansion;
         }
-        localization_rects.push_back(rect);
+        rect.points(temp);
+        vector<Point2f> points;
+        points.push_back(temp[0]);
+        points.push_back(temp[1]);
+        points.push_back(temp[2]);
+        points.push_back(temp[3]);
+        transformation_points.push_back(points);
     }
 
-    return localization_rects;
+    return true;
 }
 
 
 void Detect::preprocess()
 {
-    gradient_direction = Mat::zeros(resized_barcode.size(), CV_32F);
     Mat scharr_x(resized_barcode.size(), CV_32F), scharr_y(resized_barcode.size(), CV_32F), temp;
     Scharr(resized_barcode, scharr_x, CV_32F, 1, 0);
     Scharr(resized_barcode, scharr_y, CV_32F, 0, 1);
@@ -306,9 +311,6 @@ void Detect::preprocess()
 
 void Detect::calConsistency(int window_size)
 {
-    /* calculate variance of gradient directions around each pixel
-    in the img_details.gradient_directions matrix
-    */
     int right_col, left_col, top_row, bottom_row;
     float xy, x_sq, y_sq, d, rect_area;
     const float THRESHOLD_AREA = float(window_size * window_size) * 0.5f, THRESHOLD_CONSISTENCY = 0.85f;
@@ -361,7 +363,7 @@ void Detect::calConsistency(int window_size)
                 orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
                 edge_nums_row[pos] = rect_area;
                 #ifdef CV_DEBUG
-//                rectangle(debug_img, Point2d(left_col, top_row), Point2d(right_col, bottom_row), 255);
+                //                rectangle(debug_img, Point2d(left_col, top_row), Point2d(right_col, bottom_row), 255);
                 #endif
             }
             else
@@ -501,10 +503,10 @@ void Detect::regionGrowing(int window_size)
             bbox_scores.push_back(edge_num);
             bbox_orientations.push_back(local_orientation);
             #ifdef CV_DEBUG
-//            Point2f vertices[4];
-//            minRect.points(vertices);
-//            for (int i = 0; i < 4; i++)
-//                line(debug_proposals, vertices[i], vertices[(i + 1) % 4], 127, 2);
+            //            Point2f vertices[4];
+            //            minRect.points(vertices);
+            //            for (int i = 0; i < 4; i++)
+            //                line(debug_proposals, vertices[i], vertices[(i + 1) % 4], 127, 2);
             #endif
 
         }

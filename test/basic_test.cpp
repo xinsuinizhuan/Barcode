@@ -44,32 +44,43 @@ TEST(basic_test, Detects)
         cv::Mat frame = cv::imread(path + name_current_image);
         ASSERT_FALSE(frame.empty()) << "Can't read image: " << name_current_image;
 
-        cv::BarcodeDetector barcodeDetector;
-        cv::Point2f points[4];
-        std::vector<cv::RotatedRect> rects;
+        cv::barcode::BarcodeDetector barcodeDetector;
+        cv::Mat rects;
         try
         {
             barcodeDetector.detect(frame, rects);
+            rects = rects.reshape(2, 1);
         } catch (cv::Exception &ex)
         {
             std::cerr << ex.what() << "No detect pictures\n";
         }
-        for (const auto &rect : rects)
+        for (int i = 0; i < rects.cols; i += 4)
         {
-            rect.points(points);
+            std::vector<cv::Point2f> points = rects.colRange(i, i + 4);
+            
             for (int j = 0; j < 4; j++)
             {
-#ifdef CV_DEBUG
                 cv::line(frame, points[j % 4], points[(j + 1) % 4], cv::Scalar(0, 255, 0));
-#endif
             }
         }
-        std::cout << name_current_image << " " << rects.size() << std::endl;
-        EXPECT_GT(rects.size(), 0);
-#ifdef CV_DEBUG
         cv::imshow(name_current_image, frame);
         cv::waitKey(0);
-#endif
+//        for (const auto &rect : rects)
+//        {
+//            rect.points(points);
+//            for (int j = 0; j < 4; j++)
+//            {
+//#ifdef CV_DEBUG
+//                cv::line(frame, points[j % 4], points[(j + 1) % 4], cv::Scalar(0, 255, 0));
+//#endif
+//            }
+//        }
+//        std::cout << name_current_image << " " << rects.size() << std::endl;
+//        EXPECT_GT(rects.size(), 0);
+//#ifdef CV_DEBUG
+//        cv::imshow(name_current_image, frame);
+//        cv::waitKey(0);
+//#endif
     }
 }
 
