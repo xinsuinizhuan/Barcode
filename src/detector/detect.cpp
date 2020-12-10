@@ -108,30 +108,6 @@ void Detect::init(const Mat &src)
 {
     barcode = src.clone();
     const double min_side = std::min(src.size().width, src.size().height);
-//        const double max_side = std::max(src.size().width, src.size().height);
-
-//        if (barcode.rows > 512) {
-//            width = (int) (barcode.cols * (512 * 1.0 / barcode.rows));
-//            height = 512;
-//
-//            resize(barcode, resized_barcode, Size(width, height), 0, 0, INTER_AREA);
-//            coeff_expansion = barcode.rows / (1.0 * resized_barcode.rows);
-//
-//        } else {
-//            width = barcode.cols;
-//            height = barcode.rows;
-//            resized_barcode = barcode.clone();
-//            coeff_expansion = 1.0;
-//        }
-//        if (max_side < 320.0) {
-//            purpose = ZOOMING;
-//            purpose = ZOOMING;
-//            coeff_expansion = 320.0 / max_side;
-//            width = cvRound(src.size().width * coeff_expansion);
-//            height = cvRound(src.size().height * coeff_expansion);
-//            Size new_size(width, height);
-//            resize(src, resized_barcode, new_size, 0, 0, INTER_LINEAR);
-//        } else
     if (min_side > 1024.0)
     {
         purpose = SHRINKING;
@@ -266,16 +242,16 @@ void Detect::preprocess()
     Scharr(resized_barcode, scharr_y, CV_32F, 0, 1);
     // calculate magnitude of gradient, normalize and threshold
     magnitude(scharr_x, scharr_y, gradient_magnitude);
-    threshold(gradient_magnitude, gradient_magnitude, 32, 1, THRESH_BINARY);
+    threshold(gradient_magnitude, gradient_magnitude, 48, 1, THRESH_BINARY);
+    #ifdef CV_DEBUG
+    imshow("mag", gradient_magnitude);
+    #endif
     gradient_magnitude.convertTo(gradient_magnitude, CV_8U);
-//        imshow("mag", gradient_magnitude);
+
 //        normalize(gradient_magnitude, gradient_magnitude, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
 //        adaptiveThreshold(gradient_magnitude, gradient_magnitude, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 9, 0);
     integral(gradient_magnitude, integral_edges, CV_32F);
 
-    //threshold(gradient_magnitude, gradient_magnitude, 50, 1, THRESH_BINARY);
-//        threshold(gradient_magnitude, gradient_magnitude, 48, 1, THRESH_BINARY);
-//        gradient_magnitude.convertTo(gradient_magnitude, CV_8U);
     for (int y = 0; y < height; y++)
     {
         //pixels_position.clear();
@@ -476,6 +452,7 @@ void Detect::regionGrowing(int window_size)
             {
                 rect_orientation =
                         minRect.angle <= 0 ? (minRect.angle / 180 + 0.5) * PI : (minRect.angle / 180 - 0.5) * PI;
+                std::swap(minRect.size.width, minRect.size.height);
             }
             else
             {
@@ -486,6 +463,7 @@ void Detect::regionGrowing(int window_size)
             {
                 continue;
             }
+            minRect.angle = static_cast<float>(local_orientation) / PI * 180;
             minRect.size.width *= float(window_size + 1);
             minRect.size.height *= float(window_size + 1);
             minRect.center.x = (minRect.center.x + 0.5) * window_size;
