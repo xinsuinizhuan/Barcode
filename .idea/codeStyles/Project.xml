@@ -6,6 +6,13 @@
       <option name="FUNCTION_BRACE_PLACEMENT" value="2" />
       <option name="HEADER_GUARD_STYLE_PATTERN" value=" __OPENCV_BARCODE_${FILE_NAME}_HPP__" />
     </Objective-C>
+    <Objective-C-extensions>
+      <extensions>
+        <pair source="cpp" header="hpp" fileNamingConvention="LOWERCASE" />
+        <pair source="c" header="h" fileNamingConvention="NONE" />
+        <pair source="cu" header="cuh" fileNamingConvention="NONE" />
+      </extensions>
+    </Objective-C-extensions>
     <codeStyleSettings language="ObjectiveC">
       <option name="KEEP_LINE_BREAKS" value="false" />
       <option name="BRACE_STYLE" value="2" />

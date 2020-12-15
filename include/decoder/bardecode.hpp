@@ -22,42 +22,26 @@ limitations under the License.
 #include <opencv2/opencv.hpp>
 
 namespace cv {
-using std::string;
+
 using std::vector;
-enum class BarcodeFormat
-{
-    EAN_8, EAN_13, UPC_A, UPC_E, UPC_EAN_EXTENSION
-};
-struct BarcodeResult
-{
-    std::string result;
-    BarcodeFormat format;
-};
+using std::string;
 
-class BarDecoder
+class BarDecode
 {
 public:
-    virtual std::vector<std::string>
-    rectToResults(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const = 0;
+    void init(const Mat &src, const vector<Point2f> &points);
 
-    virtual std::string rectToResult(const Mat &gray, const std::vector<Point2f> &points) const = 0;
+    const vector<std::string> &getDecodeInformation()
+    { return result_info; }
 
-    //Detect encode type
-    virtual string decodeDirectly(InputArray img) const = 0;
+    bool decodingProcess();
 
-    virtual ~BarDecoder() = default;
+    bool decodeMultiplyProcess();
+
+private:
+    vector<vector<Point2f>> src_points;
+    Mat original;
+    vector<std::string> result_info;
 };
-
-class GuardPatternsNotFindException : Exception
-{
-public:
-    explicit GuardPatternsNotFindException(const std::string &msg) : Exception(0, msg, "", __FILE__, __LINE__)
-    {}
-};
-
-void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &rect);
-
-} // namespace cv
-
+}
 #endif //! __OPENCV_BARCODE_BARDECODE_HPP__
-

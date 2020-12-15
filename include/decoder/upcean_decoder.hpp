@@ -16,17 +16,13 @@ limitations under the License.
 #ifndef __OPENCV_BARCODE_UPCEAN_DECODER_HPP__
 #define __OPENCV_BARCODE_UPCEAN_DECODER_HPP__
 
+#include "absbar_decoder.hpp"
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/opencv.hpp>
 #include <utility>
-#include <vector>
 #include <string>
-#include <iostream>
 #include "barcode_data.hpp"
 #include "patternmatch.hpp"
-#include "bardecode.hpp"
 
 /**
  *   upcean_decoder the abstract basic class for decode formats,
@@ -36,7 +32,7 @@ namespace cv {
 using std::string;
 using std::vector;
 
-class UPCEANDecoder : public BarDecoder
+class UPCEANDecoder : public AbsBarDecoder
 {
 
 public:
@@ -49,13 +45,12 @@ public:
 
     string decodeDirectly(InputArray img) const override;
 
-    virtual int decodeDigit(const std::vector<uchar> &row, std::vector<int> &counters, int rowOffset,
-                            std::vector<std::vector<int>> patterns) const;
-    //输入初始位置固定的2值化后的数据, 输出解码字符串
-
 protected:
     int bitsNum;
     int digitNumber;
+
+    int decodeDigit(const std::vector<uchar> &row, std::vector<int> &counters, int rowOffset,
+                    const std::vector<std::vector<int>> &patterns) const;
 
     static std::pair<int, int>
     findGuardPatterns(const std::vector<uchar> &row, int rowOffset, uchar whiteFirst, const std::vector<int> &pattern,

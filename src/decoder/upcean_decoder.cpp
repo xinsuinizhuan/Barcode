@@ -82,7 +82,7 @@ std::pair<int, int> UPCEANDecoder::findStartGuardPatterns(const std::vector<ucha
 }
 
 int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, std::vector<int> &counters, int rowOffset,
-                               std::vector<std::vector<int>> patterns) const
+                               const std::vector<std::vector<int>> &patterns) const
 {
     fillCounter(row, rowOffset, counters);
     int bestMatch = -1;

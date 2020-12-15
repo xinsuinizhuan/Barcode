@@ -13,28 +13,77 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+#include "decoder/ean13_decoder.hpp"
 #include "decoder/bardecode.hpp"
 
 namespace cv {
 
-//TODO 读取
-void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &rects)
+void BarDecode::init(const cv::Mat &src, const std::vector<cv::Point2f> &points)
 {
-    std::vector<Point2f> vertices = rects;
-    int height = cv::norm(vertices[0] - vertices[1]);
-    int width = cv::norm(vertices[1] - vertices[2]);
-    if (height > width)
+    //CV_TRACE_FUNCTION();
+    original = src.clone();
+    CV_Assert(!points.empty());
+    CV_Assert((points.size() % 4) == 0);
+    src_points.clear();
+    for (int i = 0; i < points.size(); i += 4)
     {
-        std::swap(height, width);
-        Point2f v0 = vertices[0];
-        vertices.erase(vertices.begin());
-        vertices.push_back(v0);
+        vector<Point2f> tempMat{points.cbegin() + i, points.cbegin() + i + 4};
+        if (contourArea(tempMat) > 0.0)
+        {
+            src_points.push_back(tempMat);
+        }
     }
-    std::vector<Point2f> dst_vertices{
-            Point2f(0, height - 1), Point2f(0, 0), Point2f(width - 1, 0), Point2f(width - 1, height - 1)};
-    _dst.create(Size(width, height), CV_8UC1);
-    Mat M = getPerspectiveTransform(vertices, dst_vertices);
-    Mat dst = _dst.getMat();
-    warpPerspective(_src.getMat(), dst, M, _dst.size(), cv::INTER_LINEAR, BORDER_CONSTANT, Scalar(255));
+    CV_Assert(!src_points.empty());
+}
+
+bool BarDecode::decodingProcess()
+{
+    std::unique_ptr<AbsBarDecoder> decoder{std::make_unique<Ean13Decoder>()};
+    result_info = decoder->rectToResults(original, src_points);
+    return !result_info.empty();
+}
+
+bool BarDecode::decodeMultiplyProcess()
+{
+    class ParallelBarCodeDecodeProcess : public ParallelLoopBody
+    {
+    public:
+        ParallelBarCodeDecodeProcess(Mat &inarr_, vector<vector<Point2f>> &src_points_,
+                                     vector<std::string> &decoded_info_) : inarr(inarr_), src_points(src_points_),
+                                                                           decoded_info(decoded_info_)
+        {
+            for (int i = 0; i < src_points.size(); ++i)
+            {
+                decoder.push_back(std::make_unique<Ean13Decoder>());
+            }
+        }
+
+        void operator()(const Range &range) const CV_OVERRIDE
+        {
+            CV_Assert(inarr.channels() == 1);
+            Mat gray = inarr.clone();
+            for (int i = range.start; i < range.end; i++)
+            {
+                Mat bar_img;
+                cutImage(gray, bar_img, src_points[i]);
+                if (bar_img.cols < 500)
+                {
+                    resize(bar_img, bar_img, Size(500, bar_img.rows));
+                }
+                decoded_info[i] = decoder[i]->rectToResult(bar_img, src_points[i]);
+            }
+        }
+
+    private:
+        Mat &inarr;
+        vector<std::string> &decoded_info;
+        vector<vector<Point2f> > &src_points;
+        vector<std::unique_ptr<AbsBarDecoder>> decoder;
+    };
+    result_info.clear();
+    result_info.resize(src_points.size());
+    ParallelBarCodeDecodeProcess parallelDecodeProcess{original, src_points, result_info};
+    parallel_for_(Range(0, int(src_points.size())), parallelDecodeProcess);
+    return !result_info.empty();
 }
 }

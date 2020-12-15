@@ -1,5 +1,5 @@
 /*
-Copyright 2020 ${ALL COMMITTERS}
+Copyright 2020 $\{ALL COMMITTERS\}
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,29 +13,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+//
+// Created by nanos on 2020/12/15.
+//
 
-#ifndef __OPENCV_BARCODE_EAN13_DECODER_HPP__
-#define __OPENCV_BARCODE_EAN13_DECODER_HPP__
+#ifndef __OPENCV_BARCODE_DETECTMULTI_HPP__
+#define __OPENCV_BARCODE_DETECTMULTI_HPP__
 
-#include "decoder/upcean_decoder.hpp"
+#include "detect.hpp"
 
 namespace cv {
-//extern struct EncodePair;
-using std::string;
+
 using std::vector;
+using std::pair;
 
-class Ean13Decoder : public UPCEANDecoder
+class DetectMulti : public Detect
 {
+
 public:
-    Ean13Decoder();
-
-    ~Ean13Decoder() override = default;
-
 private:
-    string decode(vector<uchar> data, int start) const override;
-
-    bool isValid(string result) const override;
 };
+}
 
-} // namespace cv
-#endif // !__OPENCV_BARCODE_EAN13_DECODER_HPP__
+#endif //__OPENCV_BARCODE_DETECTMULTI_HPP__

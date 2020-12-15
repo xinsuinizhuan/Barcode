@@ -3,6 +3,8 @@
 //
 #include "detector/detect.hpp"
 
+#include <utility>
+
 
 namespace cv {
 
@@ -495,7 +497,6 @@ void Detect::regionGrowing(int window_size)
 
 void Detect::barcodeErode()
 {
-
     Mat m0, m1, m2, m3;
     dilate(consistency, m0, structuringElement[0]);
     dilate(consistency, m1, structuringElement[1]);

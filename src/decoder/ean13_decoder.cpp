@@ -19,6 +19,8 @@ limitations under the License.
 
 namespace cv {
 
+static constexpr int constexpr_bitsNum = 95;
+static constexpr int constexpr_digitNumber = 13;
 // default thought that mat is a matrix after binary-transfer.
 /**
 * decode EAN-13
@@ -27,11 +29,11 @@ namespace cv {
 * it scan begin at the data[start]
 */
 // TODO!, need fix the param: stars's usage
-string ean13_decoder::decode(vector<uchar> data, int start) const
+string Ean13Decoder::decode(vector<uchar> data, int start) const
 {
     string result;
-    char decode_result[14]{'\0'};
-    if (data.size() - start < this->bitsNum)
+    char decode_result[constexpr_digitNumber + 1]{'\0'};
+    if (data.size() - start < constexpr_bitsNum)
     {
         return "size wrong";
     }
@@ -72,7 +74,7 @@ string ean13_decoder::decode(vector<uchar> data, int start) const
         result = string(decode_result);
         if (!isValid(result))
         {
-            return "Wrong: " + result.append(string(this->digitNumber - result.size(), ' '));
+            return "Wrong: " + result.append(string(constexpr_digitNumber - result.size(), ' '));
         }
     } catch (GuardPatternsNotFindException &e)
     {
@@ -82,9 +84,9 @@ string ean13_decoder::decode(vector<uchar> data, int start) const
 }
 
 
-bool ean13_decoder::isValid(string result) const
+bool Ean13Decoder::isValid(string result) const
 {
-    if (result.size() != this->digitNumber)
+    if (result.size() != constexpr_digitNumber)
     {
         return false;
     }
@@ -98,12 +100,9 @@ bool ean13_decoder::isValid(string result) const
 }
 
 
-ean13_decoder::ean13_decoder()
+Ean13Decoder::Ean13Decoder()
 {
-    static constexpr int bitsNum = 95;
-    static constexpr int digitNumber = 13;
-    this->bitsNum = bitsNum;
-    this->digitNumber = digitNumber;
+    this->bitsNum = constexpr_bitsNum;
+    this->digitNumber = constexpr_digitNumber;
 }
-
 }
