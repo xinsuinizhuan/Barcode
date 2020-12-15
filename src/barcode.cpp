@@ -22,6 +22,7 @@ limitations under the License.
 
 namespace cv {
 namespace barcode {
+
 static bool checkBarInputImage(InputArray img, Mat &gray)
 {
     CV_Assert(!img.empty());
@@ -120,8 +121,8 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, CV_OUT std::vect
         }
     }
     CV_Assert(!src_points.empty());
-    ean13_decoder decoder;
-    vector<std::string> _decoded_info = decoder.rectToResults(inarr, src_points);
+    std::unique_ptr<BarDecoder> decoder{std::make_unique<ean13_decoder>()};
+    vector<std::string> _decoded_info = decoder->rectToResults(inarr, src_points);
     decoded_info.clear();
     decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
     return !decoded_info.empty();
@@ -156,13 +157,129 @@ bool BarcodeDetector::decodeDirectly(InputArray img, CV_OUT string &decoded_info
     {
         return false;
     }
-    ean13_decoder ean13;
-    decoded_info = ean13.decodeDirectly(inarr);
+    std::unique_ptr<BarDecoder> decoder{std::make_unique<ean13_decoder>()};
+    decoded_info = decoder->decodeDirectly(inarr);
     if (!decoded_info.empty())
     {
         return false;
     }
     return true;
+}
+
+bool BarcodeDetector::detectMulti(const _InputArray &img, const _OutputArray &points) const
+{
+    Mat inarr;
+    if (!checkBarInputImage(img, inarr))
+    {
+        points.release();
+        return false;
+    }
+    Detect bardet;
+    bardet.init(inarr);
+    bardet.localization();
+    if (!bardet.computeTransformationPoints())
+    { return false; }
+    vector<vector<Point2f> > pnts2f = bardet.getTransformationPoints();
+    vector<Point2f> trans_points;
+    for (auto &i : pnts2f)
+    {
+        for (const auto &j : i)
+        {
+            trans_points.push_back(j);
+
+        }
+    }
+
+    updatePointsResult(points, trans_points);
+    return true;
+}
+
+class ParallelBarCodeDecodeProcess : public ParallelLoopBody
+{
+public:
+    ParallelBarCodeDecodeProcess(Mat &inarr_, vector<vector<Point2f>> &src_points_, vector<std::string> &decoded_info_)
+            : inarr(inarr_), src_points(src_points_), decoded_info(decoded_info_)
+    {
+        for (int i = 0; i < src_points.size(); i++)
+        {
+            decoders.push_back(std::make_unique<ean13_decoder>());
+        }
+        // nothing
+    }
+
+    void operator()(const Range &range) const CV_OVERRIDE
+    {
+        CV_Assert(inarr.channels() == 1);
+        Mat gray = inarr.clone();
+        for (int i = range.start; i < range.end; i++)
+        {
+            Mat bar_img;
+            cutImage(gray, bar_img, src_points[i]);
+            if (bar_img.cols < 500)
+            {
+                resize(bar_img, bar_img, Size(500, bar_img.rows));
+            }
+            decoded_info[i] = decoders[i]->rectToResult(bar_img, src_points[i]);
+        }
+    }
+
+private:
+    Mat &inarr;
+    vector<std::string> &decoded_info;
+    vector<vector<Point2f> > &src_points;
+    vector<std::unique_ptr<BarDecoder>> decoders;
+};
+
+bool BarcodeDetector::decodeMulti(InputArray img, InputArray points, vector<std::string> &decoded_info) const
+{
+    Mat inarr;
+    if (!checkBarInputImage(img, inarr))
+    {
+        return false;
+    }
+    CV_Assert(points.size().width > 0);
+    CV_Assert((points.size().width % 4) == 0);
+    vector<vector<Point2f>> src_points;
+    Mat bar_points = points.getMat();
+    bar_points = bar_points.reshape(2, 1);
+    for (int i = 0; i < bar_points.size().width; i += 4)
+    {
+        vector<Point2f> tempMat = bar_points.colRange(i, i + 4);
+        if (contourArea(tempMat) > 0.0)
+        {
+            src_points.push_back(tempMat);
+        }
+    }
+    const size_t src_points_size = src_points.size();
+    CV_Assert(!src_points.empty());
+    vector<std::string> info(src_points_size);
+    ParallelBarCodeDecodeProcess parallelDecodeProcess{inarr, src_points, info};
+    parallel_for_(Range(0, int(src_points_size)), parallelDecodeProcess);
+    decoded_info.clear();
+    decoded_info.assign(info.begin(), info.end());
+    return !decoded_info.empty();
+}
+
+bool BarcodeDetector::detectAndDecodeMulti(InputArray img, CV_OUT std::vector<std::string> &decoded_info,
+                                           OutputArray points_) const
+{
+    Mat inarr;
+    if (!checkBarInputImage(img, inarr))
+    {
+        points_.release();
+        return false;
+    }
+    vector<Point2f> points;
+    bool ok = this->detectMulti(img, points);
+    if (!ok)
+    {
+        points_.release();
+        return false;
+    }
+    updatePointsResult(points_, points);
+    decoded_info.clear();
+    ok = this->decodeMulti(inarr, points, decoded_info);
+    return ok;
 }
 }// namespace barcode
 } // namespace cv

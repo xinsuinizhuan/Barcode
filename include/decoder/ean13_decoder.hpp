@@ -18,27 +18,36 @@ limitations under the License.
 #define __OPENCV_BARCODE_EAN13_DECODER_HPP__
 
 #include "decoder/upcean_decoder.hpp"
-#include "opencv2/core/mat.hpp"
+#include "barcode_data.hpp"
+#include "patternmatch.hpp"
+#include <opencv2/imgproc.hpp>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/opencv.hpp>
+#include <utility>
+#include <vector>
+#include <string>
+#include <iostream>
+#include <iostream>
+#include <vector>
 
 namespace cv {
 //extern struct EncodePair;
 using std::string;
 using std::vector;
 
-class ean13_decoder : public upcean_decoder
+class ean13_decoder : public UPCEANDecoder
 {
 public:
     ean13_decoder();
 
     ~ean13_decoder() override = default;
 
-    //输入初始位置固定的2值化后的数据, 输出解码字符串
-
 private:
     string decode(vector<uchar> data, int start) const override;
 
     bool isValid(string result) const override;
-
 };
+
 } // namespace cv
 #endif // !__OPENCV_BARCODE_EAN13_DECODER_HPP__

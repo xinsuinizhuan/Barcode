@@ -22,7 +22,7 @@ limitations under the License.
 #include <vector>
 #include <numeric>
 #include <utility>
-#include "opencv2/core/mat.hpp"
+#include <opencv2/core/mat.hpp>
 #include "barcode_data.hpp"
 
 namespace cv {

@@ -1,0 +1,63 @@
+/*
+Copyright 2020 ${ALL COMMITTERS}
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#ifndef __OPENCV_BARCODE_BARDECODE_HPP__
+#define __OPENCV_BARCODE_BARDECODE_HPP__
+
+#include <iostream>
+#include <vector>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/opencv.hpp>
+
+namespace cv {
+using std::string;
+using std::vector;
+enum class BarcodeFormat
+{
+    EAN_8, EAN_13, UPC_A, UPC_E, UPC_EAN_EXTENSION
+};
+struct BarcodeResult
+{
+    std::string result;
+    BarcodeFormat format;
+};
+
+class BarDecoder
+{
+public:
+    virtual std::vector<std::string>
+    rectToResults(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const = 0;
+
+    virtual std::string rectToResult(const Mat &gray, const std::vector<Point2f> &points) const = 0;
+
+    //Detect encode type
+    virtual string decodeDirectly(InputArray img) const = 0;
+
+    virtual ~BarDecoder() = default;
+};
+
+class GuardPatternsNotFindException : Exception
+{
+public:
+    explicit GuardPatternsNotFindException(const std::string &msg) : Exception(0, msg, "", __FILE__, __LINE__)
+    {}
+};
+
+void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &rect);
+
+} // namespace cv
+
+#endif //! __OPENCV_BARCODE_BARDECODE_HPP__
+

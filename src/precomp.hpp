@@ -21,5 +21,6 @@ limitations under the License.
 
 #include <deque>
 #include <array>
+#include <memory>
 
 #endif

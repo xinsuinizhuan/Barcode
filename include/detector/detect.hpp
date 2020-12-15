@@ -20,7 +20,7 @@ limitations under the License.
 #define __OPENCV_BARCODE_DETECT_HPP__
 constexpr double PI = 3.1415926535897932;
 
-#include "opencv2/opencv.hpp"
+#include <opencv2/opencv.hpp>
 #include <utility>
 #include <vector>
 

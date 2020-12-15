@@ -18,12 +18,13 @@ limitations under the License.
 #include "decoder/upcean_decoder.hpp"
 #include <vector>
 #include <array>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/opencv.hpp>
 
-std::pair<int, int>
-cv::upcean_decoder::findGuardPatterns(const std::vector<uchar> &row, int rowOffset, uchar whiteFirst,
-                                      const std::vector<int> &pattern, std::vector<int> counters)
+
+namespace cv {
+static constexpr int DIVIDE_PART = 16;
+
+std::pair<int, int> UPCEANDecoder::findGuardPatterns(const std::vector<uchar> &row, int rowOffset, uchar whiteFirst,
+                                                     const std::vector<int> &pattern, std::vector<int> counters)
 {
     int patternLength = pattern.size();
     int width = row.size();
@@ -62,26 +63,7 @@ cv::upcean_decoder::findGuardPatterns(const std::vector<uchar> &row, int rowOffs
     throw GuardPatternsNotFindException("pattern not find");
 }
 
-int cv::upcean_decoder::decodeDigit(const std::vector<uchar> &row, std::vector<int> &counters, int rowOffset,
-                                    std::vector<std::vector<int>> patterns) const
-{
-    fillCounter(row, rowOffset, counters);
-    int bestMatch = -1;
-    int bestVariance = MAX_AVG_VARIANCE; // worst variance we'll accept
-    for (int i = 0; i < patterns.size(); i++)
-    {
-        int variance = patternMatch(counters, patterns[i], MAX_INDIVIDUAL_VARIANCE);
-        if (variance < bestVariance)
-        {
-            bestVariance = variance;
-            bestMatch = i;
-        }
-    }
-    return std::max(-1, bestMatch);
-    // -1 is dismatch or means error.
-}
-
-std::pair<int, int> cv::upcean_decoder::findStartGuardPatterns(const std::vector<uchar> &row)
+std::pair<int, int> UPCEANDecoder::findStartGuardPatterns(const std::vector<uchar> &row)
 {
     bool isfind = false;
     std::pair<int, int> start_range{0, -1};
@@ -93,27 +75,41 @@ std::pair<int, int> cv::upcean_decoder::findStartGuardPatterns(const std::vector
         int start = start_range.first;
         next_start = start_range.second;
         int quiet_start = max(start - (next_start - start), 0);
-        isfind = (quiet_start != start);
-        for (int i = quiet_start; i < start; i++)
-        {
-            if (row[i] == BLACK)
-            {
-                isfind = false;
-            }
-        }
+        isfind = (quiet_start != start) &&
+                 (std::find(std::begin(row) + quiet_start, std::begin(row) + start, BLACK) == std::begin(row) + start);
     }
     return start_range;
+}
+
+int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, std::vector<int> &counters, int rowOffset,
+                               std::vector<std::vector<int>> patterns) const
+{
+    fillCounter(row, rowOffset, counters);
+    int bestMatch = -1;
+    int bestVariance = MAX_AVG_VARIANCE; // worst variance we'll accept
+    int i = 0;
+    for (const auto &pattern : patterns)
+    {
+        int variance = patternMatch(counters, pattern, MAX_INDIVIDUAL_VARIANCE);
+        if (variance < bestVariance)
+        {
+            bestVariance = variance;
+            bestMatch = i;
+        }
+        i++;
+    }
+    return std::max(-1, bestMatch);
+    // -1 is dismatch or means error.
 }
 
 /*Input a mat and it's position rect, return the decode result */
 
 std::vector<std::string>
-cv::upcean_decoder::rectToResults(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const
+UPCEANDecoder::rectToResults(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const
 {
     CV_Assert(mat.channels() == 1);
     std::vector<string> will_return;
     Mat gray = mat.clone();
-    constexpr int PART = 16;
     for (const auto &points : pointsArrays)
     {
         Mat bar_img;
@@ -125,15 +121,20 @@ cv::upcean_decoder::rectToResults(Mat &mat, const std::vector<std::vector<Point2
         {
             resize(bar_img, bar_img, Size(500, bar_img.rows));
         }
-        string max_result = rectToResult(bar_img, mat, points, PART, false);
+        string max_result = rectToResult(bar_img, points, DIVIDE_PART, false);
         will_return.push_back(max_result);
     }
     return will_return;
 }
 
+std::string UPCEANDecoder::rectToResult(const Mat &gray, const vector<Point2f> &points) const
+{
+    return rectToResult(gray, points, DIVIDE_PART, false);
+}
+
 // input image is
-std::string cv::upcean_decoder::rectToResult(const Mat &bar_img, Mat &mat, const std::vector<Point2f> &points, int PART,
-                                             int directly) const
+std::string
+UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &points, int PART, int directly) const
 {
     Mat blur;
     GaussianBlur(bar_img, blur, Size(0, 0), 25);
@@ -202,7 +203,7 @@ std::string cv::upcean_decoder::rectToResult(const Mat &bar_img, Mat &mat, const
     return max_result;
 }
 
-std::string cv::upcean_decoder::lineDecodeToString(const Mat &bar_img, const Point2i &begin, const Point2i &end) const
+std::string UPCEANDecoder::lineDecodeToString(const Mat &bar_img, const Point2i &begin, const Point2i &end) const
 {
     std::string result;
     std::vector<uchar> middle;
@@ -213,7 +214,7 @@ std::string cv::upcean_decoder::lineDecodeToString(const Mat &bar_img, const Poi
         middle.push_back(bar_img.at<uchar>(line.pos()));
     }
     result = this->decode(middle, 0);
-    if (result.size() != digitNumber)
+    if (result.size() != this->digitNumber)
     {
         result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
     }
@@ -227,22 +228,21 @@ std::string cv::upcean_decoder::lineDecodeToString(const Mat &bar_img, const Poi
 * 90 vertical
 * (90-180) lower left to upper right
 * */
-void cv::upcean_decoder::linesFromRect(const Size2i &shape, int angle, int PART,
-                                       std::vector<std::pair<Point2i, Point2i>> &results) const
+void UPCEANDecoder::linesFromRect(const Size2i &shape, int angle, int PART,
+                                  std::vector<std::pair<Point2i, Point2i>> &results) const
 {
     auto shapef = Size2f(shape);
     Point2i step = Point2i(shapef.height / PART, 0);
+    Point2i cbegin = Point2i(shapef.height / 2, 0);
     Point2i cend = Point2i(shapef.height / 2, shapef.width - 1);
-    Point2i cbegin = Point2i(shapef.height / 2, shapef.width / 2);
-
     if (angle)
     {
         step = Point2i(0, shapef.width / PART);
         cbegin = Point2i(0, shapef.width / 2);
         cend = Point2i(shapef.height - 1, shapef.width / 2);
     }
-    results.reserve(PART + 1);
-    for (int i = 1; i <= PART / 2; ++i)
+    results.reserve(results.size() + PART + 1);
+    for (int i = 1; i <= (PART >> 1); ++i)
     {
         results.emplace_back(cbegin + i * step, cend + i * step);
         results.emplace_back(cbegin - i * step, cend - i * step);
@@ -250,45 +250,18 @@ void cv::upcean_decoder::linesFromRect(const Size2i &shape, int angle, int PART,
     results.emplace_back(cbegin, cend);
 }
 
-std::string cv::upcean_decoder::decodeDirectly(InputArray img) const
+
+std::string UPCEANDecoder::decodeDirectly(InputArray img) const
 {
     auto Mat = img.getMat();
     auto gray = Mat.clone();
     constexpr int PART = 50;
-//    auto rRect = RotatedRect(Point2f(Mat.cols / 2, Mat.rows / 2), Size2f(Mat.cols, Mat.rows), 0);
-//    Point2f points_array[4];
-//    rRect.points(points_array);
     std::vector<Point2f> real_rect{
             Point2f(0, Mat.rows), Point2f(0, 0), Point2f(Mat.cols, 0), Point2f(Mat.cols, Mat.rows)};
-    string result = rectToResult(Mat, gray, real_rect, PART, true);
+    string result = rectToResult(Mat, real_rect, PART, true);
     return result;
 }
 
-namespace cv {
-//TODO 读取
-void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &rects)
-{
-
-    auto vertices = rects;
-    //    Point2f vertices[4];
-    //    rect.points(vertices);
-    int height = cv::norm(vertices[0] - vertices[1]);
-    int width = cv::norm(vertices[1] - vertices[2]);
-
-    if (height > width)
-    {
-        std::swap(height, width);
-        Point2f v0 = vertices[0];
-        vertices.erase(vertices.begin());
-        vertices.push_back(v0);
-    }
-    std::vector<Point2f> dst_vertices{
-            Point2f(0, height - 1), Point2f(0, 0), Point2f(width - 1, 0), Point2f(width - 1, height - 1)};
-    _dst.create(Size(width, height), CV_8UC1);
-    Mat M = getPerspectiveTransform(vertices, dst_vertices);
-    Mat dst = _dst.getMat();
-    warpPerspective(_src.getMat(), dst, M, _dst.size(), cv::INTER_LINEAR, BORDER_CONSTANT, Scalar(255));
-}
 
 void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters)
 {
@@ -332,16 +305,16 @@ void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &cou
 // right for A
 const std::vector<std::vector<int>> &get_A_or_C_Patterns()
 {
-    static const std::vector<std::vector<int>> A_or_C_Patterns = {{3, 2, 1, 1}, // 0
-                                                                  {2, 2, 2, 1}, // 1
-                                                                  {2, 1, 2, 2}, // 2
-                                                                  {1, 4, 1, 1}, // 3
-                                                                  {1, 1, 3, 2}, // 4
-                                                                  {1, 2, 3, 1}, // 5
-                                                                  {1, 1, 1, 4}, // 6
-                                                                  {1, 3, 1, 2}, // 7
-                                                                  {1, 2, 1, 3}, // 8
-                                                                  {3, 1, 1, 2}  // 9
+    static const std::vector<std::vector<int>> A_or_C_Patterns{{3, 2, 1, 1}, // 0
+                                                               {2, 2, 2, 1}, // 1
+                                                               {2, 1, 2, 2}, // 2
+                                                               {1, 4, 1, 1}, // 3
+                                                               {1, 1, 3, 2}, // 4
+                                                               {1, 2, 3, 1}, // 5
+                                                               {1, 1, 1, 4}, // 6
+                                                               {1, 3, 1, 2}, // 7
+                                                               {1, 2, 1, 3}, // 8
+                                                               {3, 1, 1, 2}  // 9
     };
     return A_or_C_Patterns;
 }
@@ -349,11 +322,11 @@ const std::vector<std::vector<int>> &get_A_or_C_Patterns()
 const std::vector<std::vector<int>> &get_AB_Patterns()
 {
     static const std::vector<std::vector<int>> AB_Patterns = [] {
-        auto AB_Patterns_inited = std::vector<std::vector<int>>(20, std::vector<int>(PATTERN_LENGTH, 0));
+        constexpr int offset = 10;
+        auto AB_Patterns_inited = std::vector<std::vector<int>>(offset << 1, std::vector<int>(PATTERN_LENGTH, 0));
         std::copy(get_A_or_C_Patterns().cbegin(), get_A_or_C_Patterns().cend(), AB_Patterns_inited.begin());
         //AB pattern is
-        int offset = 10;
-        for (int i = 0; i < get_A_or_C_Patterns().size(); ++i)
+        for (int i = 0; i < offset; ++i)
         {
             for (int j = 0; j < PATTERN_LENGTH; ++j)
             {

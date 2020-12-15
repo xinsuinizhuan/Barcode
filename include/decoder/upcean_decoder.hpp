@@ -16,62 +16,54 @@ limitations under the License.
 #ifndef __OPENCV_BARCODE_UPCEAN_DECODER_HPP__
 #define __OPENCV_BARCODE_UPCEAN_DECODER_HPP__
 
-#include "opencv2/core/mat.hpp"
-#include "opencv2/core.hpp"
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/opencv.hpp>
 #include <utility>
 #include <vector>
 #include <string>
+#include <iostream>
 #include "barcode_data.hpp"
 #include "patternmatch.hpp"
-#include "decoder/upcean_decoder.hpp"
+#include "bardecode.hpp"
+
 /**
  *   upcean_decoder the abstract basic class for decode formats,
  *   it will have ean13/8,upc_a,upc_e , etc.. class extend this class
 */
 namespace cv {
-using std::vector;
 using std::string;
-enum class BarcodeFormat
-{
-    EAN_8, EAN_13, UPC_A, UPC_E, UPC_EAN_EXTENSION
-};
-struct BarcodeResult
-{
-    std::string result;
-    BarcodeFormat format;
-};
+using std::vector;
 
-class upcean_decoder
+class UPCEANDecoder : public BarDecoder
 {
-
 
 public:
-    //input 1 row 2-value Mat, return decode string
+    ~UPCEANDecoder() override = default;
 
-    virtual ~upcean_decoder() = default;
+    std::vector<std::string>
+    rectToResults(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const override;
 
-    std::vector<std::string> rectToResults(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const;
+    std::string rectToResult(const Mat &gray, const std::vector<Point2f> &points) const override;
 
-    int decodeDigit(const std::vector<uchar> &row, std::vector<int> &counters, int rowOffset,
-                    std::vector<std::vector<int>> patterns) const;
+    string decodeDirectly(InputArray img) const override;
 
-//Detect encode type
-    string decodeDirectly(InputArray img) const;
+    virtual int decodeDigit(const std::vector<uchar> &row, std::vector<int> &counters, int rowOffset,
+                            std::vector<std::vector<int>> patterns) const;
+    //输入初始位置固定的2值化后的数据, 输出解码字符串
 
 protected:
-    uchar bitsNum{};
-    uchar digitNumber{};
-
+    int bitsNum;
+    int digitNumber;
 
     static std::pair<int, int>
     findGuardPatterns(const std::vector<uchar> &row, int rowOffset, uchar whiteFirst, const std::vector<int> &pattern,
                       std::vector<int> counters);
 
-
     static std::pair<int, int> findStartGuardPatterns(const std::vector<uchar> &row);
 
-    std::string
-    rectToResult(const Mat &gray, Mat &mat, const std::vector<Point2f> &points, int PART, int directly) const;
+    std::string rectToResult(const Mat &gray, const std::vector<Point2f> &points, int PART, int directly) const;
 
     std::string lineDecodeToString(const Mat &bar_img, const Point2i &begin, const Point2i &end) const;
 
@@ -96,14 +88,6 @@ const std::array<char, 32> &FIRST_CHAR_ARRAY();
 
 void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters);
 
-void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &rect);
-
-class GuardPatternsNotFindException : Exception
-{
-public:
-    explicit GuardPatternsNotFindException(const std::string &msg) : Exception(0, msg, "", __FILE__, __LINE__)
-    {}
-};
 
 } // namespace cv
 

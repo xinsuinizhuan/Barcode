@@ -14,14 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "decoder/ean13_decoder.hpp"
-#include <iostream>
-#include <vector>
-#include <opencv2/opencv.hpp>
+
 // three digit decode method from https://baike.baidu.com/item/EAN-13
 
 namespace cv {
-// default thought that mat is a matrix after binary-transfer.
 
+// default thought that mat is a matrix after binary-transfer.
 /**
 * decode EAN-13
 * @prama: data: the input array,
@@ -31,11 +29,9 @@ namespace cv {
 // TODO!, need fix the param: stars's usage
 string ean13_decoder::decode(vector<uchar> data, int start) const
 {
-    // at least it should have EAN13LENGTH's bits
-    // else it can not decode at all
     string result;
     char decode_result[14]{'\0'};
-    if (data.size() - start < bitsNum)
+    if (data.size() - start < this->bitsNum)
     {
         return "size wrong";
     }
@@ -76,7 +72,7 @@ string ean13_decoder::decode(vector<uchar> data, int start) const
         result = string(decode_result);
         if (!isValid(result))
         {
-            return "Wrong: " + result.append(string(digitNumber - result.size(), ' '));
+            return "Wrong: " + result.append(string(this->digitNumber - result.size(), ' '));
         }
     } catch (GuardPatternsNotFindException &e)
     {
@@ -85,12 +81,6 @@ string ean13_decoder::decode(vector<uchar> data, int start) const
     return result;
 }
 
-ean13_decoder::ean13_decoder()
-{
-    bitsNum = 95; //EAN13LENGTH
-    digitNumber = 13; //EAN13DIGITNUMBER
-    // 7 module encode a digit
-}
 
 bool ean13_decoder::isValid(string result) const
 {
@@ -104,6 +94,16 @@ bool ean13_decoder::isValid(string result) const
         int temp = result[index] - '0';
         sum += (temp + ((i & 1) != 0 ? temp << 1 : 0));
     }
-    return (result.back() - '0') == (10 - (sum % 10)) % 10;
+    return (result.back() - '0') == ((10 - (sum % 10)) % 10);
 }
+
+
+ean13_decoder::ean13_decoder()
+{
+    static constexpr int bitsNum = 95;
+    static constexpr int digitNumber = 13;
+    this->bitsNum = bitsNum;
+    this->digitNumber = digitNumber;
+}
+
 }
