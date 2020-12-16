@@ -18,9 +18,8 @@ limitations under the License.
 //
 #ifndef __OPENCV_BARCODE_DETECT_HPP__
 #define __OPENCV_BARCODE_DETECT_HPP__
-constexpr double PI = 3.1415926535897932;
 
-#include <opencv2/opencv.hpp>
+#include "opencv2/opencv.hpp"
 #include <utility>
 #include <vector>
 
@@ -61,15 +60,9 @@ protected:
     #ifdef CV_DEBUG
     Mat debug_img, debug_proposals;
     #endif
-    Mat structuringElement[4] = {
-            (Mat_<uint8_t>(3, 3) << 255, 0, 0, 0, 0, 0, 0, 0, 255),
-            (Mat_<uint8_t>(3, 3) << 0, 0, 255, 0, 0, 0, 255, 0, 0),
-            (Mat_<uint8_t>(3, 3) << 0, 0, 0, 255, 0, 255, 0, 0, 0),
-            (Mat_<uint8_t>(3, 3) << 0, 255, 0, 0, 0, 0, 0, 255, 0)};
-
     void preprocess();
 
-    static int compare(const RotatedRect &r1, const RotatedRect &r2)
+    static inline int compare(const RotatedRect &r1, const RotatedRect &r2)
     {
         return r1.size.area() > r2.size.area();
     }
@@ -92,6 +85,7 @@ protected:
 
 };
 }
+
 
 #endif //__OPENCV_BARCODE_DETECT_HPP__
 

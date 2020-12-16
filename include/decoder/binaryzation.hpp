@@ -17,12 +17,15 @@ limitations under the License.
 #define __OPENCV_BARCODE_BINARYZATION_HPP__
 
 #include <opencv2/imgproc.hpp>
-#include <deque>
 #include <opencv2/opencv.hpp>
-//test
+#include <deque>
+
+#ifdef CV_DEBUG
+
 #include <fstream>
 #include <iostream>
 
+#endif
 namespace cv {
 void adaptBinaryzation(cv::InputArray src, cv::OutputArray &dst);
 
