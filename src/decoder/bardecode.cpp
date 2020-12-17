@@ -39,7 +39,7 @@ void BarDecode::init(const cv::Mat &src, const std::vector<cv::Point2f> &points)
 bool BarDecode::decodingProcess()
 {
     std::unique_ptr<AbsBarDecoder> decoder{std::make_unique<Ean13Decoder>()};
-    result_info = decoder->rectToResults(original, src_points);
+    result_info = decoder->decodeImg(original, src_points);
     return !result_info.empty();
 }
 
@@ -70,7 +70,7 @@ bool BarDecode::decodeMultiplyProcess()
                 {
                     resize(bar_img, bar_img, Size(500, bar_img.rows));
                 }
-                decoded_info[i] = decoder[i]->rectToResult(bar_img, src_points[i]);
+                decoded_info[i] = decoder[i]->decodeImg(bar_img, src_points[i]);
             }
         }
 

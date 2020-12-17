@@ -41,14 +41,18 @@ class AbsBarDecoder
 {
 public:
     virtual std::vector<std::string>
-    rectToResults(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const = 0;
+    decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const = 0;
 
-    virtual std::string rectToResult(const Mat &gray, const std::vector<Point2f> &points) const = 0;
+    virtual std::string decodeImg(const Mat &gray, const std::vector<Point2f> &points) const = 0;
 
-    //Detect encode type
-    virtual string decodeDirectly(InputArray img) const = 0;
+    virtual string decodeImg(InputArray img) const = 0;
 
     virtual ~AbsBarDecoder() = default;
+
+protected:
+    virtual string decode(vector<uchar> data, int start) const = 0;
+
+    virtual bool isValid(string result) const = 0;
 };
 
 class GuardPatternsNotFindException : Exception
@@ -59,6 +63,7 @@ public:
 };
 
 void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &rect);
+void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters);
 
 } // namespace cv
 

@@ -153,7 +153,7 @@ bool BarcodeDetector::decodeDirectly(InputArray img, CV_OUT string &decoded_info
         return false;
     }
     std::unique_ptr<AbsBarDecoder> decoder{std::make_unique<Ean13Decoder>()};
-    decoded_info = decoder->decodeDirectly(inarr);
+    decoded_info = decoder->decodeImg(inarr);
     if (!decoded_info.empty())
     {
         return false;

@@ -105,7 +105,7 @@ int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, std::vector<int> &
 /*Input a mat and it's position rect, return the decode result */
 
 std::vector<std::string>
-UPCEANDecoder::rectToResults(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const
+UPCEANDecoder::decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const
 {
     CV_Assert(mat.channels() == 1);
     std::vector<string> will_return;
@@ -121,29 +121,29 @@ UPCEANDecoder::rectToResults(Mat &mat, const std::vector<std::vector<Point2f>> &
         {
             resize(bar_img, bar_img, Size(500, bar_img.rows));
         }
-        string max_result = rectToResult(bar_img, points, DIVIDE_PART, false);
+        string max_result = decodeImg(bar_img, points, DIVIDE_PART, false);
         will_return.push_back(max_result);
     }
     return will_return;
 }
 
-std::string UPCEANDecoder::rectToResult(const Mat &gray, const vector<Point2f> &points) const
+std::string UPCEANDecoder::decodeImg(const Mat &gray, const vector<Point2f> &points) const
 {
-    return rectToResult(gray, points, DIVIDE_PART, false);
+    return decodeImg(gray, points, DIVIDE_PART, false);
 }
 
 // input image is
 std::string
-UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &points, int PART, int directly) const
+UPCEANDecoder::decodeImg(const Mat &gray, const std::vector<Point2f> &points, int PART, int directly) const
 {
     Mat blur;
-    GaussianBlur(bar_img, blur, Size(0, 0), 25);
-    addWeighted(bar_img, 2, blur, -1, 0, bar_img);
-    bar_img.convertTo(bar_img, CV_8UC1, 1, -20);
-    imshow("preprocess", bar_img);
-    threshold(bar_img, bar_img, 155, 255, THRESH_OTSU + THRESH_BINARY);
+    GaussianBlur(gray, blur, Size(0, 0), 25);
+    addWeighted(gray, 2, blur, -1, 0, gray);
+    gray.convertTo(gray, CV_8UC1, 1, -20);
+    imshow("preprocess", gray);
+    threshold(gray, gray, 155, 255, THRESH_OTSU + THRESH_BINARY);
 #ifdef CV_DEBUG
-    imshow("barimg", bar_img);
+    imshow("barimg", gray);
 #endif
     std::map<std::string, int> result_vote;
     int vote_cnt = 0;
@@ -156,10 +156,10 @@ UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &poin
         return max_result;
     }
 #ifdef CV_DEBUG
-    Mat bar_copy = bar_img.clone();
+    Mat bar_copy = gray.clone();
 #endif
     std::vector<std::pair<Point2i, Point2i>> begin_and_ends;
-    const Size2i shape{bar_img.rows, bar_img.cols};
+    const Size2i shape{gray.rows, gray.cols};
     linesFromRect(shape, true, PART, begin_and_ends);
     if (directly)
     {
@@ -171,7 +171,7 @@ UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &poin
         std::vector<uchar> middle;
         const auto &begin = i.first;
         const auto &end = i.second;
-        result = lineDecodeToString(bar_img, begin, end);
+        result = lineDecodeToString(gray, begin, end);
 #ifdef CV_DEBUG
         try
         {
@@ -251,56 +251,17 @@ void UPCEANDecoder::linesFromRect(const Size2i &shape, int angle, int PART,
 }
 
 
-std::string UPCEANDecoder::decodeDirectly(InputArray img) const
+std::string UPCEANDecoder::decodeImg(InputArray img) const
 {
     auto Mat = img.getMat();
     auto gray = Mat.clone();
     constexpr int PART = 50;
     std::vector<Point2f> real_rect{
             Point2f(0, Mat.rows), Point2f(0, 0), Point2f(Mat.cols, 0), Point2f(Mat.cols, Mat.rows)};
-    string result = rectToResult(Mat, real_rect, PART, true);
+    string result = decodeImg(Mat, real_rect, PART, true);
     return result;
 }
 
-
-void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters)
-{
-    // 先不考虑异常处理
-    int counter_length = counters.size();
-    std::fill(counters.begin(), counters.end(), 0);
-    int end = row.size();
-    if (start >= end)
-    {
-        // TODO throw NotFoundException.getNotFoundInstance();
-    }
-    uchar isWhite = row[start];
-    int counterPosition = 0;
-    while (start < end)
-    {
-        if (row[start] == isWhite)
-        { // that is, exactly one is true
-            counters[counterPosition]++;
-        }
-        else
-        {
-            counterPosition++;
-            if (counterPosition == counter_length)
-            {
-                break;
-            }
-            else
-            {
-                counters[counterPosition] = 1;
-                isWhite = 255 - isWhite;
-            }
-        }
-        ++start;
-    }
-    if (!(counterPosition == counter_length || (counterPosition == counter_length - 1 && start == end)))
-    {
-        // throw a error or any others
-    }
-}
 
 // right for A
 const std::vector<std::vector<int>> &get_A_or_C_Patterns()
