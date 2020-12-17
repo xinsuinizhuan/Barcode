@@ -23,16 +23,20 @@ limitations under the License.
 #include <numeric>
 #include <utility>
 #include <opencv2/core/mat.hpp>
-#include "barcode_data.hpp"
 
 namespace cv {
+constexpr static uint INTEGER_MATH_SHIFT = 8;
+constexpr static int PATTERN_MATCH_RESULT_SCALE_FACTOR = 1 << INTEGER_MATH_SHIFT;
+constexpr static int MAX_AVG_VARIANCE = static_cast<int>(PATTERN_MATCH_RESULT_SCALE_FACTOR * 0.48f);
+constexpr static int MAX_INDIVIDUAL_VARIANCE = static_cast<int>(PATTERN_MATCH_RESULT_SCALE_FACTOR * 0.7f);
+constexpr static uint PATTERN_LENGTH = 4;
 
 int patternMatch(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividual);
 
 inline int
 patternMatchConsieDistance(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividualVariance);
 
-inline int patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance);
+static inline int patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance);
 }
 
 #endif //! __OPENCV_BARCODE_PATTERNMATCH_HPP__

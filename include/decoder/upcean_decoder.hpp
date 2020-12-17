@@ -21,7 +21,6 @@ limitations under the License.
 #include <opencv2/core.hpp>
 #include <utility>
 #include <string>
-#include "barcode_data.hpp"
 #include "patternmatch.hpp"
 
 /**

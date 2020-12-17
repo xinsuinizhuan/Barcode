@@ -24,6 +24,9 @@ limitations under the License.
 namespace cv {
 using std::string;
 using std::vector;
+constexpr static int BLACK = std::numeric_limits<uchar>::min();
+// WHITE elemental area is 0xff
+constexpr static int WHITE = std::numeric_limits<uchar>::max();
 enum class BarcodeFormat
 {
     EAN_8, EAN_13, UPC_A, UPC_E, UPC_EAN_EXTENSION

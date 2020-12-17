@@ -56,7 +56,7 @@ patternMatchConsieDistance(std::vector<int> counters, const std::vector<int> &pa
     return (1 << INTEGER_MATH_SHIFT) - static_cast<int>(inner_result / std::sqrt(divide_first * divide_second));
 }
 
-inline int patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance)
+static inline int patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance)
 {
     int numCounters = counters.size();
     uint total = std::accumulate(counters.cbegin(), counters.cend(), 0);
