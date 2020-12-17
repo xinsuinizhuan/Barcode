@@ -127,7 +127,7 @@ void Verifier::verify()
         cv::Mat img = cv::imread(data_dir+img_name);
         std::vector<cv::Point2f> points;
         stringvec infos;
-        barcodeDetector.detectAndDecodeMulti(img, infos, points);
+        barcodeDetector.detectAndDecode(img, infos, points);
         if(infos.size() == 1)// 暂时先这么干
         {
             std::string result = infos[0];

@@ -94,8 +94,12 @@ bool BarcodeDetector::detect(InputArray img, OutputArray points) const
     vector<vector<Point2f> > pnts2f = bardet.getTransformationPoints();
     vector<Point2f> trans_points;
     for (auto &i : pnts2f)
+    {
         for (const auto &j : i)
+        {
             trans_points.push_back(j);
+        }
+    }
 
     updatePointsResult(points, trans_points);
     return true;
@@ -114,7 +118,7 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, CV_OUT std::vect
     points.copyTo(src_points);
     BarDecode bardec;
     bardec.init(img.getMat(), src_points);
-    bool ok = bardec.decodingProcess();
+    bool ok = bardec.decodeMultiplyProcess();
     const vector<string> &_decoded_info = bardec.getDecodeInformation();
     decoded_info.clear();
     decoded_info.assign(_decoded_info.cbegin(), _decoded_info.cend());
@@ -157,75 +161,6 @@ bool BarcodeDetector::decodeDirectly(InputArray img, CV_OUT string &decoded_info
         return false;
     }
     return true;
-}
-
-bool BarcodeDetector::detectMulti(InputArray img, OutputArray points) const
-{
-    Mat inarr;
-    if (!checkBarInputImage(img, inarr))
-    {
-        points.release();
-        return false;
-    }
-    Detect bardet;
-    bardet.init(inarr);
-    bardet.localization();
-    if (!bardet.computeTransformationPoints())
-    { return false; }
-    vector<vector<Point2f> > pnts2f = bardet.getTransformationPoints();
-    vector<Point2f> trans_points;
-    for (auto &i : pnts2f)
-    {
-        for (const auto &j : i)
-        {
-            trans_points.push_back(j);
-        }
-    }
-    updatePointsResult(points, trans_points);
-    return true;
-}
-
-
-bool BarcodeDetector::decodeMulti(InputArray img, InputArray points, vector<std::string> &decoded_info) const
-{
-    Mat inarr;
-    if (!checkBarInputImage(img, inarr))
-    {
-        return false;
-    }
-    CV_Assert(points.size().width > 0);
-    CV_Assert((points.size().width % 4) == 0);
-    vector<Point2f> src_points;
-    points.copyTo(src_points);
-    BarDecode bardec;
-    bardec.init(img.getMat(), src_points);
-    bool ok = bardec.decodeMultiplyProcess();
-    const vector<string> &_decoded_info = bardec.getDecodeInformation();
-    decoded_info.clear();
-    decoded_info.assign(_decoded_info.cbegin(), _decoded_info.cend());
-    return ok;
-}
-
-bool BarcodeDetector::detectAndDecodeMulti(InputArray img, CV_OUT std::vector<std::string> &decoded_info,
-                                           OutputArray points_) const
-{
-    Mat inarr;
-    if (!checkBarInputImage(img, inarr))
-    {
-        points_.release();
-        return false;
-    }
-    vector<Point2f> points;
-    bool ok = this->detectMulti(img, points);
-    if (!ok)
-    {
-        points_.release();
-        return false;
-    }
-    updatePointsResult(points_, points);
-    decoded_info.clear();
-    ok = this->decodeMulti(inarr, points, decoded_info);
-    return ok;
 }
 }// namespace barcode
 } // namespace cv
