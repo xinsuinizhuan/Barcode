@@ -7,7 +7,6 @@ add_executable(
         #basic_test.cpp
         integration_testing.cpp
         #patternMatchTest.cpp
-        #binaryzation_test.cpp
         )
 
 target_link_libraries(

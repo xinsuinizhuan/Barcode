@@ -211,3 +211,47 @@ TEST(basic_test, isValidEan13)
         }
     }
 }
+
+TEST(basic_test, ImgUnitTest)
+{
+    std::string img_path = R"(../../test/data/integration_test_data/7.jpg)";
+    cv::barcode::BarcodeDetector bardet;
+    cv::Mat frame = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
+    cv::Mat decodeFrame = frame.clone();
+    std::vector<cv::RotatedRect> rects;
+    cv::Point2f points[4];
+    try
+    {
+        bardet.detect(frame, rects);
+    } catch (cv::Exception &ex)
+    {
+        std::cerr << ex.what() << "No detect pictures\n";
+    }
+    for (const auto &rect : rects)
+    {
+        rect.points(points);
+        for (int j = 0; j < 4; j++)
+        {
+#ifdef CV_DEBUG
+            cv::line(frame, points[j % 4], points[(j + 1) % 4], cv::Scalar(0, 255, 0));
+#endif
+        }
+    }
+    std::vector<std::string> results;
+    try
+    {
+        bardet.decode(decodeFrame, rects, results);
+    } catch (cv::Exception &ex)
+    {
+        std::cerr << ex.what() << "No detect results\n";
+    }
+    for (const auto &result : results)
+    {
+        std::cout << result << std::endl;
+    }
+#ifdef CV_DEBUG
+    cv::imshow("result", frame);
+    cv::imshow("resultdecode", decodeFrame);
+    cv::waitKey(0);
+#endif
+}

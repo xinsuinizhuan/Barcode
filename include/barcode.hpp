@@ -19,7 +19,6 @@ limitations under the License.
 
 #include "detector/detect.hpp"
 #include "decoder/ean13_decoder.hpp"
-#include "decoder/binaryzation.hpp"
 
 namespace cv {
 namespace barcode {
