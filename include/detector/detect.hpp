@@ -19,21 +19,14 @@ limitations under the License.
 #ifndef __OPENCV_BARCODE_DETECT_HPP__
 #define __OPENCV_BARCODE_DETECT_HPP__
 
-//#include "opencv2/opencv.hpp"
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/dnn/dnn.hpp"
 
 
-
-
-#include <utility>
-#include <vector>
-
 namespace cv {
 
 using std::vector;
-//using std::pair;
 
 class Detect
 {
@@ -42,7 +35,6 @@ private:
     vector<RotatedRect> localization_bbox;
     vector<float> bbox_scores;
     vector<int> bbox_indices;
-    vector<float> bbox_orientations;
     vector<vector<Point2f>> transformation_points;
 
 public:
@@ -68,10 +60,15 @@ protected:
     Mat debug_img, debug_proposals;
     #endif
     void preprocess();
+
     void calConsistency(int window_size);
+
     static inline bool isValidCoord(const Point &coord, const Size &limit);
+
     static inline double computeOrientation(float y, float x);
+
     void regionGrowing(int window_size);
+
     void barcodeErode();
 };
 }

@@ -7,12 +7,12 @@
 namespace cv {
 static constexpr double PI = CV_PI;
 template<int x, typename Type>
-struct XDividePi
+struct XDividePI
 {
     static constexpr Type Value = x / PI;
 };
 template<typename Type, int x>
-struct PiDivideX
+struct PIDivideX
 {
     static constexpr Type Value = PI / x;
 };
@@ -83,16 +83,15 @@ inline bool Detect::isValidCoord(const Point &coord, const Size &limit)
 
 inline double Detect::computeOrientation(float y, float x)
 {
-    const double tan_value = atan(y / x) / 2.0;
     if (x >= 0)
     {
-        return tan_value;
+        return atan(y / x);
     }
     if (y >= 0)
     {
-        return tan_value + PiDivideX<double, 2>::Value;
+        return (atan(y / x) + PI);
     }
-    return tan_value - PiDivideX<double, 2>::Value;
+    return (atan(y / x) - PI);
 }
 
 static float calcRectSum(const Mat &integral, int right_col, int left_col, int top_row, int bottom_row)
@@ -103,18 +102,15 @@ static float calcRectSum(const Mat &integral, int right_col, int left_col, int t
     // if the right col or bottom row falls outside the image bounds, pass the max col or max row to this method
     // does NOT perform any bounds checking
     float top_left, top_right, bottom_left, bottom_right;
-#ifdef CV_DEBUG
     float sum;
-#endif
+
     bottom_right = integral.at<float>(bottom_row, right_col);
     top_right = integral.at<float>(top_row, right_col);
     top_left = integral.at<float>(top_row, left_col);
     bottom_left = integral.at<float>(bottom_row, left_col);
-#ifdef CV_DEBUG
+
     sum = (bottom_right - bottom_left - top_right + top_left);
     return sum;
-#endif
-    return bottom_right - bottom_left - top_right + top_left;
 }
 
 void Detect::init(const Mat &src)
@@ -141,8 +137,8 @@ void Detect::init(const Mat &src)
 //        }
     else
     {
-        //purpose = UNCHANGED;
-        //coeff_expansion = 1.0;
+        purpose = UNCHANGED;
+        coeff_expansion = 1.0;
         width = src.size().width;
         height = src.size().height;
         resized_barcode = barcode.clone();
@@ -158,7 +154,6 @@ void Detect::localization()
 {
     localization_bbox.clear();
     bbox_scores.clear();
-    bbox_orientations.clear();
 
     // get integral image
     preprocess();
@@ -168,9 +163,10 @@ void Detect::localization()
     float window_ratio = 0.01f;
     static constexpr float window_ratio_step = 0.02f;
     static constexpr int window_ratio_stepTimes = (13 - 1) / 2; // 6 = (0.13-0.01)/0.02
+    int window_size;
     for (size_t i = 0; i < window_ratio_stepTimes; i++)
     {
-        int window_size = cvRound(min(width, height) * window_ratio);
+        window_size = cvRound(min(width, height) * window_ratio);
 #ifdef CV_DEBUG
         //        printf("window ratio: %f\n", window_ratio);
         //        debug_img = resized_barcode.clone();
@@ -210,17 +206,17 @@ void Detect::localization()
 
 bool Detect::computeTransformationPoints()
 {
-    // get
-    bbox_indices.clear(); // will not use in multi
-    transformation_points.clear(); // will not use in multi
+    bbox_indices.clear();
+    transformation_points.clear();
     transformation_points.reserve(bbox_indices.size());
+    RotatedRect rect;
     Point2f temp[4];
     const float THRESHOLD_SCORE = float(width * height) / 1000;
     dnn::NMSBoxes(localization_bbox, bbox_scores, THRESHOLD_SCORE, 0.1, bbox_indices);
 
-    for (const auto &bbox_indice : bbox_indices)
+    for (const auto &bbox_index : bbox_indices)
     {
-        RotatedRect &rect = localization_bbox[bbox_indice];
+        rect = localization_bbox[bbox_index];
         if (purpose == ZOOMING)
         {
             rect.center.x /= coeff_expansion;
@@ -343,7 +339,7 @@ void Detect::calConsistency(int window_size)
             if (d > THRESHOLD_CONSISTENCY)
             {
                 consistency_row[pos] = 255;
-                orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy);
+                orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy) / 2.0;
                 edge_nums_row[pos] = rect_area;
                 #ifdef CV_DEBUG
                 //                rectangle(debug_img, Point2d(left_col, top_row), Point2d(right_col, bottom_row), 255);
@@ -359,7 +355,7 @@ void Detect::calConsistency(int window_size)
 
 void Detect::regionGrowing(int window_size)
 {
-    static constexpr float LOCAL_THRESHOLD_CONSISTENCY = 0.98, THRESHOLD_RADIAN = PiDivideX<float, 40>::Value, THRESHOLD_BLOCK_NUM = 20, LOCAL_RATIO = 0.4;
+    static constexpr float LOCAL_THRESHOLD_CONSISTENCY = 0.98, THRESHOLD_RADIAN = PIDivideX<float, 40>::Value, THRESHOLD_BLOCK_NUM = 20, LOCAL_RATIO = 0.4;
     Point pt_to_grow, pt;                       //待生长点位置
 
     float src_value;                               //生长起点灰度值
@@ -454,13 +450,13 @@ void Detect::regionGrowing(int window_size)
                 continue;
             }
 //                printf("counter ratio: %f\n", counter / rect.size.area());
-            const double local_orientation = computeOrientation(cos_sum, sin_sum);
+            const double local_orientation = computeOrientation(cos_sum, sin_sum) / 2.0;
             // only orientation is approximately equal to the rectangle orientation
-            rect_orientation = (minRect.angle) * PiDivideX<double, 180>::Value;
+            rect_orientation = (minRect.angle) * PIDivideX<double, 180>::Value;
             if (minRect.size.width < minRect.size.height)
             {
-                rect_orientation += (rect_orientation <= 0 ? PiDivideX<double, 2>::Value
-                                                           : PiDivideX<double, -2>::Value);
+                rect_orientation += (rect_orientation <= 0 ? PIDivideX<double, 2>::Value
+                                                           : PIDivideX<double, -2>::Value);
                 std::swap(minRect.size.width, minRect.size.height);
             }
             if (abs(local_orientation - rect_orientation) > THRESHOLD_RADIAN &&
@@ -468,7 +464,7 @@ void Detect::regionGrowing(int window_size)
             {
                 continue;
             }
-            minRect.angle = static_cast<float>(local_orientation) * XDividePi<180, float>::Value;
+            minRect.angle = static_cast<float>(local_orientation) * XDividePI<180, float>::Value;
             minRect.size.width *= float(window_size + 1);
             minRect.size.height *= float(window_size + 1);
             minRect.center.x = (minRect.center.x + 0.5) * window_size;
@@ -481,7 +477,6 @@ void Detect::regionGrowing(int window_size)
 
 
             bbox_scores.push_back(edge_num);
-            bbox_orientations.push_back(local_orientation);
             #ifdef CV_DEBUG
             //            Point2f vertices[4];
             //            minRect.points(vertices);
@@ -503,7 +498,7 @@ inline const std::array<Mat, 4> &getStructuringElement()
                           {0, 0, 0, 255, 0, 255, 0, 0, 0}}, Mat_<uint8_t>{{3, 3},
                                                                           {0, 255, 0, 0, 0, 0, 0, 255, 0}}};
     return structuringElement;
-};
+}
 
 void Detect::barcodeErode()
 {
@@ -521,7 +516,9 @@ void Detect::barcodeErode()
         auto m1_row = m1.ptr<uint8_t>(y);
         auto m2_row = m2.ptr<uint8_t>(y);
         auto m3_row = m3.ptr<uint8_t>(y);
-        for (int pos = 0; pos < consistency.cols; pos++)
+
+        int pos;
+        for (pos = 0; pos < consistency.cols; pos++)
         {
             if (consistency_row[pos] == 0)
             {
