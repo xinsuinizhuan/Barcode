@@ -18,7 +18,6 @@ limitations under the License.
 //
 #ifndef __OPENCV_BARCODE_DETECT_HPP__
 #define __OPENCV_BARCODE_DETECT_HPP__
-constexpr double PI = 3.1415926535897932;
 
 //#include "opencv2/opencv.hpp"
 #include "opencv2/core.hpp"
@@ -68,12 +67,6 @@ protected:
     #ifdef CV_DEBUG
     Mat debug_img, debug_proposals;
     #endif
-    Mat structuringElement[4] = {
-            (Mat_<uint8_t>(3, 3) << 255, 0, 0, 0, 0, 0, 0, 0, 255),
-            (Mat_<uint8_t>(3, 3) << 0, 0, 255, 0, 0, 0, 255, 0, 0),
-            (Mat_<uint8_t>(3, 3) << 0, 0, 0, 255, 0, 255, 0, 0, 0),
-            (Mat_<uint8_t>(3, 3) << 0, 255, 0, 0, 0, 0, 0, 255, 0)};
-
     void preprocess();
     void calConsistency(int window_size);
     static inline bool isValidCoord(const Point &coord, const Size &limit);

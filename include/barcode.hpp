@@ -18,7 +18,7 @@ limitations under the License.
 #define __OPENCV_BARCODE_HPP__
 
 #include "detector/detect.hpp"
-#include "decoder/ean_decoder.hpp"
+#include "decoder/ean13_decoder.hpp"
 #include "decoder/binaryzation.hpp"
 
 namespace cv {
@@ -65,6 +65,7 @@ public:
      * @param decoded_info UTF8-encoded output of string or empty string if the codes do not contain barcode.
     */
     CV_WRAP bool decodeDirectly(InputArray img, CV_OUT std::string &decoded_info) const;
+
 
 protected:
     struct Impl;

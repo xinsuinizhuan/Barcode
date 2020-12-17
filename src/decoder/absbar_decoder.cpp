@@ -13,24 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
-#include <opencv2/imgproc.hpp>
-#include <deque>
-#include <opencv2/opencv.hpp>
-#include "decoder/absdecoder.hpp"
-
+#include "decoder/absbar_decoder.hpp"
 
 namespace cv {
+
 //TODO 读取
 void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &rects)
 {
-
-    auto vertices = rects;
-//    Point2f vertices[4];
-//    rect.points(vertices);
+    std::vector<Point2f> vertices = rects;
     int height = cv::norm(vertices[0] - vertices[1]);
     int width = cv::norm(vertices[1] - vertices[2]);
-
     if (height > width)
     {
         std::swap(height, width);
@@ -45,44 +37,4 @@ void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &re
     Mat dst = _dst.getMat();
     warpPerspective(_src.getMat(), dst, M, _dst.size(), cv::INTER_LINEAR, BORDER_CONSTANT, Scalar(255));
 }
-
-void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters)
-{
-    // 先不考虑异常处理
-    int counter_length = counters.size();
-    std::fill(counters.begin(), counters.end(), 0);
-    int end = row.size();
-    if (start >= end)
-    {
-        // TODO throw NotFoundException.getNotFoundInstance();
-    }
-    uchar isWhite = row[start];
-    int counterPosition = 0;
-    while (start < end)
-    {
-        if (row[start] == isWhite)
-        { // that is, exactly one is true
-            counters[counterPosition]++;
-        }
-        else
-        {
-            counterPosition++;
-            if (counterPosition == counter_length)
-            {
-                break;
-            }
-            else
-            {
-                counters[counterPosition] = 1;
-                isWhite = 255 - isWhite;
-            }
-        }
-        ++start;
-    }
-    if (!(counterPosition == counter_length || (counterPosition == counter_length - 1 && start == end)))
-    {
-        // throw a error or any others
-    }
-}
-
 }

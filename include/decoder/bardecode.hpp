@@ -13,30 +13,35 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#ifndef __OPENCV_BARCODE_BINARYZATION_HPP__
-#define __OPENCV_BARCODE_BINARYZATION_HPP__
+#ifndef __OPENCV_BARCODE_BARDECODE_HPP__
+#define __OPENCV_BARCODE_BARDECODE_HPP__
 
+#include <iostream>
+#include <vector>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
-#include <deque>
 
-#ifdef CV_DEBUG
-
-#include <fstream>
-#include <iostream>
-
-#endif
 namespace cv {
-void adaptBinaryzation(cv::InputArray src, cv::OutputArray &dst);
 
-/**
-*
-* @param src source img, which has to be grayscale img
-* @param dst binary img
-* @param window_size used to calculate local threshold which has to be odd number
-* @param alpha (0, 1)
-*/
-void enhanceLocalBinaryzation(cv::InputArray src, cv::OutputArray &dst, int window_size, float alpha);
-} // namespace cv
+using std::vector;
+using std::string;
 
-#endif //__OPENCV_BARCODE_BINARYZATION_HPP__
+class BarDecode
+{
+public:
+    void init(const Mat &src, const vector<Point2f> &points);
+
+    const vector<std::string> &getDecodeInformation()
+    { return result_info; }
+
+    bool decodingProcess();
+
+    bool decodeMultiplyProcess();
+
+private:
+    vector<vector<Point2f>> src_points;
+    Mat original;
+    vector<std::string> result_info;
+};
+}
+#endif //! __OPENCV_BARCODE_BARDECODE_HPP__

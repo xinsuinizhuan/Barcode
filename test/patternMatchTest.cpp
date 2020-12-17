@@ -4,7 +4,7 @@
 
 #include "test_precomp.hpp"
 #include "decoder/patternmatch.hpp"
-#include "decoder/ean_decoder.hpp"
+#include "decoder/ean13_decoder.hpp"
 
 using std::vector;
 TEST(patternMatch, build_objects)

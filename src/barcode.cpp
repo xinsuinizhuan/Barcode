@@ -15,11 +15,13 @@ limitations under the License.
 */
 
 
+#include <decoder/bardecode.hpp>
 #include "precomp.hpp"
 #include "barcode.hpp"
 
 namespace cv {
 namespace barcode {
+
 static bool checkBarInputImage(InputArray img, Mat &gray)
 {
     CV_Assert(!img.empty());
@@ -90,8 +92,12 @@ bool BarcodeDetector::detect(InputArray img, OutputArray points) const
     vector <vector<Point2f>> pnts2f = bardet.getTransformationPoints();
     vector <Point2f> trans_points;
     for (auto &i : pnts2f)
+    {
         for (const auto &j : i)
+        {
             trans_points.push_back(j);
+        }
+    }
 
     updatePointsResult(points, trans_points);
     return true;
@@ -106,23 +112,15 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, CV_OUT std::vect
     }
     CV_Assert(points.size().width > 0);
     CV_Assert((points.size().width % 4) == 0);
-    vector <vector<Point2f>> src_points;
-    Mat bar_points = points.getMat();
-    bar_points = bar_points.reshape(2, 1);
-    for (int i = 0; i < bar_points.size().width; i += 4)
-    {
-        vector <Point2f> tempMat = bar_points.colRange(i, i + 4);
-        if (contourArea(tempMat) > 0.0)
-        {
-            src_points.push_back(tempMat);
-        }
-    }
-    CV_Assert(!src_points.empty());
-    ean_decoder decoder{EAN::TYPE13};
-    vector <std::string> _decoded_info = decoder.rectToResults(inarr, src_points);
+    vector<Point2f> src_points;
+    points.copyTo(src_points);
+    BarDecode bardec;
+    bardec.init(img.getMat(), src_points);
+    bool ok = bardec.decodeMultiplyProcess();
+    const vector<string> &_decoded_info = bardec.getDecodeInformation();
     decoded_info.clear();
-    decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
-    return !decoded_info.empty();
+    decoded_info.assign(_decoded_info.cbegin(), _decoded_info.cend());
+    return ok;
 }
 
 bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT std::vector<std::string> &decoded_info,
@@ -154,8 +152,8 @@ bool BarcodeDetector::decodeDirectly(InputArray img, CV_OUT string &decoded_info
     {
         return false;
     }
-    ean_decoder ean13{EAN::TYPE13};
-    decoded_info = ean13.decodeDirectly(inarr);
+    std::unique_ptr<AbsBarDecoder> decoder{std::make_unique<Ean13Decoder>()};
+    decoded_info = decoder->decodeDirectly(inarr);
     if (!decoded_info.empty())
     {
         return false;

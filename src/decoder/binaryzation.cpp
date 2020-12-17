@@ -41,9 +41,8 @@ void adaptBinaryzation(InputArray src, OutputArray &dst)
     Mat center = d_norm_img.rowRange(d_norm_img.rows / 2, d_norm_img.rows / 2 + 1);
     //写入文件
 #ifdef CV_DEBUG
-    using namespace std;
-    ofstream outFile;
-    outFile.open("./../../plot/data.csv", ios::out);
+    std::ofstream outFile;
+    outFile.open("./../../plot/data.csv", std::ios::out);
     for (int i = 0; i < center.cols; i++)
     {
         outFile << center.at<double>(0, i) << ",";
