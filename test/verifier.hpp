@@ -6,6 +6,7 @@
 #define __OPENCV_BARCODE_VERIFIER_HPP__
 
 #include "opencv2/barcode.hpp"
+#include <opencv2/imgcodecs.hpp>
 #include <fstream>
 #include <iostream>
 #include <windows.h>

@@ -18,8 +18,8 @@ limitations under the License.
 
 #include <iostream>
 #include <vector>
+#include <map>
 #include <opencv2/imgproc.hpp>
-#include <opencv2/opencv.hpp>
 
 namespace cv {
 using std::string;
@@ -54,7 +54,7 @@ public:
 class GuardPatternsNotFindException : Exception
 {
 public:
-    explicit GuardPatternsNotFindException(const std::string &msg) : Exception(0, msg, "", __FILE__, __LINE__)
+    explicit GuardPatternsNotFindException(const std::string &error) : Exception(0, error, "", __FILE__, __LINE__)
     {}
 };
 
