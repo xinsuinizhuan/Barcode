@@ -5,7 +5,7 @@
 #define __OPENCV_TEST_PRECOMP_HPP__
 
 #include <gtest/gtest.h>
-#include "barcode.hpp"
+#include "opencv2/barcode.hpp"
 
 
 #endif

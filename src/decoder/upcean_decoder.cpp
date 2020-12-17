@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include <iostream>
-#include "decoder/upcean_decoder.hpp"
+//#include <iostream>
+#include "opencv2/decoder/upcean_decoder.hpp"
 #include <vector>
 #include <array>
 
@@ -140,7 +140,7 @@ UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &poin
     GaussianBlur(bar_img, blur, Size(0, 0), 25);
     addWeighted(bar_img, 2, blur, -1, 0, bar_img);
     bar_img.convertTo(bar_img, CV_8UC1, 1, -20);
-    imshow("preprocess", bar_img);
+//    imshow("preprocess", bar_img);
     threshold(bar_img, bar_img, 155, 255, THRESH_OTSU + THRESH_BINARY);
 #ifdef CV_DEBUG
     imshow("barimg", bar_img);

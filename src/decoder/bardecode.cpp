@@ -13,8 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "decoder/ean13_decoder.hpp"
-#include "decoder/bardecode.hpp"
+#include "opencv2/decoder/ean13_decoder.hpp"
+#include "opencv2/decoder/bardecode.hpp"
 
 namespace cv {
 

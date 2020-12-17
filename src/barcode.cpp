@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 
-#include <decoder/bardecode.hpp>
+#include <opencv2/decoder/bardecode.hpp>
 #include "precomp.hpp"
-#include "barcode.hpp"
+//#include "opencv2/barcode.hpp"
 
 namespace cv {
 namespace barcode {

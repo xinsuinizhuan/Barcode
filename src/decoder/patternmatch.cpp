@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include <iostream>
-#include "decoder/patternmatch.hpp"
+//#include <iostream>
+#include "opencv2/decoder/patternmatch.hpp"
 
 namespace cv {
 // TODO: ADD more functions

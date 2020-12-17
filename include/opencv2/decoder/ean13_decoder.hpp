@@ -17,7 +17,7 @@ limitations under the License.
 #ifndef __OPENCV_BARCODE_EAN13_DECODER_HPP__
 #define __OPENCV_BARCODE_EAN13_DECODER_HPP__
 
-#include "decoder/upcean_decoder.hpp"
+#include "upcean_decoder.hpp"
 
 namespace cv {
 //extern struct EncodePair;

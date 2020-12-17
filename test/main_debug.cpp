@@ -1,7 +1,7 @@
 //
 // Created by nanos on 2020/10/21.
 //
-#include "barcode.hpp"
+#include "opencv2/barcode.hpp"
 #include <direct.h>
 
 void showInfo(cv::Mat frame, std::vector<std::string> infos)

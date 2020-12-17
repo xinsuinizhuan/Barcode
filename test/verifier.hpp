@@ -5,7 +5,7 @@
 #ifndef __OPENCV_BARCODE_VERIFIER_HPP__
 #define __OPENCV_BARCODE_VERIFIER_HPP__
 
-#include "barcode.hpp"
+#include "opencv2/barcode.hpp"
 #include <fstream>
 #include <iostream>
 #include <windows.h>
