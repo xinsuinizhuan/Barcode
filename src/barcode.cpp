@@ -13,9 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-//
-// Created by 97659 on 2020/11/3.
-//
+
 
 #include "precomp.hpp"
 #include "barcode.hpp"
@@ -26,7 +24,7 @@ static bool checkBarInputImage(InputArray img, Mat &gray)
 {
     CV_Assert(!img.empty());
     CV_CheckDepthEQ(img.depth(), CV_8U, "");
-    if (img.cols() <= 20 || img.rows() <= 20)
+    if (img.cols() <= 40 || img.rows() <= 40)
     {
         return false; // image data is not enough for providing reliable results
     }
@@ -43,7 +41,7 @@ static bool checkBarInputImage(InputArray img, Mat &gray)
     return true;
 }
 
-static void updatePointsResult(OutputArray points_, const vector<Point2f> &points)
+static void updatePointsResult(OutputArray points_, const vector <Point2f> &points)
 {
     if (points_.needed())
     {
@@ -89,8 +87,8 @@ bool BarcodeDetector::detect(InputArray img, OutputArray points) const
     bardet.localization();
     if (!bardet.computeTransformationPoints())
     { return false; }
-    vector<vector<Point2f> > pnts2f = bardet.getTransformationPoints();
-    vector<Point2f> trans_points;
+    vector <vector<Point2f>> pnts2f = bardet.getTransformationPoints();
+    vector <Point2f> trans_points;
     for (auto &i : pnts2f)
         for (const auto &j : i)
             trans_points.push_back(j);
@@ -108,12 +106,12 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, CV_OUT std::vect
     }
     CV_Assert(points.size().width > 0);
     CV_Assert((points.size().width % 4) == 0);
-    vector<vector<Point2f> > src_points;
+    vector <vector<Point2f>> src_points;
     Mat bar_points = points.getMat();
     bar_points = bar_points.reshape(2, 1);
     for (int i = 0; i < bar_points.size().width; i += 4)
     {
-        vector<Point2f> tempMat = bar_points.colRange(i, i + 4);
+        vector <Point2f> tempMat = bar_points.colRange(i, i + 4);
         if (contourArea(tempMat) > 0.0)
         {
             src_points.push_back(tempMat);
@@ -121,7 +119,7 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, CV_OUT std::vect
     }
     CV_Assert(!src_points.empty());
     ean_decoder decoder{EAN::TYPE13};
-    vector<std::string> _decoded_info = decoder.rectToResults(inarr, src_points);
+    vector <std::string> _decoded_info = decoder.rectToResults(inarr, src_points);
     decoded_info.clear();
     decoded_info.assign(_decoded_info.begin(), _decoded_info.end());
     return !decoded_info.empty();
@@ -136,7 +134,7 @@ bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT std::vector<std::st
         points_.release();
         return false;
     }
-    vector<Point2f> points;
+    vector <Point2f> points;
     bool ok = this->detect(img, points);
     if (!ok)
     {

@@ -17,9 +17,8 @@ limitations under the License.
 #define __OPENCV_PRECOMP_H__
 
 #include <opencv2/imgproc.hpp>
-#include <opencv2/opencv.hpp>
+#include "barcode.hpp"
 
-#include <deque>
-#include <array>
+
 
 #endif

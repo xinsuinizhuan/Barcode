@@ -20,14 +20,21 @@ limitations under the License.
 #define __OPENCV_BARCODE_DETECT_HPP__
 constexpr double PI = 3.1415926535897932;
 
-#include "opencv2/opencv.hpp"
+//#include "opencv2/opencv.hpp"
+#include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/dnn/dnn.hpp"
+
+
+
+
 #include <utility>
 #include <vector>
 
 namespace cv {
 
 using std::vector;
-using std::pair;
+//using std::pair;
 
 class Detect
 {
@@ -68,28 +75,11 @@ protected:
             (Mat_<uint8_t>(3, 3) << 0, 255, 0, 0, 0, 0, 0, 255, 0)};
 
     void preprocess();
-
-    static int compare(const RotatedRect &r1, const RotatedRect &r2)
-    {
-        return r1.size.area() > r2.size.area();
-    }
-
-//        void normalizeRegion(RotatedRect &rect);
-
     void calConsistency(int window_size);
-
-
     static inline bool isValidCoord(const Point &coord, const Size &limit);
-
     static inline double computeOrientation(float y, float x);
-
-
-    //void locateBarcodes();
-
     void regionGrowing(int window_size);
-
     void barcodeErode();
-
 };
 }
 

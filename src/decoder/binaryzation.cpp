@@ -193,7 +193,7 @@ void enhanceLocalBinaryzation(InputArray src, OutputArray &dst, int window_size,
     float range[] = {0, 256};
     const float *histRange = {range};
     int hist_size = 256;
-    calcHist(&_src, 1, 0, Mat(), hist, 1, &hist_size, &histRange);
+    calcHist(&_src, 1, nullptr, Mat(), hist, 1, &hist_size, &histRange);
 //        int hist_w = 512, hist_h = 400;
 //        int bin_w = cvRound((double) hist_w / hist_size);
 //        Mat histImage(hist_h, hist_w, CV_8UC3, Scalar(0, 0, 0));

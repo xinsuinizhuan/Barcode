@@ -96,9 +96,9 @@ static float calcRectSum(const Mat &integral, int right_col, int left_col, int t
     float sum;
 
     bottom_right = integral.at<float>(bottom_row, right_col);
-    top_right = (top_row == -1) ? 0 : integral.at<float>(top_row, right_col);
-    top_left = (left_col == -1 || top_row == -1) ? 0 : integral.at<float>(top_row, left_col);
-    bottom_left = (left_col == -1) ? 0 : integral.at<float>(bottom_row, left_col);
+    top_right = integral.at<float>(top_row, right_col);
+    top_left = integral.at<float>(top_row, left_col);
+    bottom_left = integral.at<float>(bottom_row, left_col);
 
     sum = (bottom_right - bottom_left - top_right + top_left);
     return sum;
