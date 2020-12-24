@@ -32,11 +32,17 @@ enum class BarcodeFormat
 {
     EAN_8, EAN_13, UPC_A, UPC_E, UPC_EAN_EXTENSION, NONE
 };
+
+std::ostream &operator<<(std::ostream &out, BarcodeFormat format);
+
 struct Result
 {
     std::string result;
     BarcodeFormat format;
-    Result(){}
+
+    Result()
+    {}
+
     Result(std::string _result, BarcodeFormat _format)
     {
         result = _result;
@@ -47,8 +53,7 @@ struct Result
 class AbsDecoder
 {
 public:
-    virtual std::vector<Result>
-    decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const = 0;
+    virtual std::vector<Result> decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const = 0;
 
     virtual Result decodeImg(const Mat &gray, const std::vector<Point2f> &points) const = 0;
 
@@ -70,14 +75,20 @@ public:
 };
 
 void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &rect);
+
 void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters);
+
 // TODO 详细注释
 constexpr static uint INTEGER_MATH_SHIFT = 8;
 constexpr static int PATTERN_MATCH_RESULT_SCALE_FACTOR = 1 << INTEGER_MATH_SHIFT;
+
 int patternMatch(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividual);
+
 inline int
 patternMatchConsieDistance(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividualVariance);
-static inline int patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance);
+
+static inline int
+patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance);
 
 } // namespace cv
 

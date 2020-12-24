@@ -74,9 +74,9 @@ TEST(integration_testing, ImgUnitTest)
     {
         std::cerr << ex.what() << "No detect pictures\n";
     }
-    for (const auto &result : barcode_info)
+    for (int i = 0;i < barcode_info.size();i ++)
     {
-        std::cout << result << std::endl;
+        std::cout << barcode_info[i] << ", format: " << barcode_format[i] << std::endl;
     }
 #ifdef CV_DEBUG
     cv::imshow("result", frame);

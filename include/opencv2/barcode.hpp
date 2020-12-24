@@ -49,7 +49,7 @@ public:
      * @param decoded_format vector of BarcodeFormat, specifies the type of these barcodes
      */
     CV_WRAP bool decode(const _InputArray &img, const _InputArray &points, vector<std::string> &decoded_info,
-                        vector<BarcodeFormat> decoded_format) const;
+                        vector <BarcodeFormat> &decoded_format) const;
 
     /** @brief Both detects and decodes barcode
 

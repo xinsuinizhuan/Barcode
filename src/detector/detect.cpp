@@ -2,8 +2,9 @@
 // Created by 97659 on 2020/10/14.
 //
 #include "opencv2/detector/detect.hpp"
-
-
+#ifdef CV_DEBUG
+#include "opencv2/opencv.hpp"
+#endif
 namespace cv {
 static constexpr double PI = CV_PI;
 template<int x, typename Type>

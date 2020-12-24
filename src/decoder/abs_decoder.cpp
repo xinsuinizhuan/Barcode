@@ -13,15 +13,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "decoder/abs_decoder.hpp"
+#include "opencv2/decoder/abs_decoder.hpp"
 
 namespace cv {
 
 void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &rects)
 {
     std::vector<Point2f> vertices = rects;
-    int height = cv::norm(vertices[0] - vertices[1]);
-    int width = cv::norm(vertices[1] - vertices[2]);
+    int height = cvRound(norm(vertices[0] - vertices[1]));
+    int width = cvRound(norm(vertices[1] - vertices[2]));
     if (height > width)
     {
         std::swap(height, width);
@@ -96,22 +96,6 @@ int patternMatch(std::vector<int> counters, const std::vector<int> &pattern, uin
     return patternMatchVariance(std::move(counters), pattern, maxIndividual);
 }
 
-inline int
-patternMatchConsieDistance(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividualVariance)
-{
-    uint total = std::accumulate(counters.cbegin(), counters.cend(), 0);
-    uint pattern_length = std::accumulate(pattern.cbegin(), pattern.cend(), 0);
-    if (total < pattern_length)
-    {
-        return std::numeric_limits<int32_t>::max();
-    }
-    int inner_result =
-            static_cast<uint>(std::inner_product(std::cbegin(counters), std::cend(counters), std::cbegin(pattern), 0))
-                    << INTEGER_MATH_SHIFT;
-    int divide_first = std::inner_product(std::cbegin(counters), std::cend(counters), std::cbegin(counters), 0);
-    int divide_second = std::inner_product(std::cbegin(pattern), std::cend(pattern), std::cbegin(pattern), 0);
-    return (1 << INTEGER_MATH_SHIFT) - static_cast<int>(inner_result / std::sqrt(divide_first * divide_second));
-}
 
 static inline int patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance)
 {
@@ -144,5 +128,31 @@ static inline int patternMatchVariance(std::vector<int> counters, const std::vec
         totalVariance += variance;
     }
     return totalVariance / total;
+}
+
+
+std::ostream & operator<<(std::ostream & out, BarcodeFormat format)
+{
+    switch (format)
+    {
+        case BarcodeFormat::EAN_8:
+            out << "EAN_8";
+            break;
+        case BarcodeFormat::EAN_13:
+            out << "EAN_13";
+            break;
+        case BarcodeFormat::UPC_E:
+            out << "UPC_E";
+            break;
+        case BarcodeFormat::UPC_A:
+            out << "UPC_A";
+            break;
+        case BarcodeFormat::UPC_EAN_EXTENSION:
+            out << "UPC_EAN_EXTENSION";
+            break;
+        default:
+            out << "NONE";
+    }
+    return out;
 }
 }

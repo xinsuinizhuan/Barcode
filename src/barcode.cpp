@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 
-#include <decoder/bardecode.hpp>
+#include <opencv2/decoder/bardecode.hpp>
 #include "precomp.hpp"
-#include "barcode.hpp"
+#include "opencv2/barcode.hpp"
 
 namespace cv {
 namespace barcode {
@@ -104,7 +104,7 @@ bool BarcodeDetector::detect(InputArray img, OutputArray points) const
 }
 
 bool BarcodeDetector::decode(const _InputArray &img, const _InputArray &points, vector <std::string> &decoded_info,
-                             vector <BarcodeFormat> decoded_format) const
+                             vector <BarcodeFormat> &decoded_format) const
 {
     Mat inarr;
     if (!checkBarInputImage(img, inarr))
@@ -120,6 +120,7 @@ bool BarcodeDetector::decode(const _InputArray &img, const _InputArray &points, 
     bool ok = bardec.decodeMultiplyProcess();
     const vector<Result> &_decoded_info = bardec.getDecodeInformation();
     decoded_info.clear();
+    decoded_format.clear();
     for(auto info : _decoded_info)
     {
         decoded_info.emplace_back(info.result);

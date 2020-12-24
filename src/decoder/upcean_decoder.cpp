@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include <iostream>
-#include "decoder/upcean_decoder.hpp"
+#include "opencv2/decoder/upcean_decoder.hpp"
 #include <vector>
 #include <array>
 
@@ -140,7 +139,7 @@ UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &points,
     GaussianBlur(gray, blur, Size(0, 0), 25);
     addWeighted(gray, 2, blur, -1, 0, gray);
     gray.convertTo(gray, CV_8UC1, 1, -20);
-    imshow("preprocess", gray);
+    //imshow("preprocess", gray);
     threshold(gray, gray, 155, 255, THRESH_OTSU + THRESH_BINARY);
 #ifdef CV_DEBUG
     imshow("barimg", gray);
@@ -193,18 +192,18 @@ UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &points,
         {
             total_vote++;
             result_vote[barcode.result] += 1;
-            format_vote[barcode.format] += 1;
             if (result_vote[barcode.result] > vote_cnt)
             {
                 vote_cnt = result_vote[barcode.result];
                 if ((vote_cnt << 1) > total_vote)
                 {
                     max_result = barcode.result;
+                    max_format = barcode.format;
                 }
             }
         }
     }
-    return Result(max_result, barcode.format);
+    return Result(max_result, max_format);
 }
 
 Result UPCEANDecoder::decodeLine(const Mat &bar_img, const Point2i &begin, const Point2i &end) const
