@@ -47,23 +47,23 @@ public:
      * Order of four points in vector<Point2f> is bottomLeft, topLeft, topRight, bottomRight.
      * @param decoded_info UTF8-encoded output vector of string or empty vector of string if the codes cannot be decoded.
      */
-    CV_WRAP bool decode(InputArray img, InputArray points, CV_OUT std::vector<std::string> &decoded_info) const;
+    CV_WRAP bool decode(InputArray img, InputArray points, CV_OUT vector <Result> &decoded_info) const;
 
     /** @brief Both detects and decodes barcode
 
      * @param img grayscale or color (BGR) image containing barcode.
      * @param decoded_info UTF8-encoded output vector of string(s) or empty vector of string if the codes cannot be decoded.
-     * @param points optional output vector of vertices of the found  barcode rectangle. Will be empty if not found.
+     * @param points_ optional output vector of vertices of the found  barcode rectangle. Will be empty if not found.
      */
-    CV_WRAP bool detectAndDecode(InputArray img, CV_OUT std::vector<std::string> &decoded_info,
-                                 OutputArray points = noArray()) const;
+    CV_WRAP bool detectAndDecode(InputArray img, CV_OUT vector <Result> &decoded_info,
+                                 OutputArray points_ = noArray()) const;
 
     /** @brief Decode without detects
      *
      * @param img grayscale or color (BGR) image containing barcode.
      * @param decoded_info UTF8-encoded output of string or empty string if the codes do not contain barcode.
     */
-    CV_WRAP bool decodeDirectly(InputArray img, CV_OUT std::string &decoded_info) const;
+    CV_WRAP bool decodeDirectly(InputArray img, CV_OUT Result &decoded_info) const;
 
 
 protected:

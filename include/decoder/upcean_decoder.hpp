@@ -16,12 +16,11 @@ limitations under the License.
 #ifndef __OPENCV_BARCODE_UPCEAN_DECODER_HPP__
 #define __OPENCV_BARCODE_UPCEAN_DECODER_HPP__
 
-#include "absbar_decoder.hpp"
+#include "abs_decoder.hpp"
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core.hpp>
 #include <utility>
 #include <string>
-#include "patternmatch.hpp"
 
 /**
  *   upcean_decoder the abstract basic class for decode formats,
@@ -31,18 +30,18 @@ namespace cv {
 using std::string;
 using std::vector;
 
-class UPCEANDecoder : public AbsBarDecoder
+class UPCEANDecoder : public AbsDecoder
 {
 
 public:
     ~UPCEANDecoder() override = default;
 
-    std::vector<std::string>
+    std::vector<Result>
     decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const override;
 
-    std::string decodeImg(const Mat &gray, const std::vector<Point2f> &points) const override;
+    Result decodeImg(const Mat &gray, const std::vector<Point2f> &points) const override;
 
-    string decodeImg(InputArray img) const override;
+    Result decodeImg(InputArray img) const override;
 
 protected:
     int bitsNum;
@@ -57,14 +56,14 @@ protected:
 
     static std::pair<int, int> findStartGuardPatterns(const std::vector<uchar> &row);
 
-    std::string decodeImg(const Mat &gray, const std::vector<Point2f> &points, int PART, int directly) const;
+    Result rectToResult(const Mat &gray, const std::vector<Point2f> &points, int PART, int directly) const;
 
-    std::string lineDecodeToString(const Mat &bar_img, const Point2i &begin, const Point2i &end) const;
+    Result decodeLine(const Mat &bar_img, const Point2i &begin, const Point2i &end) const;
 
     void
     linesFromRect(const Size2i &shape, int angle, int PART, std::vector<std::pair<Point2i, Point2i>> &results) const;
 
-    virtual std::string decode(std::vector<uchar> bar, int start) const = 0;
+    virtual Result decode(std::vector<uchar> bar, int start) const = 0;
 
     virtual bool isValid(std::string result) const = 0;
 };
@@ -77,6 +76,10 @@ const std::vector<int> &BEGIN_PATTERN();
 const std::vector<int> &MIDDLE_PATTERN();
 
 const std::array<char, 32> &FIRST_CHAR_ARRAY();
+
+constexpr static uint PATTERN_LENGTH = 4;
+constexpr static int MAX_AVG_VARIANCE = static_cast<int>(PATTERN_MATCH_RESULT_SCALE_FACTOR * 0.48f);
+constexpr static int MAX_INDIVIDUAL_VARIANCE = static_cast<int>(PATTERN_MATCH_RESULT_SCALE_FACTOR * 0.7f);
 } // namespace cv
 
 #endif //!  __OPENCV_BARCODE_UPCEAN_DECODER_HPP__

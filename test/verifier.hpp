@@ -126,11 +126,11 @@ void Verifier::verify()
         total_case_num++;
         cv::Mat img = cv::imread(data_dir+img_name);
         std::vector<cv::Point2f> points;
-        stringvec infos;
+        std::vector<cv::Result> infos;
         barcodeDetector.detectAndDecode(img, infos, points);
         if(infos.size() == 1)// 暂时先这么干
         {
-            std::string result = infos[0];
+            std::string result = infos[0].result;
             if (dataset.find(img_name) != dataset.end())
             {
                 if (result == dataset[img_name])
@@ -139,7 +139,7 @@ void Verifier::verify()
                 }
                 else
                 {
-                    printf("wrong case:%s, wrong result:%s, right result:%s\n", img_name.c_str(), infos[0].c_str(),
+                    printf("wrong case:%s, wrong result:%s, right result:%s\n", img_name.c_str(), infos[0].result.c_str(),
                            dataset[img_name].c_str());
                 }
             }

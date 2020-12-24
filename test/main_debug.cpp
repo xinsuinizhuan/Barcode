@@ -18,6 +18,24 @@ void showInfo(cv::Mat frame, std::vector<std::string> infos)
     }
 }
 
+void showFormatAndResult(cv::Mat frame, cv::Result result, cv::Point2f point)
+{
+    using namespace cv;
+    std::string format;
+    switch (result.format)
+    {
+        case BarcodeFormat::EAN_13:
+            format = "EAN_13";
+            break;
+        case BarcodeFormat::EAN_8:
+            format = "EAN_8";
+            break;
+        default:
+            format = "NONE";
+    }
+    cv::putText(frame, result.result + " format: " + format, point, cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
+}
+
 
 int main(int argc, char **argv)
 {
@@ -36,7 +54,7 @@ int main(int argc, char **argv)
     Mat frame;
     clock_t start;
     std::vector<Point2f> points;
-    std::vector<string> decoded_info;
+    std::vector<Result> decoded_info;
     string fps;
     bool ok;
 
@@ -75,19 +93,20 @@ int main(int argc, char **argv)
                 {
                     size_t bar_idx = i / 4;
                     vector<Point> barcode_contour(points.begin() + i, points.begin() + i + 4);
-                    std::cout << decoded_info[bar_idx] << std::endl;
-                    if (has_result && decoded_info[bar_idx].length() == 13 && right_result != decoded_info[bar_idx])
+                    std::cout << decoded_info[bar_idx].result << std::endl;
+                    if (has_result && decoded_info[bar_idx].result.length() == 13 && right_result != decoded_info[bar_idx].result)
                     {
-                        if (img_map.find(decoded_info[bar_idx]) == img_map.end())
+                        if (img_map.find(decoded_info[bar_idx].result) == img_map.end())
                         {
                             std::string dir = test_dir + "wrong_decode/";
-                            img_map[decoded_info[bar_idx]] = true;
-                            imwrite(dir + decoded_info[bar_idx] + postfix, frame);
-                            wrong_results.push_back(decoded_info[bar_idx]);
+                            img_map[decoded_info[bar_idx].result] = true;
+                            imwrite(dir + decoded_info[bar_idx].result + postfix, frame);
+                            wrong_results.push_back(decoded_info[bar_idx].result);
                         }
                     }
-                    cv::putText(frame, decoded_info[bar_idx], barcode_contour[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
-                    if (decoded_info[bar_idx] == "ERROR")
+                    showFormatAndResult(frame, decoded_info[bar_idx], barcode_contour[2]);
+
+                    if (decoded_info[bar_idx].result == "ERROR")
                     {
                         for (int j = 0; j < 4; j++)
                             line(frame, barcode_contour[j], barcode_contour[(j + 1) % 4], Scalar(0, 0, 255), 2);
@@ -158,10 +177,10 @@ int main(int argc, char **argv)
             {
                 size_t bar_idx = i / 4;
                 vector<Point> barcode_contour(points.begin() + i, points.begin() + i + 4);
-                std::cout << decoded_info[bar_idx] << std::endl;
+                std::cout << decoded_info[bar_idx].result << std::endl;
 
-                cv::putText(frame, decoded_info[bar_idx], barcode_contour[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
-                if (decoded_info[bar_idx] == "ERROR")
+                cv::putText(frame, decoded_info[bar_idx].result, barcode_contour[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);
+                if (decoded_info[bar_idx].result == "ERROR")
                 {
                     for (int j = 0; j < 4; j++)
                         line(frame, barcode_contour[j], barcode_contour[(j + 1) % 4], Scalar(0, 0, 255), 2);

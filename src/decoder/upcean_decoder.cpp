@@ -104,11 +104,11 @@ int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, std::vector<int> &
 
 /*Input a mat and it's position rect, return the decode result */
 
-std::vector<std::string>
+std::vector<Result>
 UPCEANDecoder::decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const
 {
     CV_Assert(mat.channels() == 1);
-    std::vector<string> will_return;
+    std::vector<Result> will_return;
     Mat gray = mat.clone();
     for (const auto &points : pointsArrays)
     {
@@ -121,20 +121,20 @@ UPCEANDecoder::decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &poin
         {
             resize(bar_img, bar_img, Size(500, bar_img.rows));
         }
-        string max_result = decodeImg(bar_img, points, DIVIDE_PART, false);
+        Result max_result = rectToResult(bar_img, points, DIVIDE_PART, false);
         will_return.push_back(max_result);
     }
     return will_return;
 }
 
-std::string UPCEANDecoder::decodeImg(const Mat &gray, const vector<Point2f> &points) const
+Result UPCEANDecoder::decodeImg(const Mat &gray, const vector<Point2f> &points) const
 {
-    return decodeImg(gray, points, DIVIDE_PART, false);
+    return rectToResult(gray, points, DIVIDE_PART, false);
 }
 
 // input image is
-std::string
-UPCEANDecoder::decodeImg(const Mat &gray, const std::vector<Point2f> &points, int PART, int directly) const
+Result
+UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &points, int PART, int directly) const
 {
     Mat blur;
     GaussianBlur(gray, blur, Size(0, 0), 25);
@@ -146,14 +146,16 @@ UPCEANDecoder::decodeImg(const Mat &gray, const std::vector<Point2f> &points, in
     imshow("barimg", gray);
 #endif
     std::map<std::string, int> result_vote;
+    std::map<BarcodeFormat, int> format_vote;
     int vote_cnt = 0;
     int total_vote = 0;
     std::string max_result = "ERROR";
+    BarcodeFormat max_format = BarcodeFormat::NONE;
     auto rect_size_height = norm(points[0] - points[1]);
     auto rect_size_width = norm(points[1] - points[2]);
     if (max(rect_size_height, rect_size_width) < this->bitsNum)
     {
-        return max_result;
+        return Result{"ERROR", BarcodeFormat::NONE};
     }
 #ifdef CV_DEBUG
     Mat bar_copy = gray.clone();
@@ -165,13 +167,14 @@ UPCEANDecoder::decodeImg(const Mat &gray, const std::vector<Point2f> &points, in
     {
         linesFromRect(shape, false, PART, begin_and_ends);
     }
-    std::string result;
+    Result barcode;
     for (const auto &i: begin_and_ends)
     {
         std::vector<uchar> middle;
         const auto &begin = i.first;
         const auto &end = i.second;
-        result = lineDecodeToString(gray, begin, end);
+        barcode = decodeLine(gray, begin, end);
+        barcode.result = barcode.result;
 #ifdef CV_DEBUG
         try
         {
@@ -186,26 +189,27 @@ UPCEANDecoder::decodeImg(const Mat &gray, const std::vector<Point2f> &points, in
         imshow("barscan", bar_copy);
         //cv::waitKey(0);
 #endif
-        if (result.size() == this->digitNumber)
+        if (barcode.result.size() == this->digitNumber)
         {
             total_vote++;
-            result_vote[result] += 1;
-            if (result_vote[result] > vote_cnt)
+            result_vote[barcode.result] += 1;
+            format_vote[barcode.format] += 1;
+            if (result_vote[barcode.result] > vote_cnt)
             {
-                vote_cnt = result_vote[result];
+                vote_cnt = result_vote[barcode.result];
                 if ((vote_cnt << 1) > total_vote)
                 {
-                    max_result = result;
+                    max_result = barcode.result;
                 }
             }
         }
     }
-    return max_result;
+    return Result(max_result, barcode.format);
 }
 
-std::string UPCEANDecoder::lineDecodeToString(const Mat &bar_img, const Point2i &begin, const Point2i &end) const
+Result UPCEANDecoder::decodeLine(const Mat &bar_img, const Point2i &begin, const Point2i &end) const
 {
-    std::string result;
+    Result result;
     std::vector<uchar> middle;
     LineIterator line = LineIterator(bar_img, begin, end);
     middle.reserve(line.count);
@@ -214,7 +218,7 @@ std::string UPCEANDecoder::lineDecodeToString(const Mat &bar_img, const Point2i 
         middle.push_back(bar_img.at<uchar>(line.pos()));
     }
     result = this->decode(middle, 0);
-    if (result.size() != this->digitNumber)
+    if (result.result.size() != this->digitNumber)
     {
         result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
     }
@@ -251,14 +255,14 @@ void UPCEANDecoder::linesFromRect(const Size2i &shape, int angle, int PART,
 }
 
 
-std::string UPCEANDecoder::decodeImg(InputArray img) const
+Result UPCEANDecoder::decodeImg(InputArray img) const
 {
     auto Mat = img.getMat();
     auto gray = Mat.clone();
     constexpr int PART = 50;
     std::vector<Point2f> real_rect{
             Point2f(0, Mat.rows), Point2f(0, 0), Point2f(Mat.cols, 0), Point2f(Mat.cols, Mat.rows)};
-    string result = decodeImg(Mat, real_rect, PART, true);
+    Result result = rectToResult(Mat, real_rect, PART, true);
     return result;
 }
 

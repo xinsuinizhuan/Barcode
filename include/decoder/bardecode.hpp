@@ -20,6 +20,7 @@ limitations under the License.
 #include <vector>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
+#include "abs_decoder.hpp"
 
 namespace cv {
 
@@ -31,7 +32,7 @@ class BarDecode
 public:
     void init(const Mat &src, const vector<Point2f> &points);
 
-    const vector<std::string> &getDecodeInformation()
+    const vector <Result> & getDecodeInformation()
     { return result_info; }
 
     bool decodingProcess();
@@ -41,7 +42,7 @@ public:
 private:
     vector<vector<Point2f>> src_points;
     Mat original;
-    vector<std::string> result_info;
+    vector<Result> result_info;
 };
 }
 #endif //! __OPENCV_BARCODE_BARDECODE_HPP__

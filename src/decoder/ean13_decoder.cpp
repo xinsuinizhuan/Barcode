@@ -29,13 +29,13 @@ static constexpr int constexpr_digitNumber = 13;
 * it scan begin at the data[start]
 */
 // TODO!, need fix the param: stars's usage
-string Ean13Decoder::decode(vector<uchar> data, int start) const
+Result Ean13Decoder::decode(vector<uchar> data, int start) const
 {
     string result;
     char decode_result[constexpr_digitNumber + 1]{'\0'};
     if (data.size() - start < constexpr_bitsNum)
     {
-        return "size wrong";
+        return Result("size wrong", BarcodeFormat::NONE);
     }
     try
     {
@@ -49,7 +49,7 @@ string Ean13Decoder::decode(vector<uchar> data, int start) const
             int bestMatch = decodeDigit(data, counters, start, get_AB_Patterns());
             if (bestMatch == -1)
             {
-                return "ERROR";
+                return Result("ERROR", BarcodeFormat::NONE);
             }
             decode_result[i] = static_cast<char>('0' + bestMatch % 10);
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
@@ -65,7 +65,7 @@ string Ean13Decoder::decode(vector<uchar> data, int start) const
             int bestMatch = decodeDigit(data, counters, start, get_A_or_C_Patterns());
             if (bestMatch == -1)
             {
-                return "ERROR";
+                return Result("ERROR", BarcodeFormat::NONE);
             }
             decode_result[i + 7] = static_cast<char>('0' + bestMatch);
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
@@ -74,13 +74,13 @@ string Ean13Decoder::decode(vector<uchar> data, int start) const
         result = string(decode_result);
         if (!isValid(result))
         {
-            return "Wrong: " + result.append(string(constexpr_digitNumber - result.size(), ' '));
+            return Result("Wrong: " + result.append(string(constexpr_digitNumber - result.size(), ' ')), BarcodeFormat::NONE);
         }
     } catch (GuardPatternsNotFindException &e)
     {
-        return "ERROR";
+        return Result("ERROR", BarcodeFormat::NONE);
     }
-    return result;
+    return Result(result, BarcodeFormat::EAN_13);
 }
 
 

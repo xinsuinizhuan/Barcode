@@ -38,7 +38,7 @@ void BarDecode::init(const cv::Mat &src, const std::vector<cv::Point2f> &points)
 
 bool BarDecode::decodingProcess()
 {
-    std::unique_ptr<AbsBarDecoder> decoder{std::make_unique<Ean13Decoder>()};
+    std::unique_ptr<AbsDecoder> decoder{std::make_unique<Ean13Decoder>()};
     result_info = decoder->decodeImg(original, src_points);
     return !result_info.empty();
 }
@@ -49,8 +49,8 @@ bool BarDecode::decodeMultiplyProcess()
     {
     public:
         ParallelBarCodeDecodeProcess(Mat &inarr_, vector<vector<Point2f>> &src_points_,
-                                     vector<std::string> &decoded_info_) : inarr(inarr_), src_points(src_points_),
-                                                                           decoded_info(decoded_info_)
+                                     vector <Result> &decoded_info_) : inarr(inarr_), src_points(src_points_),
+                                                                       decoded_info(decoded_info_)
         {
             for (int i = 0; i < src_points.size(); ++i)
             {
@@ -76,9 +76,9 @@ bool BarDecode::decodeMultiplyProcess()
 
     private:
         Mat &inarr;
-        vector<std::string> &decoded_info;
+        vector<Result> &decoded_info;
         vector<vector<Point2f> > &src_points;
-        vector<std::unique_ptr<AbsBarDecoder>> decoder;
+        vector<std::unique_ptr<AbsDecoder>> decoder;
     };
     result_info.clear();
     result_info.resize(src_points.size());

@@ -1,6 +1,22 @@
 #include "test_precomp.hpp"
 #include "verifier.hpp"
 
+std::string enumToString(cv::BarcodeFormat format)
+{
+    using namespace cv;
+    switch(format)
+    {
+        case BarcodeFormat::EAN_13:
+            return "EAN_13";
+        case BarcodeFormat::EAN_8:
+            return "EAN_8";
+        case BarcodeFormat::UPC_E:
+            return "UPC_E";
+        default:
+            return "NONE";
+    }
+}
+
 TEST(integration_testing, detect_and_decode)
 {
     std::string pre_path = R"(./../../)";
@@ -41,4 +57,31 @@ TEST(integration_testing, detect_and_decode)
     ASSERT_TRUE(correctness >= last_correctness - 0.00001);
 }
 
+TEST(integration_testing, ImgUnitTest)
+{
+    std::string img_path = R"(../../test/data/integration_test_data/1.jpg)";
+    cv::barcode::BarcodeDetector bardet;
+    cv::Mat frame = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
+    cv::Mat decodeFrame = frame.clone();
+    std::vector<cv::RotatedRect> rects;
+    std::vector<cv::Point2f> points;
+    std::vector<cv::Result> results;
+    try
+    {
+        bardet.detectAndDecode(frame, results,points);
+    } catch (cv::Exception &ex)
+    {
+        std::cerr << ex.what() << "No detect pictures\n";
+    }
+    for (const auto &result : results)
+    {
+        std::cout << result.result << std::endl;
+        std::cout << enumToString(result.format) << std::endl;
+    }
+#ifdef CV_DEBUG
+    cv::imshow("result", frame);
+    cv::imshow("resultdecode", decodeFrame);
+    cv::waitKey(0);
+#endif
+}
 

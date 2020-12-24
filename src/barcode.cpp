@@ -103,7 +103,7 @@ bool BarcodeDetector::detect(InputArray img, OutputArray points) const
     return true;
 }
 
-bool BarcodeDetector::decode(InputArray img, InputArray points, CV_OUT std::vector<std::string> &decoded_info) const
+bool BarcodeDetector::decode(InputArray img, InputArray points, CV_OUT vector <Result> &decoded_info) const
 {
     Mat inarr;
     if (!checkBarInputImage(img, inarr))
@@ -117,13 +117,13 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, CV_OUT std::vect
     BarDecode bardec;
     bardec.init(img.getMat(), src_points);
     bool ok = bardec.decodeMultiplyProcess();
-    const vector<string> &_decoded_info = bardec.getDecodeInformation();
+    const vector<Result> &_decoded_info = bardec.getDecodeInformation();
     decoded_info.clear();
     decoded_info.assign(_decoded_info.cbegin(), _decoded_info.cend());
     return ok;
 }
 
-bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT std::vector<std::string> &decoded_info,
+bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT vector <Result> &decoded_info,
                                       OutputArray points_) const
 {
     Mat inarr;
@@ -145,16 +145,16 @@ bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT std::vector<std::st
     return ok;
 }
 
-bool BarcodeDetector::decodeDirectly(InputArray img, CV_OUT string &decoded_info) const
+bool BarcodeDetector::decodeDirectly(InputArray img, CV_OUT Result &decoded_info) const
 {
     Mat inarr;
     if (!checkBarInputImage(img, inarr))
     {
         return false;
     }
-    std::unique_ptr<AbsBarDecoder> decoder{std::make_unique<Ean13Decoder>()};
+    std::unique_ptr<AbsDecoder> decoder{std::make_unique<Ean13Decoder>()};
     decoded_info = decoder->decodeImg(inarr);
-    if (!decoded_info.empty())
+    if (!decoded_info.result.empty())
     {
         return false;
     }
