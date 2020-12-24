@@ -65,18 +65,18 @@ TEST(integration_testing, ImgUnitTest)
     cv::Mat decodeFrame = frame.clone();
     std::vector<cv::RotatedRect> rects;
     std::vector<cv::Point2f> points;
-    std::vector<cv::Result> results;
+    std::vector<std::string> barcode_info;
+    std::vector<cv::BarcodeFormat> barcode_format;
     try
     {
-        bardet.detectAndDecode(frame, results,points);
+        bardet.detectAndDecode(frame, barcode_info,barcode_format , points);
     } catch (cv::Exception &ex)
     {
         std::cerr << ex.what() << "No detect pictures\n";
     }
-    for (const auto &result : results)
+    for (const auto &result : barcode_info)
     {
-        std::cout << result.result << std::endl;
-        std::cout << enumToString(result.format) << std::endl;
+        std::cout << result << std::endl;
     }
 #ifdef CV_DEBUG
     cv::imshow("result", frame);

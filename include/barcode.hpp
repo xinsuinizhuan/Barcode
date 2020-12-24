@@ -46,24 +46,29 @@ public:
      * For N detected barcodes, the dimensions of this array should be [N][4].
      * Order of four points in vector<Point2f> is bottomLeft, topLeft, topRight, bottomRight.
      * @param decoded_info UTF8-encoded output vector of string or empty vector of string if the codes cannot be decoded.
+     * @param decoded_format vector of BarcodeFormat, specifies the type of these barcodes
      */
-    CV_WRAP bool decode(InputArray img, InputArray points, CV_OUT vector <Result> &decoded_info) const;
+    CV_WRAP bool decode(const _InputArray &img, const _InputArray &points, vector<std::string> &decoded_info,
+                        vector<BarcodeFormat> decoded_format) const;
 
     /** @brief Both detects and decodes barcode
 
      * @param img grayscale or color (BGR) image containing barcode.
      * @param decoded_info UTF8-encoded output vector of string(s) or empty vector of string if the codes cannot be decoded.
+     * @param decoded_format vector of BarcodeFormat, specifies the type of these barcodes
      * @param points_ optional output vector of vertices of the found  barcode rectangle. Will be empty if not found.
      */
-    CV_WRAP bool detectAndDecode(InputArray img, CV_OUT vector <Result> &decoded_info,
-                                 OutputArray points_ = noArray()) const;
+    CV_WRAP bool
+    detectAndDecode(const _InputArray &img, vector<std::string> &decoded_info, vector<BarcodeFormat> &decoded_format,
+                    const _OutputArray &points_ = noArray()) const;
 
     /** @brief Decode without detects
      *
      * @param img grayscale or color (BGR) image containing barcode.
      * @param decoded_info UTF8-encoded output of string or empty string if the codes do not contain barcode.
+     * @param decoded_format vector of BarcodeFormat, specifies the type of these barcodes
     */
-    CV_WRAP bool decodeDirectly(InputArray img, CV_OUT Result &decoded_info) const;
+    CV_WRAP bool decodeDirectly(const _InputArray &img, std::string &decoded_info, BarcodeFormat &decoded_format) const;
 
 
 protected:

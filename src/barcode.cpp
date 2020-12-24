@@ -103,7 +103,8 @@ bool BarcodeDetector::detect(InputArray img, OutputArray points) const
     return true;
 }
 
-bool BarcodeDetector::decode(InputArray img, InputArray points, CV_OUT vector <Result> &decoded_info) const
+bool BarcodeDetector::decode(const _InputArray &img, const _InputArray &points, vector <std::string> &decoded_info,
+                             vector <BarcodeFormat> decoded_format) const
 {
     Mat inarr;
     if (!checkBarInputImage(img, inarr))
@@ -119,12 +120,16 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, CV_OUT vector <R
     bool ok = bardec.decodeMultiplyProcess();
     const vector<Result> &_decoded_info = bardec.getDecodeInformation();
     decoded_info.clear();
-    decoded_info.assign(_decoded_info.cbegin(), _decoded_info.cend());
+    for(auto info : _decoded_info)
+    {
+        decoded_info.emplace_back(info.result);
+        decoded_format.emplace_back(info.format);
+    }
     return ok;
 }
 
-bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT vector <Result> &decoded_info,
-                                      OutputArray points_) const
+bool BarcodeDetector::detectAndDecode(const _InputArray &img, vector <std::string> &decoded_info,
+                                      vector <BarcodeFormat> &decoded_format, const _OutputArray &points_) const
 {
     Mat inarr;
     if (!checkBarInputImage(img, inarr))
@@ -141,20 +146,25 @@ bool BarcodeDetector::detectAndDecode(InputArray img, CV_OUT vector <Result> &de
     }
     updatePointsResult(points_, points);
     decoded_info.clear();
-    ok = this->decode(inarr, points, decoded_info);
+    decoded_format.clear();
+    ok = this->decode(inarr, points, decoded_info, decoded_format);
     return ok;
 }
 
-bool BarcodeDetector::decodeDirectly(InputArray img, CV_OUT Result &decoded_info) const
+bool
+BarcodeDetector::decodeDirectly(const _InputArray &img, std::string &decoded_info, BarcodeFormat &decoded_format) const
 {
     Mat inarr;
     if (!checkBarInputImage(img, inarr))
     {
         return false;
     }
+    Result _decoded_info;
     std::unique_ptr<AbsDecoder> decoder{std::make_unique<Ean13Decoder>()};
-    decoded_info = decoder->decodeImg(inarr);
-    if (!decoded_info.result.empty())
+    _decoded_info = decoder->decodeImg(inarr);
+    decoded_info = _decoded_info.result;
+    decoded_format = _decoded_info.format;
+    if (decoded_format == BarcodeFormat::NONE || decoded_info.empty())
     {
         return false;
     }
