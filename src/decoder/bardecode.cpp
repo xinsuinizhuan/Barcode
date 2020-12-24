@@ -18,7 +18,7 @@ limitations under the License.
 
 namespace cv {
 
-void BarDecode::init(const cv::Mat &src, const std::vector<cv::Point2f> &points)
+void BarDecode::init(const cv::Mat &src, const std::vector <cv::Point2f> &points)
 {
     //CV_TRACE_FUNCTION();
     original = src.clone();
@@ -27,7 +27,7 @@ void BarDecode::init(const cv::Mat &src, const std::vector<cv::Point2f> &points)
     src_points.clear();
     for (int i = 0; i < points.size(); i += 4)
     {
-        vector<Point2f> tempMat{points.cbegin() + i, points.cbegin() + i + 4};
+        vector <Point2f> tempMat{points.cbegin() + i, points.cbegin() + i + 4};
         if (contourArea(tempMat) > 0.0)
         {
             src_points.push_back(tempMat);
@@ -38,7 +38,7 @@ void BarDecode::init(const cv::Mat &src, const std::vector<cv::Point2f> &points)
 
 bool BarDecode::decodingProcess()
 {
-    std::unique_ptr<AbsBarDecoder> decoder{std::make_unique<Ean13Decoder>()};
+    std::unique_ptr <AbsBarDecoder> decoder(new Ean13Decoder());
     result_info = decoder->rectToResults(original, src_points);
     return !result_info.empty();
 }
@@ -48,17 +48,19 @@ bool BarDecode::decodeMultiplyProcess()
     class ParallelBarCodeDecodeProcess : public ParallelLoopBody
     {
     public:
-        ParallelBarCodeDecodeProcess(Mat &inarr_, vector<vector<Point2f>> &src_points_,
-                                     vector<std::string> &decoded_info_) : inarr(inarr_), src_points(src_points_),
-                                                                           decoded_info(decoded_info_)
+        ParallelBarCodeDecodeProcess(Mat &inarr_, vector <vector<Point2f>> &src_points_,
+                                     vector <std::string> &decoded_info_) : inarr(inarr_), src_points(src_points_),
+                                                                            decoded_info(decoded_info_)
         {
             for (int i = 0; i < src_points.size(); ++i)
             {
-                decoder.push_back(std::make_unique<Ean13Decoder>());
+                decoder.push_back(std::unique_ptr<AbsBarDecoder>(new Ean13Decoder()));
             }
         }
 
-        void operator()(const Range &range) const CV_OVERRIDE
+        void operator()(const Range &range) const
+
+        CV_OVERRIDE
         {
             CV_Assert(inarr.channels() == 1);
             Mat gray = inarr.clone();
@@ -76,9 +78,9 @@ bool BarDecode::decodeMultiplyProcess()
 
     private:
         Mat &inarr;
-        vector<std::string> &decoded_info;
-        vector<vector<Point2f> > &src_points;
-        vector<std::unique_ptr<AbsBarDecoder>> decoder;
+        vector <std::string> &decoded_info;
+        vector <vector<Point2f>> &src_points;
+        vector <std::unique_ptr<AbsBarDecoder>> decoder;
     };
     result_info.clear();
     result_info.resize(src_points.size());

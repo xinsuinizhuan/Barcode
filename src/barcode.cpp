@@ -112,12 +112,12 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, CV_OUT std::vect
     }
     CV_Assert(points.size().width > 0);
     CV_Assert((points.size().width % 4) == 0);
-    vector<Point2f> src_points;
+    vector <Point2f> src_points;
     points.copyTo(src_points);
     BarDecode bardec;
     bardec.init(img.getMat(), src_points);
     bool ok = bardec.decodeMultiplyProcess();
-    const vector<string> &_decoded_info = bardec.getDecodeInformation();
+    const vector <string> &_decoded_info = bardec.getDecodeInformation();
     decoded_info.clear();
     decoded_info.assign(_decoded_info.cbegin(), _decoded_info.cend());
     return ok;
@@ -152,7 +152,7 @@ bool BarcodeDetector::decodeDirectly(InputArray img, CV_OUT string &decoded_info
     {
         return false;
     }
-    std::unique_ptr<AbsBarDecoder> decoder{std::make_unique<Ean13Decoder>()};
+    std::unique_ptr<AbsBarDecoder> decoder(new Ean13Decoder());
     decoded_info = decoder->decodeDirectly(inarr);
     if (!decoded_info.empty())
     {
