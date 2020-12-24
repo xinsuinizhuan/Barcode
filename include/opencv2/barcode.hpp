@@ -17,8 +17,8 @@ limitations under the License.
 #ifndef __OPENCV_BARCODE_HPP__
 #define __OPENCV_BARCODE_HPP__
 
-#include "detector/detect.hpp"
-#include "decoder/ean13_decoder.hpp"
+#include "opencv2/detector/detect.hpp"
+#include "opencv2/decoder/ean13_decoder.hpp"
 
 namespace cv {
 namespace barcode {
