@@ -36,6 +36,10 @@ private:
     vector<int> bbox_indices;
     vector<vector<Point2f>> transformation_points;
 
+    inline void localization_single();
+
+    inline void localization_multi();
+
 public:
     void init(const Mat &src);
 
@@ -53,22 +57,28 @@ protected:
     } purpose = UNCHANGED;
     double coeff_expansion = 1.0;
     int height, width;
-    Mat barcode, resized_barcode, gradient_magnitude, integral_x_sq, integral_y_sq, integral_xy, integral_edges, consistency, orientation, edge_nums;
+    Mat resized_barcode, gradient_magnitude, integral_x_sq, integral_y_sq, integral_xy, integral_edges, consistency, orientation, edge_nums;
     // diagonal, skew_diagonal, horizontal, vertical
     #ifdef CV_DEBUG
     Mat debug_img, debug_proposals;
+    Mat barcode;
     #endif
+
     void preprocess();
 
-    void calConsistency(int window_size);
+    void calConsistency(int window_size, Mat &consistency, Mat &orientation, Mat &edge_nums) const;
 
     static inline bool isValidCoord(const Point &coord, const Size &limit);
 
     static inline double computeOrientation(float y, float x);
 
-    void regionGrowing(int window_size);
+    void regionGrowing(int window_size, const Mat &orientation_arg, const Mat &edge_nums_arg,
+                       vector<RotatedRect> &localization_bbox_arg, vector<float> &bbox_scores_arg,
+                       Mat &consistency_arg) const;
 
-    void barcodeErode();
+    void barcodeErode(Mat &mat) const;
+
+
 };
 }
 

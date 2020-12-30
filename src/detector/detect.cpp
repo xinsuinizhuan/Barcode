@@ -2,8 +2,11 @@
 // Created by 97659 on 2020/10/14.
 //
 #include "opencv2/detector/detect.hpp"
+
 #ifdef CV_DEBUG
+
 #include "opencv2/opencv.hpp"
+
 #endif
 namespace cv {
 static constexpr double PI = CV_PI;
@@ -17,6 +20,8 @@ struct PIDivideX
 {
     static constexpr Type Value = PI / x;
 };
+
+
 //void Detect::normalizeRegion(RotatedRect &rect)
 //{
 //        Point2f start, p, adjust;
@@ -116,7 +121,9 @@ static float calcRectSum(const Mat &integral, int right_col, int left_col, int t
 
 void Detect::init(const Mat &src)
 {
+    #ifdef CV_DEBUG
     barcode = src.clone();
+    #endif
     const double min_side = std::min(src.size().width, src.size().height);
     if (min_side > 1024.0)
     {
@@ -142,7 +149,7 @@ void Detect::init(const Mat &src)
         coeff_expansion = 1.0;
         width = src.size().width;
         height = src.size().height;
-        resized_barcode = barcode.clone();
+        resized_barcode = src.clone();
     }
     medianBlur(resized_barcode, resized_barcode, 3);
 #ifdef CV_DEBUG
@@ -150,33 +157,24 @@ void Detect::init(const Mat &src)
 #endif
 }
 
-
-void Detect::localization()
+inline void Detect::localization_single()
 {
-    localization_bbox.clear();
-    bbox_scores.clear();
-
-    // get integral image
-    preprocess();
-    #ifdef CV_DEBUG
-    debug_proposals = resized_barcode.clone();
-    #endif
     float window_ratio = 0.01f;
     static constexpr float window_ratio_step = 0.02f;
     static constexpr int window_ratio_stepTimes = (13 - 1) / 2; // 6 = (0.13-0.01)/0.02
     int window_size;
     for (size_t i = 0; i < window_ratio_stepTimes; i++)
     {
-        window_size = cvRound(min(width, height) * window_ratio);
+        window_size = cvRound(min(width, height) * (window_ratio));
 #ifdef CV_DEBUG
         //        printf("window ratio: %f\n", window_ratio);
         //        debug_img = resized_barcode.clone();
 #endif
-        calConsistency(window_size);
+        calConsistency(window_size, this->consistency, this->orientation, this->edge_nums);
         #ifdef CV_DEBUG
         //        imshow("block img " + std::to_string(window_ratio), debug_img);
         #endif
-        barcodeErode();
+        barcodeErode(this->consistency);
 #ifdef CV_DEBUG
         //        debug_img = resized_barcode.clone();
         //        for (int y = 0; y < consistency.rows; y++)
@@ -196,14 +194,79 @@ void Detect::localization()
         //        }
         //        imshow("erode block " + std::to_string(window_ratio), debug_img);
 #endif
-        regionGrowing(window_size);
+        regionGrowing(window_size, this->orientation, this->edge_nums, this->localization_bbox, this->bbox_scores,
+                      this->consistency);
         window_ratio += window_ratio_step;
     }
     #ifdef CV_DEBUG
     //    imshow("grow image", debug_proposals);
     #endif
-
 }
+
+inline void Detect::localization_multi()
+{
+    static constexpr float window_ratio_begin = 0.01f;
+    static constexpr float window_ratio_step = 0.02f;
+    static constexpr int window_ratio_stepTimes = (13 - 1) / 2; // 6 = (0.13-0.01)/0.02
+    class ParallelBarCodeDetectProcess : public ParallelLoopBody
+    {
+    public:
+        explicit ParallelBarCodeDetectProcess(Detect &detect) : detect(detect)
+        {
+            width = detect.width;
+            height = detect.height;
+        }
+
+        void operator()(const Range &range) const CV_OVERRIDE
+        {
+            vector<vector<RotatedRect>> loca_bbox_vec(range.end);
+            vector<vector<float>> bbox_score_vec(range.end);
+            for (int s = range.start; s < range.end; s++)
+            {
+                Mat consistency_arg, orientation_arg, edge_nums_arg;
+                int window_size = cvRound(min(width, height) * (window_ratio_begin + static_cast<float>(s) * window_ratio_step));
+                detect.calConsistency(window_size, consistency_arg, orientation_arg, edge_nums_arg);
+                detect.barcodeErode(consistency_arg);
+                detect.regionGrowing(window_size, orientation_arg, edge_nums_arg, loca_bbox_vec[s], bbox_score_vec[s], consistency_arg);
+                //std::tie(detect->localization_bbox[s], detect->bbox_scores[s]) = temp;
+            }
+            for (const auto &vec : loca_bbox_vec)
+            {
+                for (const auto &ele: vec)
+                {
+                    detect.localization_bbox.push_back(ele);
+                }
+            }
+            for (const auto &vec  : bbox_score_vec)
+            {
+                for (const auto &ele: vec)
+                {
+                    detect.bbox_scores.push_back(ele);
+                }
+            }
+        }
+
+    private:
+        int width, height;
+        Detect &detect;
+    };
+    ParallelBarCodeDetectProcess parallelBarCodeDetectProcess(*this);
+    parallel_for_(Range(0, window_ratio_stepTimes), parallelBarCodeDetectProcess);
+}
+
+void Detect::localization()
+{
+    localization_bbox.clear();
+    bbox_scores.clear();
+    // get integral image
+    preprocess();
+    #ifdef CV_DEBUG
+    debug_proposals = resized_barcode.clone();
+    #endif
+    //localization_single();
+    localization_multi();
+}
+
 
 bool Detect::computeTransformationPoints()
 {
@@ -261,11 +324,10 @@ void Detect::preprocess()
     for (int y = 0; y < height; y++)
     {
         //pixels_position.clear();
-        auto *x_row = scharr_x.ptr<float_t>(y);
-        auto *y_row = scharr_y.ptr<float_t>(y);
-        auto *magnitude_row = gradient_magnitude.ptr<uint8_t>(y);
-        int pos = 0;
-        for (; pos < width; pos++)
+        auto *const x_row = scharr_x.ptr<float_t>(y);
+        auto *const y_row = scharr_y.ptr<float_t>(y);
+        auto *const magnitude_row = gradient_magnitude.ptr<uint8_t>(y);
+        for (int pos = 0; pos < width; pos++)
         {
             if (magnitude_row[pos] == 0)
             {
@@ -280,15 +342,15 @@ void Detect::preprocess()
             }
         }
     }
-
     integral(scharr_x, temp, integral_x_sq, CV_32F, CV_32F);
     integral(scharr_y, temp, integral_y_sq, CV_32F, CV_32F);
     integral(scharr_x.mul(scharr_y), integral_xy, temp, CV_32F, CV_32F);
-
-
 }
 
-void Detect::calConsistency(int window_size)
+
+// Change consistency orientation edge_nums
+// depend on width height integral_edges integral_x_sq integral_y_sq integral_xy
+void Detect::calConsistency(int window_size, Mat &consistency, Mat &orientation, Mat &edge_nums) const
 {
     static constexpr float THRESHOLD_CONSISTENCY = 0.85f;
     int right_col, left_col, top_row, bottom_row;
@@ -354,7 +416,12 @@ void Detect::calConsistency(int window_size)
     }
 }
 
-void Detect::regionGrowing(int window_size)
+// will change localization_bbox bbox_scores
+// will change consistency,
+// depend on consistency orientation edge_nums
+void Detect::regionGrowing(int window_size, const Mat &orientation_arg, const Mat &edge_nums_arg,
+                           vector<RotatedRect> &localization_bbox_arg, vector<float> &bbox_scores_arg,
+                           Mat &consistency_arg) const
 {
     static constexpr float LOCAL_THRESHOLD_CONSISTENCY = 0.98, THRESHOLD_RADIAN = PIDivideX<float, 40>::Value, THRESHOLD_BLOCK_NUM = 20, LOCAL_RATIO = 0.4;
     Point pt_to_grow, pt;                       //待生长点位置
@@ -374,13 +441,12 @@ void Detect::regionGrowing(int window_size)
                                       {-1, 1},
                                       {-1, 0}};
     vector<Point2f> growingPoints, growingImgPoints;
-    for (int y = 0; y < consistency.rows; y++)
+    for (int y = 0; y < consistency_arg.rows; y++)
     {
         //pixels_position.clear();
-        auto *consistency_row = consistency.ptr<uint8_t>(y);
+        auto *consistency_row = consistency_arg.ptr<uint8_t>(y);
 
-        int x = 0;
-        for (; x < consistency.cols; x++)
+        for (int x = 0; x < consistency_arg.cols; x++)
         {
             if (consistency_row[x] == 0)
             {
@@ -391,18 +457,18 @@ void Detect::regionGrowing(int window_size)
             growingPoints.clear();
             growingImgPoints.clear();
             pt = Point2d(x, y);
-            cur_value = orientation.at<float_t>(pt);
+            cur_value = orientation_arg.at<float_t>(pt);
             sin_sum = sin(2 * cur_value);
             cos_sum = cos(2 * cur_value);
             counter = 1;
-            edge_num = edge_nums.at<float_t>(pt);
+            edge_num = edge_nums_arg.at<float_t>(pt);
             growingPoints.push_back(pt);
             growingImgPoints.push_back(pt);
             while (!growingPoints.empty())
             {
                 pt = growingPoints.back();
                 growingPoints.pop_back();
-                src_value = orientation.at<float_t>(pt);
+                src_value = orientation_arg.at<float_t>(pt);
 
                 //growing in eight directions
                 for (int i = 0; i < 9; ++i)
@@ -410,24 +476,24 @@ void Detect::regionGrowing(int window_size)
                     pt_to_grow.x = pt.x + DIR[i][0];
                     pt_to_grow.y = pt.y + DIR[i][1];
                     //check if out of boundary
-                    if (!isValidCoord(pt_to_grow, consistency.size()))
+                    if (!isValidCoord(pt_to_grow, consistency_arg.size()))
                     {
                         continue;
                     }
 
-                    if (consistency.at<uint8_t>(pt_to_grow) == 0)
+                    if (consistency_arg.at<uint8_t>(pt_to_grow) == 0)
                     {
                         continue;
                     }
-                    cur_value = orientation.at<float_t>(pt_to_grow);
+                    cur_value = orientation_arg.at<float_t>(pt_to_grow);
                     if (abs(cur_value - src_value) < THRESHOLD_RADIAN ||
                         abs(cur_value - src_value) > PI - THRESHOLD_RADIAN)
                     {
-                        consistency.at<uint8_t>(pt_to_grow) = 0;
+                        consistency_arg.at<uint8_t>(pt_to_grow) = 0;
                         sin_sum += sin(2 * cur_value);
                         cos_sum += cos(2 * cur_value);
                         counter += 1;
-                        edge_num += edge_nums.at<float_t>(pt_to_grow);
+                        edge_num += edge_nums_arg.at<float_t>(pt_to_grow);
                         growingPoints.push_back(pt_to_grow);                 //将下一个生长点压入栈中
                         growingImgPoints.push_back(pt_to_grow);
                     }
@@ -439,7 +505,7 @@ void Detect::regionGrowing(int window_size)
                 continue;
             }
             float local_consistency = (sin_sum * sin_sum + cos_sum * cos_sum) / counter / counter;
-            // minimum local gradient orientation consistency
+            // minimum local gradient orientation_arg consistency_arg
             if (local_consistency < LOCAL_THRESHOLD_CONSISTENCY)
             {
                 continue;
@@ -452,7 +518,7 @@ void Detect::regionGrowing(int window_size)
             }
 //                printf("counter ratio: %f\n", counter / rect.size.area());
             const double local_orientation = computeOrientation(cos_sum, sin_sum) / 2.0;
-            // only orientation is approximately equal to the rectangle orientation
+            // only orientation_arg is approximately equal to the rectangle orientation_arg
             rect_orientation = (minRect.angle) * PIDivideX<double, 180>::Value;
             if (minRect.size.width < minRect.size.height)
             {
@@ -466,18 +532,16 @@ void Detect::regionGrowing(int window_size)
                 continue;
             }
             minRect.angle = static_cast<float>(local_orientation) * XDividePI<180, float>::Value;
-            minRect.size.width *= float(window_size + 1);
-            minRect.size.height *= float(window_size + 1);
+            minRect.size.width *= static_cast<float>(window_size + 1);
+            minRect.size.height *= static_cast<float>(window_size + 1);
             minRect.center.x = (minRect.center.x + 0.5) * window_size;
             minRect.center.y = (minRect.center.y + 0.5) * window_size;
 #ifdef CV_DEBUG
             std::cout << local_consistency << " " << local_orientation << " " << edge_num / (float) (width * height)
                       << " " << edge_num / minRect.size.area() << std::endl;
 #endif
-            localization_bbox.push_back(minRect);
-
-
-            bbox_scores.push_back(edge_num);
+            localization_bbox_arg.push_back(minRect);
+            bbox_scores_arg.push_back(edge_num);
             #ifdef CV_DEBUG
             //            Point2f vertices[4];
             //            minRect.points(vertices);
@@ -501,36 +565,33 @@ inline const std::array<Mat, 4> &getStructuringElement()
     return structuringElement;
 }
 
-void Detect::barcodeErode()
+// Change mat
+void Detect::barcodeErode(Mat &mat) const
 {
     static const std::array<Mat, 4> &structuringElement = getStructuringElement();
     Mat m0, m1, m2, m3;
-    dilate(consistency, m0, structuringElement[0]);
-    dilate(consistency, m1, structuringElement[1]);
-    dilate(consistency, m2, structuringElement[2]);
-    dilate(consistency, m3, structuringElement[3]);
+    dilate(mat, m0, structuringElement[0]);
+    dilate(mat, m1, structuringElement[1]);
+    dilate(mat, m2, structuringElement[2]);
+    dilate(mat, m3, structuringElement[3]);
     int sum;
-    for (int y = 0; y < consistency.rows; y++)
+    for (int y = 0; y < mat.rows; y++)
     {
-        auto consistency_row = consistency.ptr<uint8_t>(y);
+        auto consistency_row = mat.ptr<uint8_t>(y);
         auto m0_row = m0.ptr<uint8_t>(y);
         auto m1_row = m1.ptr<uint8_t>(y);
         auto m2_row = m2.ptr<uint8_t>(y);
         auto m3_row = m3.ptr<uint8_t>(y);
 
-        int pos;
-        for (pos = 0; pos < consistency.cols; pos++)
+        for (int pos = 0; pos < mat.cols; pos++)
         {
-            if (consistency_row[pos] == 0)
+            if (consistency_row[pos] != 0)
             {
-                continue;
+                sum = m0_row[pos] + m1_row[pos] + m2_row[pos] + m3_row[pos];
+                //more than 2 group
+                consistency_row[pos] = sum > 600 ? 255 : 0;
             }
-            sum = m0_row[pos] + m1_row[pos] + m2_row[pos] + m3_row[pos];
-            //more than 2 group
-            consistency_row[pos] = sum > 600 ? 255 : 0;
         }
     }
 }
-
-
 }
