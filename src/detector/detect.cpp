@@ -23,56 +23,6 @@ struct PIDivideX
 };
 
 
-//void Detect::normalizeRegion(RotatedRect &rect)
-//{
-//        Point2f start, p, adjust;
-//        float barcode_orientation = rect.angle + 90;
-//        if (rect.size.width < rect.size.height)
-//            barcode_orientation += 90;
-//        float long_axis = max(rect.size.width, rect.size.height);
-//        double x_increment = sin(barcode_orientation * PI / 180.0);
-//        double y_increment = cos(barcode_orientation * PI / 180.0);
-//
-//        adjust.x = x_increment > 0 ? 1.0 : (x_increment < 0 ? -1.0 : 0);
-//        adjust.y = y_increment > 0 ? 1.0 : (y_increment < 0 ? -1.0 : 0);
-//
-//        int num_blanks = 0;
-//        //计算条形码中最长连续条的长度，作为threshold
-//        int threshold = cvRound(long_axis * 4.0 / 95.0);
-//        p.y = adjust.y + rect.center.y + (long_axis / 2.0) * y_increment;
-//        p.x = adjust.x + rect.center.x + (long_axis / 2.0) * x_increment;
-//        int val;
-//        while (isValidCoord(p) && (num_blanks < threshold)) {
-//            val = consistency.at<uint8_t>(p);
-//            if (val == 255)
-//                num_blanks = 0;
-//            else
-//                num_blanks++;
-//            p.x += x_increment;
-//            p.y += y_increment;
-//        }
-//        start.x = p.x;
-//        start.y = p.y;
-//        p.x = rect.center.x - (long_axis / 2.0) * x_increment - adjust.x;
-//        p.y = rect.center.y - (long_axis / 2.0) * y_increment - adjust.y;
-//        num_blanks = 0;
-//        while (isValidCoord(p) && (num_blanks < threshold)) {
-//            val = consistency.at<uint8_t>(p);
-//            if (val == 255)
-//                num_blanks = 0;
-//            else
-//                num_blanks++;
-//            p.x -= x_increment;
-//            p.y -= y_increment;
-//        }
-//        rect.center = (start + p) / 2.0;
-//        if (long_axis == rect.size.width)
-//            rect.size.width = norm(p - start);
-//        else
-//            rect.size.height = norm(p - start);
-
-//}
-
 inline bool Detect::isValidCoord(const Point &coord, const Size &limit)
 {
     if (((unsigned) coord.x < 0) || ((unsigned) coord.y < 0))
@@ -120,6 +70,28 @@ static float calcRectSum(const Mat &integral, int right_col, int left_col, int t
     return sum;
 }
 
+void Detect::ParallelBarCodeDetectProcess::operator()(const Range &range) const
+{
+//    vector<vector<RotatedRect>> loca_bbox_vec(range.end);
+//    vector<vector<float>> bbox_score_vec(range.end);
+    vector<Proposal> proposals;
+    float window_ratio_begin = 0.01;
+    for (int s = range.start; s < range.end; s++)
+    {
+        Mat consistency_arg, orientation_arg, edge_nums_arg;
+        int window_size = cvRound(min(cl.width, cl.height) * (window_ratio_begin + static_cast<float>(s) * step));
+        cl.calConsistency(window_size, consistency_arg, orientation_arg, edge_nums_arg);
+        cl.barcodeErode(consistency_arg);
+        cl.regionGrowing(window_size, orientation_arg, edge_nums_arg, proposals, consistency_arg);
+    }
+    for (const auto &proposal : proposals)
+    {
+        cl.localization_bbox.push_back(proposal.bbox);
+        cl.bbox_scores.push_back(proposal.score);
+    }
+
+}
+
 void Detect::init(const Mat &src)
 {
     #ifdef CV_DEBUG
@@ -158,98 +130,6 @@ void Detect::init(const Mat &src)
 #endif
 }
 
-inline void Detect::localization_single()
-{
-    float window_ratio = 0.01f;
-    static constexpr float window_ratio_step = 0.02f;
-    static constexpr int window_ratio_stepTimes = (13 - 1) / 2; // 6 = (0.13-0.01)/0.02
-    int window_size;
-    for (size_t i = 0; i < window_ratio_stepTimes; i++)
-    {
-        window_size = cvRound(min(width, height) * (window_ratio));
-#ifdef CV_DEBUG
-        //        printf("window ratio: %f\n", window_ratio);
-        //        debug_img = resized_barcode.clone();
-#endif
-        calConsistency(window_size, this->consistency, this->orientation, this->edge_nums);
-        #ifdef CV_DEBUG
-        //        imshow("block img " + std::to_string(window_ratio), debug_img);
-        #endif
-        barcodeErode(this->consistency);
-#ifdef CV_DEBUG
-        //        debug_img = resized_barcode.clone();
-        //        for (int y = 0; y < consistency.rows; y++)
-        //        {
-        //            //pixels_position.clear();
-        //            auto *consistency_row = consistency.ptr<uint8_t>(y);
-        //
-        //            int x = 0;
-        //            for (; x < consistency.cols; x++)
-        //            {
-        //                if (consistency_row[x] == 0)
-        //                { continue; }
-        //                rectangle(debug_img, Point2d(x * window_size, y * window_size),
-        //                          Point2d(min((x + 1) * window_size, width), min((y + 1) * window_size, height)), 255);
-        //
-        //            }
-        //        }
-        //        imshow("erode block " + std::to_string(window_ratio), debug_img);
-#endif
-        regionGrowing(window_size, this->orientation, this->edge_nums, this->localization_bbox, this->bbox_scores,
-                      this->consistency);
-        window_ratio += window_ratio_step;
-    }
-    #ifdef CV_DEBUG
-    //    imshow("grow image", debug_proposals);
-    #endif
-}
-
-inline void Detect::localization_multi()
-{
-    static constexpr float window_ratio_begin = 0.01f;
-    static constexpr float window_ratio_step = 0.02f;
-    static constexpr int window_ratio_stepTimes = (13 - 1) / 2; // 6 = (0.13-0.01)/0.02
-    class ParallelBarCodeDetectProcess : public ParallelLoopBody
-    {
-    public:
-        explicit ParallelBarCodeDetectProcess(Detect &detect) : detect(detect)
-        {
-            width = detect.width;
-            height = detect.height;
-        }
-
-        void operator()(const Range &range) const CV_OVERRIDE
-        {
-//            vector<RotatedRect> localization_bboxes;
-//            vector<float> bbox_scores;
-            for (int s = range.start; s < range.end; s++)
-            {
-                Mat consistency_arg, orientation_arg, edge_nums_arg;
-                int window_size = cvRound(
-                        min(width, height) * (window_ratio_begin + static_cast<float>(s) * window_ratio_step));
-                detect.calConsistency(window_size, consistency_arg, orientation_arg, edge_nums_arg);
-                detect.barcodeErode(consistency_arg);
-                detect.regionGrowing(window_size, orientation_arg, edge_nums_arg, detect.localization_bbox,
-                                     detect.bbox_scores, consistency_arg);
-                //std::tie(detect->localization_bbox[s], detect->bbox_scores[s]) = temp;
-            }
-//            for (const auto &bbox : localization_bboxes)
-//            {
-//                detect.localization_bbox.push_back(bbox);
-//            }
-//            for (const auto &score  : bbox_scores)
-//            {
-//                detect.bbox_scores.push_back(score);
-//            }
-        }
-
-    private:
-        int width, height;
-        Detect &detect;
-    };
-    ParallelBarCodeDetectProcess parallelBarCodeDetectProcess(*this);
-    parallel_for_(Range(0, window_ratio_stepTimes), parallelBarCodeDetectProcess);
-}
 
 void Detect::localization()
 {
@@ -260,8 +140,9 @@ void Detect::localization()
     #ifdef CV_DEBUG
     debug_proposals = resized_barcode.clone();
     #endif
-    //localization_single();
-    localization_multi();
+    static constexpr int window_ratio_stepTimes = 6; // 6 = (0.13-0.01)/0.02
+    ParallelBarCodeDetectProcess parallelBarCodeDetectProcess(0.02, *this);
+    parallel_for_(Range(0, window_ratio_stepTimes), parallelBarCodeDetectProcess);
 }
 
 
@@ -417,8 +298,7 @@ void Detect::calConsistency(int window_size, Mat &consistency, Mat &orientation,
 // will change consistency,
 // depend on consistency orientation edge_nums
 void Detect::regionGrowing(int window_size, const Mat &orientation_arg, const Mat &edge_nums_arg,
-                           vector<RotatedRect> &localization_bbox_arg, vector<float> &bbox_scores_arg,
-                           Mat &consistency_arg) const
+                           vector<Proposal> &proposals, Mat &consistency_arg) const
 {
     static constexpr float LOCAL_THRESHOLD_CONSISTENCY = 0.98, THRESHOLD_RADIAN = PIDivideX<float, 40>::Value, THRESHOLD_BLOCK_NUM = 20, LOCAL_RATIO = 0.4;
     Point pt_to_grow, pt;                       //待生长点位置
@@ -537,8 +417,9 @@ void Detect::regionGrowing(int window_size, const Mat &orientation_arg, const Ma
             std::cout << local_consistency << " " << local_orientation << " " << edge_num / (float) (width * height)
                       << " " << edge_num / minRect.size.area() << std::endl;
 #endif
-            localization_bbox_arg.push_back(minRect);
-            bbox_scores_arg.push_back(edge_num);
+            proposals.emplace_back(minRect, edge_num);
+//            localization_bbox_arg.push_back(minRect);
+//            bbox_scores_arg.push_back(edge_num);
             #ifdef CV_DEBUG
             //            Point2f vertices[4];
             //            minRect.points(vertices);

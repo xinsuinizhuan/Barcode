@@ -19,6 +19,8 @@ limitations under the License.
 #ifndef __OPENCV_BARCODE_DETECT_HPP__
 #define __OPENCV_BARCODE_DETECT_HPP__
 
+#include <utility>
+
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/dnn/dnn.hpp"
@@ -36,9 +38,6 @@ private:
     vector<int> bbox_indices;
     vector<vector<Point2f>> transformation_points;
 
-    inline void localization_single();
-
-    inline void localization_multi();
 
 public:
     void init(const Mat &src);
@@ -55,9 +54,18 @@ protected:
     {
         ZOOMING, SHRINKING, UNCHANGED
     } purpose = UNCHANGED;
+
+    struct Proposal
+    {
+        RotatedRect bbox;
+        float score;
+        Proposal(RotatedRect bbox_, float score_) : bbox(std::move(bbox_)), score(score_)
+        {}
+    };
+
     double coeff_expansion = 1.0;
     int height, width;
-    Mat resized_barcode, gradient_magnitude, integral_x_sq, integral_y_sq, integral_xy, integral_edges, consistency, orientation, edge_nums;
+    Mat resized_barcode, gradient_magnitude, integral_x_sq, integral_y_sq, integral_xy, integral_edges;
     // diagonal, skew_diagonal, horizontal, vertical
     #ifdef CV_DEBUG
     Mat debug_img, debug_proposals;
@@ -72,12 +80,26 @@ protected:
 
     static inline double computeOrientation(float y, float x);
 
-    void regionGrowing(int window_size, const Mat &orientation_arg, const Mat &edge_nums_arg,
-                       vector<RotatedRect> &localization_bbox_arg, vector<float> &bbox_scores_arg,
-                       Mat &consistency_arg) const;
+    void
+    regionGrowing(int window_size, const Mat &orientation_arg, const Mat &edge_nums_arg, vector<Proposal> &proposals,
+                  Mat &consistency_arg) const;
 
     void barcodeErode(Mat &mat) const;
 
+    class ParallelBarCodeDetectProcess : public ParallelLoopBody
+    {
+    public:
+        ParallelBarCodeDetectProcess(float step_, Detect &cl_) : step(step_), cl(cl_)
+        {
+            // nothing
+        }
+
+        void operator()(const Range &range) const CV_OVERRIDE;
+
+        float step;
+        Detect &cl;
+
+    };
 
 };
 }
