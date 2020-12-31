@@ -23,7 +23,7 @@ limitations under the License.
 #include "abs_decoder.hpp"
 
 namespace cv {
-
+namespace barcode {
 using std::vector;
 using std::string;
 
@@ -32,7 +32,7 @@ class BarDecode
 public:
     void init(const Mat &src, const vector<Point2f> &points);
 
-    const vector <Result> & getDecodeInformation()
+    const vector<Result> &getDecodeInformation()
     { return result_info; }
 
     bool decodingProcess();
@@ -44,5 +44,6 @@ private:
     Mat original;
     vector<Result> result_info;
 };
+}
 }
 #endif //! __OPENCV_BARCODE_BARDECODE_HPP__

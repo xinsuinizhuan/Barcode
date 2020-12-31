@@ -16,6 +16,7 @@ limitations under the License.
 #include "opencv2/decoder/abs_decoder.hpp"
 
 namespace cv {
+namespace barcode {
 
 void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &rects)
 {
@@ -97,11 +98,12 @@ int patternMatch(std::vector<int> counters, const std::vector<int> &pattern, uin
 }
 
 
-static inline int patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance)
+static inline int
+patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance)
 {
     int numCounters = counters.size();
-    uint total = std::accumulate(counters.cbegin(), counters.cend(), 0);
-    uint patternLength = std::accumulate(pattern.cbegin(), pattern.cend(), 0);
+    int total = std::accumulate(counters.cbegin(), counters.cend(), 0);
+    int patternLength = std::accumulate(pattern.cbegin(), pattern.cend(), 0);
     if (total < patternLength)
     {
         // If we don't even have one pixel per unit of bar width, assume this is too small
@@ -113,7 +115,7 @@ static inline int patternMatchVariance(std::vector<int> counters, const std::vec
     // Scale up patternLength so that intermediate values below like scaledCounter will have
     // more "significant digits"
 
-    uint unitBarWidth = (total << INTEGER_MATH_SHIFT) / patternLength;
+    int unitBarWidth = (total << INTEGER_MATH_SHIFT) / patternLength;
     maxIndividualVariance = (maxIndividualVariance * unitBarWidth) >> INTEGER_MATH_SHIFT;
     int totalVariance = 0;
     for (int x = 0; x < numCounters; x++)
@@ -131,7 +133,7 @@ static inline int patternMatchVariance(std::vector<int> counters, const std::vec
 }
 
 
-std::ostream & operator<<(std::ostream & out, BarcodeFormat format)
+std::ostream &operator<<(std::ostream &out, BarcodeFormat format)
 {
     switch (format)
     {
@@ -154,5 +156,6 @@ std::ostream & operator<<(std::ostream & out, BarcodeFormat format)
             out << "NONE";
     }
     return out;
+}
 }
 }

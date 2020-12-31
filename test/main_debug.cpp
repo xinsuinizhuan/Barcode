@@ -38,14 +38,14 @@ int main(int argc, char **argv)
     clock_t start;
     std::vector<Point2f> points;
     std::vector<std::string> decoded_info;
-    std::vector<cv::BarcodeFormat> decoded_format;
-    string fps;
+    std::vector<cv::barcode::BarcodeFormat> decoded_format;
+    std::string fps;
     bool ok;
 
     std::string right_result;
     std::string test_dir = "../../test/";
     std::string postfix = ".jpg";
-    std::vector<string> wrong_results;
+    std::vector<std::string> wrong_results;
 //    int total_cnt = 0;
     bool has_result = false;
     for (int i = 0; i < argc; i++)
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
                 for (size_t i = 0; i < points.size(); i += 4)
                 {
                     size_t bar_idx = i / 4;
-                    vector<Point> barcode_contour(points.begin() + i, points.begin() + i + 4);
+                    std::vector<Point> barcode_contour(points.begin() + i, points.begin() + i + 4);
                     std::cout << decoded_info[bar_idx] << std::endl;
                     if (has_result && decoded_info[bar_idx].length() == 13 && right_result != decoded_info[bar_idx])
                     {
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 
             fps = "FPS: " + std::to_string(CLOCKS_PER_SEC / (clock() - start));
 //            std::cout << fps << " fps" << std::endl;
-            std::vector<string> infos;
+            std::vector<std::string> infos;
             infos.push_back(fps);
             if (has_result)
             {
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < points.size(); i += 4)
             {
                 size_t bar_idx = i / 4;
-                vector<Point> barcode_contour(points.begin() + i, points.begin() + i + 4);
+                std::vector<Point> barcode_contour(points.begin() + i, points.begin() + i + 4);
                 std::cout << decoded_info[bar_idx] << std::endl;
 
                 cv::putText(frame, decoded_info[bar_idx], barcode_contour[2], cv::FONT_HERSHEY_PLAIN, 1, Scalar(255, 0, 0), 2);

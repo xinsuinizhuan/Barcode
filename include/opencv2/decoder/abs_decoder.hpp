@@ -19,19 +19,19 @@ limitations under the License.
 #include <iostream>
 #include <vector>
 #include <opencv2/imgproc.hpp>
-#include <opencv2/opencv.hpp>
+#include <opencv2/barcode.hpp>
+
+//#include <opencv2/opencv.hpp>
 #include <numeric>
 
 namespace cv {
+namespace barcode {
 using std::string;
 using std::vector;
 constexpr static int BLACK = std::numeric_limits<uchar>::min();
 // WHITE elemental area is 0xff
 constexpr static int WHITE = std::numeric_limits<uchar>::max();
-enum class BarcodeFormat
-{
-    EAN_8, EAN_13, UPC_A, UPC_E, UPC_EAN_EXTENSION, NONE
-};
+
 
 std::ostream &operator<<(std::ostream &out, BarcodeFormat format);
 
@@ -89,7 +89,7 @@ patternMatchConsieDistance(std::vector<int> counters, const std::vector<int> &pa
 
 static inline int
 patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance);
-
+}
 } // namespace cv
 
 #endif //! __OPENCV_BARCODE_ABS_DECODER_HPP__

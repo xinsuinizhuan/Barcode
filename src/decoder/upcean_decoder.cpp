@@ -20,6 +20,8 @@ limitations under the License.
 
 
 namespace cv {
+namespace barcode {
+
 static constexpr int DIVIDE_PART = 16;
 
 std::pair<int, int> UPCEANDecoder::findGuardPatterns(const std::vector<uchar> &row, int rowOffset, uchar whiteFirst,
@@ -103,8 +105,7 @@ int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, std::vector<int> &
 
 /*Input a mat and it's position rect, return the decode result */
 
-std::vector<Result>
-UPCEANDecoder::decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const
+std::vector<Result> UPCEANDecoder::decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const
 {
     CV_Assert(mat.channels() == 1);
     std::vector<Result> will_return;
@@ -132,8 +133,7 @@ Result UPCEANDecoder::decodeImg(const Mat &gray, const vector<Point2f> &points) 
 }
 
 // input image is
-Result
-UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &points, int PART, int directly) const
+Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &points, int PART, int directly) const
 {
     Mat blur;
     GaussianBlur(gray, blur, Size(0, 0), 25);
@@ -340,6 +340,6 @@ const std::array<char, 32> &FIRST_CHAR_ARRAY()
     // it always be A which do not need to count.
     return pattern;
 }
-
+}
 
 } // namespace cv

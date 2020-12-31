@@ -17,7 +17,7 @@ limitations under the License.
 #include "opencv2/decoder/bardecode.hpp"
 
 namespace cv {
-
+namespace barcode {
 void BarDecode::init(const cv::Mat &src, const std::vector<cv::Point2f> &points)
 {
     //CV_TRACE_FUNCTION();
@@ -48,9 +48,8 @@ bool BarDecode::decodeMultiplyProcess()
     class ParallelBarCodeDecodeProcess : public ParallelLoopBody
     {
     public:
-        ParallelBarCodeDecodeProcess(Mat &inarr_, vector<vector<Point2f>> &src_points_,
-                                     vector <Result> &decoded_info_) : inarr(inarr_), src_points(src_points_),
-                                                                       decoded_info(decoded_info_)
+        ParallelBarCodeDecodeProcess(Mat &inarr_, vector<vector<Point2f>> &src_points_, vector<Result> &decoded_info_)
+                : inarr(inarr_), src_points(src_points_), decoded_info(decoded_info_)
         {
             for (int i = 0; i < src_points.size(); ++i)
             {
@@ -85,5 +84,6 @@ bool BarDecode::decodeMultiplyProcess()
     ParallelBarCodeDecodeProcess parallelDecodeProcess{original, src_points, result_info};
     parallel_for_(Range(0, int(src_points.size())), parallelDecodeProcess);
     return !result_info.empty();
+}
 }
 }

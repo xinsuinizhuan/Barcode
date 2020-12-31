@@ -1,9 +1,9 @@
 #include "test_precomp.hpp"
 #include "verifier.hpp"
 
-std::string enumToString(cv::BarcodeFormat format)
+std::string enumToString(cv::barcode::BarcodeFormat format)
 {
-    using namespace cv;
+    using namespace cv::barcode;
     switch(format)
     {
         case BarcodeFormat::EAN_13:
@@ -66,7 +66,7 @@ TEST(integration_testing, ImgUnitTest)
     std::vector<cv::RotatedRect> rects;
     std::vector<cv::Point2f> points;
     std::vector<std::string> barcode_info;
-    std::vector<cv::BarcodeFormat> barcode_format;
+    std::vector<cv::barcode::BarcodeFormat> barcode_format;
     try
     {
         bardet.detectAndDecode(frame, barcode_info,barcode_format , points);
@@ -76,7 +76,7 @@ TEST(integration_testing, ImgUnitTest)
     }
     for (int i = 0;i < barcode_info.size();i ++)
     {
-        std::cout << barcode_info[i] << ", format: " << barcode_format[i] << std::endl;
+        std::cout << barcode_info[i] << ", format: " << enumToString(barcode_format[i]) << std::endl;
     }
 #ifdef CV_DEBUG
     cv::imshow("result", frame);

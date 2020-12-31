@@ -17,8 +17,8 @@ limitations under the License.
 #define __OPENCV_BARCODE_UPCEAN_DECODER_HPP__
 
 #include "abs_decoder.hpp"
-#include <opencv2/core/mat.hpp>
 #include <opencv2/core.hpp>
+#include <map>
 #include <utility>
 #include <string>
 
@@ -27,6 +27,7 @@ limitations under the License.
  *   it will have ean13/8,upc_a,upc_e , etc.. class extend this class
 */
 namespace cv {
+namespace barcode {
 using std::string;
 using std::vector;
 
@@ -36,8 +37,7 @@ class UPCEANDecoder : public AbsDecoder
 public:
     ~UPCEANDecoder() override = default;
 
-    std::vector<Result>
-    decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const override;
+    std::vector<Result> decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const override;
 
     Result decodeImg(const Mat &gray, const std::vector<Point2f> &points) const override;
 
@@ -67,6 +67,7 @@ protected:
 
     virtual bool isValid(std::string result) const = 0;
 };
+
 const std::vector<std::vector<int>> &get_A_or_C_Patterns();
 
 const std::vector<std::vector<int>> &get_AB_Patterns();
@@ -80,6 +81,8 @@ const std::array<char, 32> &FIRST_CHAR_ARRAY();
 constexpr static uint PATTERN_LENGTH = 4;
 constexpr static int MAX_AVG_VARIANCE = static_cast<int>(PATTERN_MATCH_RESULT_SCALE_FACTOR * 0.48f);
 constexpr static int MAX_INDIVIDUAL_VARIANCE = static_cast<int>(PATTERN_MATCH_RESULT_SCALE_FACTOR * 0.7f);
+
+}
 } // namespace cv
 
 #endif //!  __OPENCV_BARCODE_UPCEAN_DECODER_HPP__

@@ -24,7 +24,7 @@ limitations under the License.
 #include "opencv2/dnn/dnn.hpp"
 
 namespace cv {
-
+namespace barcode {
 using std::vector;
 
 class Detect
@@ -80,6 +80,7 @@ protected:
 
 
 };
+}
 }
 
 

@@ -20,6 +20,7 @@ limitations under the License.
 #include "upcean_decoder.hpp"
 
 namespace cv {
+namespace barcode {
 //extern struct EncodePair;
 using std::string;
 using std::vector;
@@ -36,6 +37,6 @@ protected:
 
     bool isValid(string result) const override;
 };
-
+}
 } // namespace cv
 #endif // !__OPENCV_BARCODE_EAN13_DECODER_HPP__

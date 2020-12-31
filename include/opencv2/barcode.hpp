@@ -17,11 +17,15 @@ limitations under the License.
 #ifndef __OPENCV_BARCODE_HPP__
 #define __OPENCV_BARCODE_HPP__
 
-#include "opencv2/detector/detect.hpp"
-#include "opencv2/decoder/ean13_decoder.hpp"
+#include "opencv2/core.hpp"
+
 
 namespace cv {
 namespace barcode {
+enum class BarcodeFormat
+{
+    EAN_8, EAN_13, UPC_A, UPC_E, UPC_EAN_EXTENSION, NONE
+};
 class CV_EXPORTS_W BarcodeDetector
 {
 public:
@@ -48,8 +52,8 @@ public:
      * @param decoded_info UTF8-encoded output vector of string or empty vector of string if the codes cannot be decoded.
      * @param decoded_format vector of BarcodeFormat, specifies the type of these barcodes
      */
-    CV_WRAP bool decode(const _InputArray &img, const _InputArray &points, vector<std::string> &decoded_info,
-                        vector <BarcodeFormat> &decoded_format) const;
+    CV_WRAP bool decode(const _InputArray &img, const _InputArray &points, std::vector <std::string> &decoded_info,
+                        std::vector <BarcodeFormat> &decoded_format) const;
 
     /** @brief Both detects and decodes barcode
 
@@ -59,7 +63,7 @@ public:
      * @param points_ optional output vector of vertices of the found  barcode rectangle. Will be empty if not found.
      */
     CV_WRAP bool
-    detectAndDecode(const _InputArray &img, vector<std::string> &decoded_info, vector<BarcodeFormat> &decoded_format,
+    detectAndDecode(const _InputArray &img, std::vector <std::string> &decoded_info, std::vector <BarcodeFormat> &decoded_format,
                     const _OutputArray &points_ = noArray()) const;
 
     /** @brief Decode without detects

@@ -18,6 +18,7 @@ limitations under the License.
 // three digit decode method from https://baike.baidu.com/item/EAN-13
 
 namespace cv {
+namespace barcode {
 
 static constexpr int constexpr_bitsNum = 95;
 static constexpr int constexpr_digitNumber = 13;
@@ -74,7 +75,8 @@ Result Ean13Decoder::decode(vector<uchar> data, int start) const
         result = string(decode_result);
         if (!isValid(result))
         {
-            return Result("Wrong: " + result.append(string(constexpr_digitNumber - result.size(), ' ')), BarcodeFormat::NONE);
+            return Result("Wrong: " + result.append(string(constexpr_digitNumber - result.size(), ' ')),
+                          BarcodeFormat::NONE);
         }
     } catch (GuardPatternsNotFindException &e)
     {
@@ -104,5 +106,6 @@ Ean13Decoder::Ean13Decoder()
 {
     this->bitsNum = constexpr_bitsNum;
     this->digitNumber = constexpr_digitNumber;
+}
 }
 }

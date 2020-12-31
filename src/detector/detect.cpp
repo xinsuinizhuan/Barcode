@@ -9,6 +9,7 @@
 
 #endif
 namespace cv {
+namespace barcode {
 static constexpr double PI = CV_PI;
 template<int x, typename Type>
 struct XDividePI
@@ -219,31 +220,27 @@ inline void Detect::localization_multi()
 
         void operator()(const Range &range) const CV_OVERRIDE
         {
-            vector<vector<RotatedRect>> loca_bbox_vec(range.end);
-            vector<vector<float>> bbox_score_vec(range.end);
+            vector<RotatedRect> localization_bboxes;
+            vector<float> bbox_scores;
             for (int s = range.start; s < range.end; s++)
             {
                 Mat consistency_arg, orientation_arg, edge_nums_arg;
-                int window_size = cvRound(min(width, height) * (window_ratio_begin + static_cast<float>(s) * window_ratio_step));
+                int window_size = cvRound(
+                        min(width, height) * (window_ratio_begin + static_cast<float>(s) * window_ratio_step));
                 detect.calConsistency(window_size, consistency_arg, orientation_arg, edge_nums_arg);
                 detect.barcodeErode(consistency_arg);
-                detect.regionGrowing(window_size, orientation_arg, edge_nums_arg, loca_bbox_vec[s], bbox_score_vec[s], consistency_arg);
+                detect.regionGrowing(window_size, orientation_arg, edge_nums_arg, detect.localization_bbox,
+                                     detect.bbox_scores, consistency_arg);
                 //std::tie(detect->localization_bbox[s], detect->bbox_scores[s]) = temp;
             }
-            for (const auto &vec : loca_bbox_vec)
-            {
-                for (const auto &ele: vec)
-                {
-                    detect.localization_bbox.push_back(ele);
-                }
-            }
-            for (const auto &vec  : bbox_score_vec)
-            {
-                for (const auto &ele: vec)
-                {
-                    detect.bbox_scores.push_back(ele);
-                }
-            }
+//            for (const auto &bbox : localization_bboxes)
+//            {
+//                detect.localization_bbox.push_back(bbox);
+//            }
+//            for (const auto &score  : bbox_scores)
+//            {
+//                detect.bbox_scores.push_back(score);
+//            }
         }
 
     private:
@@ -593,5 +590,6 @@ void Detect::barcodeErode(Mat &mat) const
             }
         }
     }
+}
 }
 }

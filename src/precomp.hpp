@@ -18,7 +18,8 @@ limitations under the License.
 
 #include <opencv2/imgproc.hpp>
 #include "opencv2/barcode.hpp"
-
+#include "opencv2/decoder/ean13_decoder.hpp"
+#include "opencv2/detector/detect.hpp"
 
 #include <deque>
 #include <array>
