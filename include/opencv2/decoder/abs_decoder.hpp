@@ -16,13 +16,10 @@ limitations under the License.
 #ifndef __OPENCV_BARCODE_ABS_DECODER_HPP__
 #define __OPENCV_BARCODE_ABS_DECODER_HPP__
 
-#include <iostream>
-#include <vector>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/barcode.hpp>
-
-//#include <opencv2/opencv.hpp>
 #include <numeric>
+#include <utility>
 
 namespace cv {
 namespace barcode {
@@ -33,19 +30,17 @@ constexpr static int BLACK = std::numeric_limits<uchar>::min();
 constexpr static int WHITE = std::numeric_limits<uchar>::max();
 
 
-std::ostream &operator<<(std::ostream &out, BarcodeFormat format);
 
 struct Result
 {
     std::string result;
-    BarcodeFormat format;
+    BarcodeFormat format = BarcodeFormat::NONE;
 
-    Result()
-    {}
+    Result() = default;
 
     Result(std::string _result, BarcodeFormat _format)
     {
-        result = _result;
+        result = std::move(_result);
         format = _format;
     }
 };
@@ -83,9 +78,6 @@ constexpr static uint INTEGER_MATH_SHIFT = 8;
 constexpr static int PATTERN_MATCH_RESULT_SCALE_FACTOR = 1 << INTEGER_MATH_SHIFT;
 
 int patternMatch(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividual);
-
-inline int
-patternMatchConsieDistance(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividualVariance);
 
 static inline int
 patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance);

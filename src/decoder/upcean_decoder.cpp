@@ -235,12 +235,12 @@ void UPCEANDecoder::linesFromRect(const Size2i &shape, int angle, int PART,
                                   std::vector<std::pair<Point2i, Point2i>> &results) const
 {
     auto shapef = Size2f(shape);
-    Point2i step = Point2i(shapef.height / PART, 0);
+    Point2i step = Point2i(cvRound(shapef.height) / PART, 0);
     Point2i cbegin = Point2i(shapef.height / 2, 0);
     Point2i cend = Point2i(shapef.height / 2, shapef.width - 1);
     if (angle)
     {
-        step = Point2i(0, shapef.width / PART);
+        step = Point2i(0, cvRound(shapef.width) / PART);
         cbegin = Point2i(0, shapef.width / 2);
         cend = Point2i(shapef.height - 1, shapef.width / 2);
     }

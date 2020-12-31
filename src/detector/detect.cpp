@@ -220,8 +220,8 @@ inline void Detect::localization_multi()
 
         void operator()(const Range &range) const CV_OVERRIDE
         {
-            vector<RotatedRect> localization_bboxes;
-            vector<float> bbox_scores;
+//            vector<RotatedRect> localization_bboxes;
+//            vector<float> bbox_scores;
             for (int s = range.start; s < range.end; s++)
             {
                 Mat consistency_arg, orientation_arg, edge_nums_arg;

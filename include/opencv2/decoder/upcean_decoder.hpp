@@ -63,9 +63,9 @@ protected:
     void
     linesFromRect(const Size2i &shape, int angle, int PART, std::vector<std::pair<Point2i, Point2i>> &results) const;
 
-    virtual Result decode(std::vector<uchar> bar, int start) const = 0;
+    Result decode(std::vector<uchar> bar, int start) const override = 0;
 
-    virtual bool isValid(std::string result) const = 0;
+    bool isValid(std::string result) const override = 0;
 };
 
 const std::vector<std::vector<int>> &get_A_or_C_Patterns();

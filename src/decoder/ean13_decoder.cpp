@@ -93,7 +93,7 @@ bool Ean13Decoder::isValid(string result) const
         return false;
     }
     int sum = 0;
-    for (int index = result.size() - 2, i = 1; index >= 0; index--, i++)
+    for (int index = (int)result.size() - 2, i = 1; index >= 0; index--, i++)
     {
         int temp = result[index] - '0';
         sum += (temp + ((i & 1) != 0 ? temp << 1 : 0));

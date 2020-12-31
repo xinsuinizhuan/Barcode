@@ -26,6 +26,32 @@ enum class BarcodeFormat
 {
     EAN_8, EAN_13, UPC_A, UPC_E, UPC_EAN_EXTENSION, NONE
 };
+
+//std::ostream &operator<<(std::ostream &out, BarcodeFormat format)
+//{
+//    switch (format)
+//    {
+//        case BarcodeFormat::EAN_8:
+//            out << "EAN_8";
+//            break;
+//        case BarcodeFormat::EAN_13:
+//            out << "EAN_13";
+//            break;
+//        case BarcodeFormat::UPC_E:
+//            out << "UPC_E";
+//            break;
+//        case BarcodeFormat::UPC_A:
+//            out << "UPC_A";
+//            break;
+//        case BarcodeFormat::UPC_EAN_EXTENSION:
+//            out << "UPC_EAN_EXTENSION";
+//            break;
+//        default:
+//            out << "NONE";
+//    }
+//    return out;
+//}
+
 class CV_EXPORTS_W BarcodeDetector
 {
 public:
@@ -52,8 +78,8 @@ public:
      * @param decoded_info UTF8-encoded output vector of string or empty vector of string if the codes cannot be decoded.
      * @param decoded_format vector of BarcodeFormat, specifies the type of these barcodes
      */
-    CV_WRAP bool decode(const _InputArray &img, const _InputArray &points, std::vector <std::string> &decoded_info,
-                        std::vector <BarcodeFormat> &decoded_format) const;
+    CV_WRAP bool decode(const _InputArray &img, const _InputArray &points, std::vector<std::string> &decoded_info,
+                        std::vector<BarcodeFormat> &decoded_format) const;
 
     /** @brief Both detects and decodes barcode
 
@@ -62,9 +88,9 @@ public:
      * @param decoded_format vector of BarcodeFormat, specifies the type of these barcodes
      * @param points_ optional output vector of vertices of the found  barcode rectangle. Will be empty if not found.
      */
-    CV_WRAP bool
-    detectAndDecode(const _InputArray &img, std::vector <std::string> &decoded_info, std::vector <BarcodeFormat> &decoded_format,
-                    const _OutputArray &points_ = noArray()) const;
+    CV_WRAP bool detectAndDecode(const _InputArray &img, std::vector<std::string> &decoded_info,
+                                 std::vector<BarcodeFormat> &decoded_format,
+                                 const _OutputArray &points_ = noArray()) const;
 
     /** @brief Decode without detects
      *

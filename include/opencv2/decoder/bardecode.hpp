@@ -16,10 +16,6 @@ limitations under the License.
 #ifndef __OPENCV_BARCODE_BARDECODE_HPP__
 #define __OPENCV_BARCODE_BARDECODE_HPP__
 
-#include <iostream>
-#include <vector>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/opencv.hpp>
 #include "abs_decoder.hpp"
 
 namespace cv {
