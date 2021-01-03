@@ -17,9 +17,9 @@ limitations under the License.
 #define __OPENCV_PRECOMP_H__
 
 #include <opencv2/imgproc.hpp>
-#include <opencv2/decoder/bardecode.hpp>
-#include "opencv2/decoder/ean13_decoder.hpp"
-#include "opencv2/detector/bardetect.hpp"
+#include "decoder/bardecode.hpp"
+#include "decoder/ean13_decoder.hpp"
+#include "detector/bardetect.hpp"
 
 #include <deque>
 #include <array>

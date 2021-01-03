@@ -1,7 +1,7 @@
 //
 // Created by 97659 on 2020/10/14.
 //
-#include "opencv2/detector/bardetect.hpp"
+#include "bardetect.hpp"
 
 #ifdef CV_DEBUG
 

@@ -13,8 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "opencv2/decoder/ean13_decoder.hpp"
-#include "opencv2/decoder/bardecode.hpp"
+#include "ean13_decoder.hpp"
+#include "bardecode.hpp"
 
 namespace cv {
 namespace barcode {
@@ -38,7 +38,8 @@ void BarDecode::init(const cv::Mat &src, const std::vector<cv::Point2f> &points)
 
 bool BarDecode::decodingProcess()
 {
-    std::unique_ptr<AbsDecoder> decoder{std::make_unique<Ean13Decoder>()};
+    std::unique_ptr<AbsDecoder> decoder(new Ean13Decoder);
+
     result_info = decoder->decodeImg(original, src_points);
     return !result_info.empty();
 }
@@ -53,7 +54,7 @@ bool BarDecode::decodeMultiplyProcess()
         {
             for (int i = 0; i < src_points.size(); ++i)
             {
-                decoder.push_back(std::make_unique<Ean13Decoder>());
+                decoder.push_back(std::unique_ptr<AbsDecoder>(new Ean13Decoder()));
             }
         }
 

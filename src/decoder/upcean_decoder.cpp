@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "opencv2/decoder/upcean_decoder.hpp"
+#include "upcean_decoder.hpp"
 #include <vector>
 #include <array>
 
