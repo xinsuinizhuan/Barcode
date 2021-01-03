@@ -25,7 +25,7 @@ void BarDecode::init(const cv::Mat &src, const std::vector<cv::Point2f> &points)
     CV_Assert(!points.empty());
     CV_Assert((points.size() % 4) == 0);
     src_points.clear();
-    for (int i = 0; i < points.size(); i += 4)
+    for (size_t i = 0; i < points.size(); i += 4)
     {
         vector<Point2f> tempMat{points.cbegin() + i, points.cbegin() + i + 4};
         if (contourArea(tempMat) > 0.0)
@@ -52,7 +52,7 @@ bool BarDecode::decodeMultiplyProcess()
         ParallelBarCodeDecodeProcess(Mat &inarr_, vector<vector<Point2f>> &src_points_, vector<Result> &decoded_info_)
                 : inarr(inarr_), src_points(src_points_), decoded_info(decoded_info_)
         {
-            for (int i = 0; i < src_points.size(); ++i)
+            for (size_t i = 0; i < src_points.size(); ++i)
             {
                 decoder.push_back(std::unique_ptr<AbsDecoder>(new Ean13Decoder()));
             }

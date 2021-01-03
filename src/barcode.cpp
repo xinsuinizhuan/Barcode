@@ -101,7 +101,7 @@ bool BarcodeDetector::detect(InputArray img, OutputArray points) const
     return true;
 }
 
-bool BarcodeDetector::decode(const _InputArray &img, const _InputArray &points, vector<std::string> &decoded_info,
+bool BarcodeDetector::decode(InputArray img, InputArray points, vector<std::string> &decoded_info,
                              vector<BarcodeFormat> &decoded_format) const
 {
     Mat inarr;
@@ -119,7 +119,7 @@ bool BarcodeDetector::decode(const _InputArray &img, const _InputArray &points, 
     const vector<Result> &_decoded_info = bardec.getDecodeInformation();
     decoded_info.clear();
     decoded_format.clear();
-    for (auto info : _decoded_info)
+    for (const auto &info : _decoded_info)
     {
         decoded_info.emplace_back(info.result);
         decoded_format.emplace_back(info.format);
@@ -127,8 +127,8 @@ bool BarcodeDetector::decode(const _InputArray &img, const _InputArray &points, 
     return ok;
 }
 
-bool BarcodeDetector::detectAndDecode(const _InputArray &img, vector<std::string> &decoded_info,
-                                      vector<BarcodeFormat> &decoded_format, const _OutputArray &points_) const
+bool BarcodeDetector::detectAndDecode(InputArray img, vector<std::string> &decoded_info,
+                                      vector<BarcodeFormat> &decoded_format, OutputArray points_) const
 {
     Mat inarr;
     if (!checkBarInputImage(img, inarr))
@@ -150,8 +150,7 @@ bool BarcodeDetector::detectAndDecode(const _InputArray &img, vector<std::string
     return ok;
 }
 
-bool
-BarcodeDetector::decodeDirectly(const _InputArray &img, std::string &decoded_info, BarcodeFormat &decoded_format) const
+bool BarcodeDetector::decodeDirectly(InputArray img, std::string &decoded_info, BarcodeFormat &decoded_format) const
 {
     Mat inarr;
     if (!checkBarInputImage(img, inarr))
