@@ -18,6 +18,11 @@ limitations under the License.
 #include <vector>
 #include <array>
 
+#ifdef CV_DEBUG
+
+#include <opencv2/highgui.hpp>
+
+#endif
 
 namespace cv {
 namespace barcode {
@@ -142,7 +147,7 @@ Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &
     //imshow("preprocess", gray);
     threshold(gray, gray, 155, 255, THRESH_OTSU + THRESH_BINARY);
 #ifdef CV_DEBUG
-    imshow("barimg", gray);
+    //imshow("barimg", gray);
 #endif
     std::map<std::string, int> result_vote;
     std::map<BarcodeFormat, int> format_vote;
@@ -185,7 +190,7 @@ Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &
         //cv::line(mat,begin,end,Scalar(0,0,255),2);
         circle(bar_copy, begin, 6, Scalar(0, 0, 0), 2);
         circle(bar_copy, end, 6, Scalar(0, 0, 0), 2);
-        imshow("barscan", bar_copy);
+        //imshow("barscan", bar_copy);
         //cv::waitKey(0);
 #endif
         if (barcode.result.size() == this->digitNumber)

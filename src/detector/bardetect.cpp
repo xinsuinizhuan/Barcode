@@ -1,7 +1,7 @@
 //
 // Created by 97659 on 2020/10/14.
 //
-#include "opencv2/detector/detect.hpp"
+#include "opencv2/detector/bardetect.hpp"
 
 #ifdef CV_DEBUG
 
@@ -21,6 +21,19 @@ struct PIDivideX
 {
     static constexpr Type Value = PI / x;
 };
+
+#define CALCULATE_SUM(ptr, result) \
+    ptr += left_col + (width+1) * top_row;\
+    top_left = float(*ptr);\
+    ptr += right_col - left_col;\
+    top_right = float(*ptr);\
+    ptr += (bottom_row - top_row) * (width+1);\
+    bottom_right = float(*ptr);\
+    ptr -= right_col - left_col;\
+    bottom_left = float(*ptr);\
+    ptr -= (bottom_row - top_row) * (width+1);\
+    ptr -= left_col + (width+1) * top_row;\
+    result = (bottom_right - bottom_left - top_right + top_left);
 
 
 inline bool Detect::isValidCoord(const Point &coord, const Size &limit)
@@ -51,52 +64,9 @@ inline double Detect::computeOrientation(float y, float x)
     return (atan(y / x) - PI);
 }
 
-static float calcRectSum(const Mat &integral, int right_col, int left_col, int top_row, int bottom_row)
-{
-    // calculates sum of values within a rectangle from a given integral image
-    // if top_row or left_col are -1, it uses 0 for their value
-    // this is useful when one part of the rectangle lies outside the image bounds
-    // if the right col or bottom row falls outside the image bounds, pass the max col or max row to this method
-    // does NOT perform any bounds checking
-    float top_left, top_right, bottom_left, bottom_right;
-    float sum;
-
-    bottom_right = integral.at<float>(bottom_row, right_col);
-    top_right = integral.at<float>(top_row, right_col);
-    top_left = integral.at<float>(top_row, left_col);
-    bottom_left = integral.at<float>(bottom_row, left_col);
-
-    sum = (bottom_right - bottom_left - top_right + top_left);
-    return sum;
-}
-
-void Detect::ParallelBarCodeDetectProcess::operator()(const Range &range) const
-{
-//    vector<vector<RotatedRect>> loca_bbox_vec(range.end);
-//    vector<vector<float>> bbox_score_vec(range.end);
-    vector<Proposal> proposals;
-    float window_ratio_begin = 0.01;
-    for (int s = range.start; s < range.end; s++)
-    {
-        Mat consistency_arg, orientation_arg, edge_nums_arg;
-        int window_size = cvRound(min(cl.width, cl.height) * (window_ratio_begin + static_cast<float>(s) * step));
-        cl.calConsistency(window_size, consistency_arg, orientation_arg, edge_nums_arg);
-        cl.barcodeErode(consistency_arg);
-        cl.regionGrowing(window_size, orientation_arg, edge_nums_arg, proposals, consistency_arg);
-    }
-    for (const auto &proposal : proposals)
-    {
-        cl.localization_bbox.push_back(proposal.bbox);
-        cl.bbox_scores.push_back(proposal.score);
-    }
-
-}
 
 void Detect::init(const Mat &src)
 {
-    #ifdef CV_DEBUG
-    barcode = src.clone();
-    #endif
     const double min_side = std::min(src.size().width, src.size().height);
     if (min_side > 1024.0)
     {
@@ -125,29 +95,37 @@ void Detect::init(const Mat &src)
         resized_barcode = src.clone();
     }
     medianBlur(resized_barcode, resized_barcode, 3);
-#ifdef CV_DEBUG
-    imshow("blurred src", resized_barcode);
-#endif
+
 }
 
 
 void Detect::localization()
 {
+
     localization_bbox.clear();
     bbox_scores.clear();
+
     // get integral image
     preprocess();
-    #ifdef CV_DEBUG
-    debug_proposals = resized_barcode.clone();
-    #endif
+    float window_ratio = 0.01f;
+    static constexpr float window_ratio_step = 0.02f;
     static constexpr int window_ratio_stepTimes = 6; // 6 = (0.13-0.01)/0.02
-    ParallelBarCodeDetectProcess parallelBarCodeDetectProcess(0.02, *this);
-    parallel_for_(Range(0, window_ratio_stepTimes), parallelBarCodeDetectProcess);
+    int window_size;
+    for (size_t i = 0; i < window_ratio_stepTimes; i++)
+    {
+        window_size = cvRound(min(width, height) * window_ratio);
+        calConsistency(window_size);
+        barcodeErode();
+        regionGrowing(window_size);
+        window_ratio += window_ratio_step;
+    }
+
 }
 
 
 bool Detect::computeTransformationPoints()
 {
+
     bbox_indices.clear();
     transformation_points.clear();
     transformation_points.reserve(bbox_indices.size());
@@ -174,7 +152,6 @@ bool Detect::computeTransformationPoints()
             rect.size.width *= coeff_expansion;
         }
         rect.points(temp);
-        //vector<Point2f> points;
         transformation_points.emplace_back(vector<Point2f>{temp[0], temp[1], temp[2], temp[3]});
     }
 
@@ -191,13 +168,14 @@ void Detect::preprocess()
     magnitude(scharr_x, scharr_y, gradient_magnitude);
     threshold(gradient_magnitude, gradient_magnitude, 48, 1, THRESH_BINARY);
     #ifdef CV_DEBUG
-    imshow("mag", gradient_magnitude);
+    //imshow("mag", gradient_magnitude);
     #endif
+
     gradient_magnitude.convertTo(gradient_magnitude, CV_8U);
+    integral(gradient_magnitude, integral_edges, CV_32F);
 
 //        normalize(gradient_magnitude, gradient_magnitude, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
 //        adaptiveThreshold(gradient_magnitude, gradient_magnitude, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 9, 0);
-    integral(gradient_magnitude, integral_edges, CV_32F);
 
     for (int y = 0; y < height; y++)
     {
@@ -228,7 +206,7 @@ void Detect::preprocess()
 
 // Change consistency orientation edge_nums
 // depend on width height integral_edges integral_x_sq integral_y_sq integral_xy
-void Detect::calConsistency(int window_size, Mat &consistency, Mat &orientation, Mat &edge_nums) const
+void Detect::calConsistency(int window_size)
 {
     static constexpr float THRESHOLD_CONSISTENCY = 0.85f;
     int right_col, left_col, top_row, bottom_row;
@@ -236,10 +214,11 @@ void Detect::calConsistency(int window_size, Mat &consistency, Mat &orientation,
     const float THRESHOLD_AREA = float(window_size * window_size) * 0.5f;
     Size new_size(width / window_size, height / window_size);
     consistency = Mat(new_size, CV_8U), orientation = Mat(new_size, CV_32F), edge_nums = Mat(new_size, CV_32F);
-    //imshow("非零积分图", gradient_magnitude);
+
+    float top_left, top_right, bottom_left, bottom_right;
+    const auto *edges_ptr = integral_edges.ptr<float_t>(), *x_sq_ptr = integral_x_sq.ptr<float_t>(), *y_sq_ptr = integral_y_sq.ptr<float_t>(), *xy_ptr = integral_xy.ptr<float_t>();
     for (int y = 0; y < new_size.height; y++)
     {
-        //pixels_position.clear();
         auto *consistency_row = consistency.ptr<uint8_t>(y);
         auto *orientation_row = orientation.ptr<float_t>(y);
         auto *edge_nums_row = edge_nums.ptr<float_t>(y);
@@ -249,8 +228,8 @@ void Detect::calConsistency(int window_size, Mat &consistency, Mat &orientation,
         }
         top_row = y * window_size;
         bottom_row = min(height, (y + 1) * window_size);
-        int pos = 0;
-        for (; pos < new_size.width; pos++)
+
+        for (int pos = 0; pos < new_size.width; pos++)
         {
 
             // then calculate the column locations of the rectangle and set them to -1
@@ -263,7 +242,7 @@ void Detect::calConsistency(int window_size, Mat &consistency, Mat &orientation,
             right_col = min(width, (pos + 1) * window_size);
 
             //we had an integral image to count non-zero elements
-            rect_area = calcRectSum(integral_edges, right_col, left_col, top_row, bottom_row);
+            CALCULATE_SUM(edges_ptr, rect_area)
             if (rect_area < THRESHOLD_AREA)
             {
                 // 有梯度的点占比小于阈值则视为平滑区域
@@ -271,9 +250,9 @@ void Detect::calConsistency(int window_size, Mat &consistency, Mat &orientation,
                 continue;
             }
 
-            x_sq = calcRectSum(integral_x_sq, right_col, left_col, top_row, bottom_row);
-            y_sq = calcRectSum(integral_y_sq, right_col, left_col, top_row, bottom_row);
-            xy = calcRectSum(integral_xy, right_col, left_col, top_row, bottom_row);
+            CALCULATE_SUM(x_sq_ptr, x_sq)
+            CALCULATE_SUM(y_sq_ptr, y_sq)
+            CALCULATE_SUM(xy_ptr, xy)
 
             // get the values of the rectangle corners from the integral image - 0 if outside bounds
             d = sqrt((x_sq - y_sq) * (x_sq - y_sq) + 4 * xy * xy) / (x_sq + y_sq);
@@ -282,33 +261,31 @@ void Detect::calConsistency(int window_size, Mat &consistency, Mat &orientation,
                 consistency_row[pos] = 255;
                 orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy) / 2.0;
                 edge_nums_row[pos] = rect_area;
-                #ifdef CV_DEBUG
-                //                rectangle(debug_img, Point2d(left_col, top_row), Point2d(right_col, bottom_row), 255);
-                #endif
             }
             else
             {
                 consistency_row[pos] = 0;
             }
+
         }
+
     }
 }
 
 // will change localization_bbox bbox_scores
 // will change consistency,
 // depend on consistency orientation edge_nums
-void Detect::regionGrowing(int window_size, const Mat &orientation_arg, const Mat &edge_nums_arg,
-                           vector<Proposal> &proposals, Mat &consistency_arg) const
+void Detect::regionGrowing(int window_size)
 {
     static constexpr float LOCAL_THRESHOLD_CONSISTENCY = 0.98, THRESHOLD_RADIAN = PIDivideX<float, 40>::Value, THRESHOLD_BLOCK_NUM = 20, LOCAL_RATIO = 0.4;
-    Point pt_to_grow, pt;                       //待生长点位置
+    Point pt_to_grow, pt;                       //point to grow
 
-    float src_value;                               //生长起点灰度值
-    float cur_value;                               //当前生长点灰度值
+    float src_value;
+    float cur_value;
     float edge_num;
     double rect_orientation;
     float sin_sum, cos_sum, counter;
-    //生长方向顺序数据
+    //grow direction
     static constexpr int DIR[8][2] = {{-1, -1},
                                       {0,  -1},
                                       {1,  -1},
@@ -318,12 +295,11 @@ void Detect::regionGrowing(int window_size, const Mat &orientation_arg, const Ma
                                       {-1, 1},
                                       {-1, 0}};
     vector<Point2f> growingPoints, growingImgPoints;
-    for (int y = 0; y < consistency_arg.rows; y++)
+    for (int y = 0; y < consistency.rows; y++)
     {
-        //pixels_position.clear();
-        auto *consistency_row = consistency_arg.ptr<uint8_t>(y);
+        auto *consistency_row = consistency.ptr<uint8_t>(y);
 
-        for (int x = 0; x < consistency_arg.cols; x++)
+        for (int x = 0; x < consistency.cols; x++)
         {
             if (consistency_row[x] == 0)
             {
@@ -333,44 +309,45 @@ void Detect::regionGrowing(int window_size, const Mat &orientation_arg, const Ma
             consistency_row[x] = 0;
             growingPoints.clear();
             growingImgPoints.clear();
-            pt = Point2d(x, y);
-            cur_value = orientation_arg.at<float_t>(pt);
+
+            pt = Point(x, y);
+            cur_value = orientation.at<float_t>(pt);
             sin_sum = sin(2 * cur_value);
             cos_sum = cos(2 * cur_value);
             counter = 1;
-            edge_num = edge_nums_arg.at<float_t>(pt);
+            edge_num = edge_nums.at<float_t>(pt);
             growingPoints.push_back(pt);
-            growingImgPoints.push_back(pt);
+            growingImgPoints.push_back(Point(pt));
             while (!growingPoints.empty())
             {
                 pt = growingPoints.back();
                 growingPoints.pop_back();
-                src_value = orientation_arg.at<float_t>(pt);
+                src_value = orientation.at<float_t>(pt);
 
                 //growing in eight directions
                 for (int i = 0; i < 9; ++i)
                 {
-                    pt_to_grow.x = pt.x + DIR[i][0];
-                    pt_to_grow.y = pt.y + DIR[i][1];
+                    pt_to_grow = Point(pt.x + DIR[i][0], pt.y + DIR[i][1]);
+
                     //check if out of boundary
-                    if (!isValidCoord(pt_to_grow, consistency_arg.size()))
+                    if (!isValidCoord(pt_to_grow, consistency.size()))
                     {
                         continue;
                     }
 
-                    if (consistency_arg.at<uint8_t>(pt_to_grow) == 0)
+                    if (consistency.at<uint8_t>(pt_to_grow) == 0)
                     {
                         continue;
                     }
-                    cur_value = orientation_arg.at<float_t>(pt_to_grow);
+                    cur_value = orientation.at<float_t>(pt_to_grow);
                     if (abs(cur_value - src_value) < THRESHOLD_RADIAN ||
                         abs(cur_value - src_value) > PI - THRESHOLD_RADIAN)
                     {
-                        consistency_arg.at<uint8_t>(pt_to_grow) = 0;
+                        consistency.at<uint8_t>(pt_to_grow) = 0;
                         sin_sum += sin(2 * cur_value);
                         cos_sum += cos(2 * cur_value);
                         counter += 1;
-                        edge_num += edge_nums_arg.at<float_t>(pt_to_grow);
+                        edge_num += edge_nums.at<float_t>(pt_to_grow);
                         growingPoints.push_back(pt_to_grow);                 //将下一个生长点压入栈中
                         growingImgPoints.push_back(pt_to_grow);
                     }
@@ -417,18 +394,12 @@ void Detect::regionGrowing(int window_size, const Mat &orientation_arg, const Ma
             std::cout << local_consistency << " " << local_orientation << " " << edge_num / (float) (width * height)
                       << " " << edge_num / minRect.size.area() << std::endl;
 #endif
-            proposals.emplace_back(minRect, edge_num);
-//            localization_bbox_arg.push_back(minRect);
+            localization_bbox.push_back(minRect);
+            bbox_scores.push_back(edge_num);
 //            bbox_scores_arg.push_back(edge_num);
-            #ifdef CV_DEBUG
-            //            Point2f vertices[4];
-            //            minRect.points(vertices);
-            //            for (int i = 0; i < 4; i++)
-            //                line(debug_proposals, vertices[i], vertices[(i + 1) % 4], 127, 2);
-            #endif
+
         }
     }
-//        return growImage.clone();
 }
 
 inline const std::array<Mat, 4> &getStructuringElement()
@@ -444,24 +415,24 @@ inline const std::array<Mat, 4> &getStructuringElement()
 }
 
 // Change mat
-void Detect::barcodeErode(Mat &mat) const
+void Detect::barcodeErode()
 {
     static const std::array<Mat, 4> &structuringElement = getStructuringElement();
     Mat m0, m1, m2, m3;
-    dilate(mat, m0, structuringElement[0]);
-    dilate(mat, m1, structuringElement[1]);
-    dilate(mat, m2, structuringElement[2]);
-    dilate(mat, m3, structuringElement[3]);
+    dilate(consistency, m0, structuringElement[0]);
+    dilate(consistency, m1, structuringElement[1]);
+    dilate(consistency, m2, structuringElement[2]);
+    dilate(consistency, m3, structuringElement[3]);
     int sum;
-    for (int y = 0; y < mat.rows; y++)
+    for (int y = 0; y < consistency.rows; y++)
     {
-        auto consistency_row = mat.ptr<uint8_t>(y);
+        auto consistency_row = consistency.ptr<uint8_t>(y);
         auto m0_row = m0.ptr<uint8_t>(y);
         auto m1_row = m1.ptr<uint8_t>(y);
         auto m2_row = m2.ptr<uint8_t>(y);
         auto m3_row = m3.ptr<uint8_t>(y);
 
-        for (int pos = 0; pos < mat.cols; pos++)
+        for (int pos = 0; pos < consistency.cols; pos++)
         {
             if (consistency_row[pos] != 0)
             {

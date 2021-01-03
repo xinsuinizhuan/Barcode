@@ -1,6 +1,10 @@
 #include "test_precomp.hpp"
 #include "verifier.hpp"
+#ifdef CV_DEBUG
 
+#include <opencv2/highgui.hpp>
+
+#endif
 std::string enumToString(cv::barcode::BarcodeFormat format)
 {
     using namespace cv::barcode;

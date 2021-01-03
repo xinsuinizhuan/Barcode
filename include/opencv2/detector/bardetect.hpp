@@ -16,8 +16,8 @@ limitations under the License.
 //
 // Created by 97659 on 2020/10/14.
 //
-#ifndef __OPENCV_BARCODE_DETECT_HPP__
-#define __OPENCV_BARCODE_DETECT_HPP__
+#ifndef __OPENCV_BARCODE_BARDETECT_HPP__
+#define __OPENCV_BARCODE_BARDETECT_HPP__
 
 #include <utility>
 
@@ -55,56 +55,28 @@ protected:
         ZOOMING, SHRINKING, UNCHANGED
     } purpose = UNCHANGED;
 
-    struct Proposal
-    {
-        RotatedRect bbox;
-        float score;
-        Proposal(RotatedRect bbox_, float score_) : bbox(std::move(bbox_)), score(score_)
-        {}
-    };
 
     double coeff_expansion = 1.0;
     int height, width;
-    Mat resized_barcode, gradient_magnitude, integral_x_sq, integral_y_sq, integral_xy, integral_edges;
-    // diagonal, skew_diagonal, horizontal, vertical
-    #ifdef CV_DEBUG
-    Mat debug_img, debug_proposals;
-    Mat barcode;
-    #endif
+    Mat resized_barcode, gradient_magnitude, consistency, orientation, edge_nums, integral_x_sq, integral_y_sq, integral_xy, integral_edges;
 
     void preprocess();
 
-    void calConsistency(int window_size, Mat &consistency, Mat &orientation, Mat &edge_nums) const;
+    void calConsistency(int window_size);
 
     static inline bool isValidCoord(const Point &coord, const Size &limit);
 
     static inline double computeOrientation(float y, float x);
 
-    void
-    regionGrowing(int window_size, const Mat &orientation_arg, const Mat &edge_nums_arg, vector<Proposal> &proposals,
-                  Mat &consistency_arg) const;
+    void regionGrowing(int window_size);
 
-    void barcodeErode(Mat &mat) const;
+    void barcodeErode();
 
-    class ParallelBarCodeDetectProcess : public ParallelLoopBody
-    {
-    public:
-        ParallelBarCodeDetectProcess(float step_, Detect &cl_) : step(step_), cl(cl_)
-        {
-            // nothing
-        }
-
-        void operator()(const Range &range) const CV_OVERRIDE;
-
-        float step;
-        Detect &cl;
-
-    };
 
 };
 }
 }
 
 
-#endif //__OPENCV_BARCODE_DETECT_HPP__
+#endif //__OPENCV_BARCODE_BARDETECT_HPP__
 

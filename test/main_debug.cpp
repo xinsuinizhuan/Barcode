@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 
     if (strcmp(argv[1], "--webcam") == 0)
     {
-        VideoCapture capture(0);
+        VideoCapture capture(1);
         capture.set(CAP_PROP_FRAME_WIDTH, 1280);
         capture.set(CAP_PROP_FRAME_HEIGHT, 720);
 
