@@ -20,8 +20,8 @@ limitations under the License.
 namespace cv {
 namespace barcode {
 
-static constexpr int constexpr_bitsNum = 95;
-static constexpr int constexpr_digitNumber = 13;
+static constexpr size_t constexpr_bitsNum = 95;
+static constexpr size_t constexpr_digitNumber = 13;
 // default thought that mat is a matrix after binary-transfer.
 /**
 * decode EAN-13
@@ -43,7 +43,7 @@ Result Ean13Decoder::decode(vector<uchar> data, int start) const
         start = findStartGuardPatterns(data).second;
         vector<int> counters = {0, 0, 0, 0};
         int end = data.size();
-        uint32_t first_char_bit = 0;
+        int first_char_bit = 0;
         // [1,6] are left part of EAN, [7,12] are right part, index 0 is calculated by left part
         for (int i = 1; i < 7 && start < end; ++i)
         {
@@ -54,7 +54,7 @@ Result Ean13Decoder::decode(vector<uchar> data, int start) const
             }
             decode_result[i] = static_cast<char>('0' + bestMatch % 10);
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
-            first_char_bit |= (bestMatch >= 10) << i;
+            first_char_bit += (bestMatch >= 10) << i;
         }
         decode_result[0] = static_cast<char>(FIRST_CHAR_ARRAY()[first_char_bit >> 2] + '0');
         // why there need >> 2?
@@ -104,8 +104,8 @@ bool Ean13Decoder::isValid(string result) const
 
 Ean13Decoder::Ean13Decoder()
 {
-    this->bitsNum = constexpr_bitsNum;
-    this->digitNumber = constexpr_digitNumber;
+    this->bits_num = constexpr_bitsNum;
+    this->digit_number = constexpr_digitNumber;
 }
 }
 }

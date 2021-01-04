@@ -44,8 +44,8 @@ public:
     Result decodeImg(InputArray img) const override;
 
 protected:
-    int bitsNum;
-    int digitNumber;
+    size_t bits_num;
+    size_t digit_number;
 
     int decodeDigit(const std::vector<uchar> &row, std::vector<int> &counters, int rowOffset,
                     const std::vector<std::vector<int>> &patterns) const;

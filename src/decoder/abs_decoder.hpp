@@ -73,13 +73,12 @@ void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &re
 
 void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &counters);
 
-// TODO 详细注释
 constexpr static uint INTEGER_MATH_SHIFT = 8;
 constexpr static int PATTERN_MATCH_RESULT_SCALE_FACTOR = 1 << INTEGER_MATH_SHIFT;
 
 int patternMatch(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividual);
 
-static inline int
+inline int
 patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance);
 }
 } // namespace cv

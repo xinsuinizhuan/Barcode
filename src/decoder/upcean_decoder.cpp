@@ -157,7 +157,7 @@ Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &
     BarcodeFormat max_format = BarcodeFormat::NONE;
     auto rect_size_height = norm(points[0] - points[1]);
     auto rect_size_width = norm(points[1] - points[2]);
-    if (max(rect_size_height, rect_size_width) < this->bitsNum)
+    if (max(rect_size_height, rect_size_width) < this->bits_num)
     {
         return Result{"ERROR", BarcodeFormat::NONE};
     }
@@ -192,7 +192,7 @@ Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &
         //imshow("barscan", bar_copy);
         //cv::waitKey(0);
 #endif
-        if (barcode.result.size() == this->digitNumber)
+        if (barcode.result.size() == this->digit_number)
         {
             total_vote++;
             result_vote[barcode.result] += 1;
@@ -221,7 +221,7 @@ Result UPCEANDecoder::decodeLine(const Mat &bar_img, const Point2i &begin, const
         middle.push_back(bar_img.at<uchar>(line.pos()));
     }
     result = this->decode(middle, 0);
-    if (result.result.size() != this->digitNumber)
+    if (result.result.size() != this->digit_number)
     {
         result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
     }
@@ -290,13 +290,13 @@ const std::vector<std::vector<int>> &get_A_or_C_Patterns()
 const std::vector<std::vector<int>> &get_AB_Patterns()
 {
     static const std::vector<std::vector<int>> AB_Patterns = [] {
-        constexpr int offset = 10;
+        constexpr uint offset = 10;
         auto AB_Patterns_inited = std::vector<std::vector<int>>(offset << 1, std::vector<int>(PATTERN_LENGTH, 0));
         std::copy(get_A_or_C_Patterns().cbegin(), get_A_or_C_Patterns().cend(), AB_Patterns_inited.begin());
         //AB pattern is
-        for (int i = 0; i < offset; ++i)
+        for (uint i = 0; i < offset; ++i)
         {
-            for (int j = 0; j < PATTERN_LENGTH; ++j)
+            for (uint j = 0; j < PATTERN_LENGTH; ++j)
             {
                 AB_Patterns_inited[i + offset][j] = AB_Patterns_inited[i][PATTERN_LENGTH - j - 1];
             }

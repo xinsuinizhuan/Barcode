@@ -50,7 +50,7 @@ bool BarDecode::decodeMultiplyProcess()
     {
     public:
         ParallelBarCodeDecodeProcess(Mat &inarr_, vector<vector<Point2f>> &src_points_, vector<Result> &decoded_info_)
-                : inarr(inarr_), src_points(src_points_), decoded_info(decoded_info_)
+                : inarr(inarr_), decoded_info(decoded_info_), src_points(src_points_)
         {
             for (size_t i = 0; i < src_points.size(); ++i)
             {
