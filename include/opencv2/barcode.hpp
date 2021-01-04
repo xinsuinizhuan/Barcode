@@ -22,35 +22,12 @@ limitations under the License.
 
 namespace cv {
 namespace barcode {
-enum class BarcodeFormat
+enum BarcodeFormat
 {
     EAN_8, EAN_13, UPC_A, UPC_E, UPC_EAN_EXTENSION, NONE
 };
 
-//std::ostream &operator<<(std::ostream &out, BarcodeFormat format)
-//{
-//    switch (format)
-//    {
-//        case BarcodeFormat::EAN_8:
-//            out << "EAN_8";
-//            break;
-//        case BarcodeFormat::EAN_13:
-//            out << "EAN_13";
-//            break;
-//        case BarcodeFormat::UPC_E:
-//            out << "UPC_E";
-//            break;
-//        case BarcodeFormat::UPC_A:
-//            out << "UPC_A";
-//            break;
-//        case BarcodeFormat::UPC_EAN_EXTENSION:
-//            out << "UPC_EAN_EXTENSION";
-//            break;
-//        default:
-//            out << "NONE";
-//    }
-//    return out;
-//}
+std::ostream &operator<<(std::ostream &out, BarcodeFormat format);
 
 class CV_EXPORTS_W BarcodeDetector
 {
@@ -103,7 +80,7 @@ public:
 
 protected:
     struct Impl;
-    Ptr<Impl> p;
+    Ptr <Impl> p;
 };
 }
 } // cv::barcode::
