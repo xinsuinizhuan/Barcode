@@ -178,7 +178,6 @@ Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &
         const auto &begin = i.first;
         const auto &end = i.second;
         barcode = decodeLine(gray, begin, end);
-        barcode.result = barcode.result;
 #ifdef CV_DEBUG
         try
         {

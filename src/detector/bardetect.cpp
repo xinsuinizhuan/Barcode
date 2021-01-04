@@ -23,22 +23,22 @@ struct PIDivideX
 };
 
 #define CALCULATE_SUM(ptr, result) \
-    ptr += left_col + (width+1) * top_row;\
-    top_left = float(*ptr);\
+    ptr += left_col + integral_cols * top_row;\
+    top_left = static_cast<float>(*ptr);\
     ptr += right_col - left_col;\
-    top_right = float(*ptr);\
-    ptr += (bottom_row - top_row) * (width+1);\
-    bottom_right = float(*ptr);\
+    top_right = static_cast<float>(*ptr);\
+    ptr += (bottom_row - top_row) * integral_cols;\
+    bottom_right = static_cast<float>(*ptr);\
     ptr -= right_col - left_col;\
-    bottom_left = float(*ptr);\
-    ptr -= (bottom_row - top_row) * (width+1);\
-    ptr -= left_col + (width+1) * top_row;\
+    bottom_left = static_cast<float>(*ptr);\
+    ptr -= (bottom_row - top_row) * integral_cols;\
+    ptr -= left_col + integral_cols * top_row;\
     result = (bottom_right - bottom_left - top_right + top_left);
 
 
 inline bool Detect::isValidCoord(const Point &coord, const Size &limit)
 {
-    if (((unsigned) coord.x < 0) || ((unsigned) coord.y < 0))
+    if ((coord.x < 0) || ( coord.y < 0))
     {
         return false;
     }
@@ -216,6 +216,7 @@ void Detect::calConsistency(int window_size)
     consistency = Mat(new_size, CV_8U), orientation = Mat(new_size, CV_32F), edge_nums = Mat(new_size, CV_32F);
 
     float top_left, top_right, bottom_left, bottom_right;
+    int integral_cols = width + 1;
     const auto *edges_ptr = integral_edges.ptr<float_t>(), *x_sq_ptr = integral_x_sq.ptr<float_t>(), *y_sq_ptr = integral_y_sq.ptr<float_t>(), *xy_ptr = integral_xy.ptr<float_t>();
     for (int y = 0; y < new_size.height; y++)
     {
@@ -242,6 +243,8 @@ void Detect::calConsistency(int window_size)
             right_col = min(width, (pos + 1) * window_size);
 
             //we had an integral image to count non-zero elements
+
+
             CALCULATE_SUM(edges_ptr, rect_area)
             if (rect_area < THRESHOLD_AREA)
             {
@@ -325,7 +328,7 @@ void Detect::regionGrowing(int window_size)
                 src_value = orientation.at<float_t>(pt);
 
                 //growing in eight directions
-                for (int i = 0; i < 9; ++i)
+                for (int i = 0; i < 8; ++i)
                 {
                     pt_to_grow = Point(pt.x + DIR[i][0], pt.y + DIR[i][1]);
 
