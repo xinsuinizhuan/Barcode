@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     clock_t start;
     std::vector<Point2f> points;
     std::vector<std::string> decoded_info;
-    std::vector<cv::barcode::BarcodeFormat> decoded_format;
+    std::vector<cv::barcode::BarcodeType> decoded_format;
     std::string fps;
     bool ok;
 

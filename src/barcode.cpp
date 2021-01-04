@@ -19,23 +19,23 @@ limitations under the License.
 
 namespace cv {
 namespace barcode {
-std::ostream &operator<<(std::ostream &out, BarcodeFormat format)
+std::ostream &operator<<(std::ostream &out, BarcodeType format)
 {
     switch (format)
     {
-        case BarcodeFormat::EAN_8:
+        case BarcodeType::EAN_8:
             out << "EAN_8";
             break;
-        case BarcodeFormat::EAN_13:
+        case BarcodeType::EAN_13:
             out << "EAN_13";
             break;
-        case BarcodeFormat::UPC_E:
+        case BarcodeType::UPC_E:
             out << "UPC_E";
             break;
-        case BarcodeFormat::UPC_A:
+        case BarcodeType::UPC_A:
             out << "UPC_A";
             break;
-        case BarcodeFormat::UPC_EAN_EXTENSION:
+        case BarcodeType::UPC_EAN_EXTENSION:
             out << "UPC_EAN_EXTENSION";
             break;
         default:
@@ -126,7 +126,7 @@ bool BarcodeDetector::detect(InputArray img, OutputArray points) const
 }
 
 bool BarcodeDetector::decode(InputArray img, InputArray points, vector<std::string> &decoded_info,
-                             vector<BarcodeFormat> &decoded_format) const
+                             vector<BarcodeType> &decoded_type) const
 {
     Mat inarr;
     if (!checkBarInputImage(img, inarr))
@@ -142,17 +142,17 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, vector<std::stri
     bool ok = bardec.decodeMultiplyProcess();
     const vector<Result> &_decoded_info = bardec.getDecodeInformation();
     decoded_info.clear();
-    decoded_format.clear();
+    decoded_type.clear();
     for (const auto &info : _decoded_info)
     {
         decoded_info.emplace_back(info.result);
-        decoded_format.emplace_back(info.format);
+        decoded_type.emplace_back(info.format);
     }
     return ok;
 }
 
 bool BarcodeDetector::detectAndDecode(InputArray img, vector<std::string> &decoded_info,
-                                      vector<BarcodeFormat> &decoded_format, OutputArray points_) const
+                                      vector<BarcodeType> &decoded_format, OutputArray points_) const
 {
     Mat inarr;
     if (!checkBarInputImage(img, inarr))
@@ -174,7 +174,7 @@ bool BarcodeDetector::detectAndDecode(InputArray img, vector<std::string> &decod
     return ok;
 }
 
-bool BarcodeDetector::decodeDirectly(InputArray img, std::string &decoded_info, BarcodeFormat &decoded_format) const
+bool BarcodeDetector::decodeDirectly(InputArray img, std::string &decoded_info, BarcodeType &decoded_format) const
 {
     Mat inarr;
     if (!checkBarInputImage(img, inarr))
@@ -186,7 +186,7 @@ bool BarcodeDetector::decodeDirectly(InputArray img, std::string &decoded_info, 
     _decoded_info = decoder->decodeImg(inarr);
     decoded_info = _decoded_info.result;
     decoded_format = _decoded_info.format;
-    if (decoded_format == BarcodeFormat::NONE || decoded_info.empty())
+    if (decoded_format == BarcodeType::NONE || decoded_info.empty())
     {
         return false;
     }

@@ -150,16 +150,16 @@ Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &
     //imshow("barimg", gray);
 #endif
     std::map<std::string, int> result_vote;
-    std::map<BarcodeFormat, int> format_vote;
+    std::map<BarcodeType, int> format_vote;
     int vote_cnt = 0;
     int total_vote = 0;
     std::string max_result = "ERROR";
-    BarcodeFormat max_format = BarcodeFormat::NONE;
+    BarcodeType max_format = BarcodeType::NONE;
     auto rect_size_height = norm(points[0] - points[1]);
     auto rect_size_width = norm(points[1] - points[2]);
     if (max(rect_size_height, rect_size_width) < this->bits_num)
     {
-        return Result{"ERROR", BarcodeFormat::NONE};
+        return Result{"ERROR", BarcodeType::NONE};
     }
 #ifdef CV_DEBUG
     Mat bar_copy = gray.clone();

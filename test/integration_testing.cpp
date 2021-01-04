@@ -5,16 +5,16 @@
 #include <opencv2/highgui.hpp>
 
 #endif
-std::string enumToString(cv::barcode::BarcodeFormat format)
+std::string enumToString(cv::barcode::BarcodeType format)
 {
     using namespace cv::barcode;
     switch(format)
     {
-        case BarcodeFormat::EAN_13:
+        case BarcodeType::EAN_13:
             return "EAN_13";
-        case BarcodeFormat::EAN_8:
+        case BarcodeType::EAN_8:
             return "EAN_8";
-        case BarcodeFormat::UPC_E:
+        case BarcodeType::UPC_E:
             return "UPC_E";
         default:
             return "NONE";
@@ -70,7 +70,7 @@ TEST(integration_testing, ImgUnitTest)
     std::vector<cv::RotatedRect> rects;
     std::vector<cv::Point2f> points;
     std::vector<std::string> barcode_info;
-    std::vector<cv::barcode::BarcodeFormat> barcode_format;
+    std::vector<cv::barcode::BarcodeType> barcode_format;
     try
     {
         bardet.detectAndDecode(frame, barcode_info,barcode_format , points);

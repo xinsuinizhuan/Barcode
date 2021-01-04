@@ -36,7 +36,7 @@ Result Ean13Decoder::decode(vector<uchar> data, int start) const
     char decode_result[constexpr_digitNumber + 1]{'\0'};
     if (data.size() - start < constexpr_bitsNum)
     {
-        return Result("size wrong", BarcodeFormat::NONE);
+        return Result("size wrong", BarcodeType::NONE);
     }
     try
     {
@@ -50,7 +50,7 @@ Result Ean13Decoder::decode(vector<uchar> data, int start) const
             int bestMatch = decodeDigit(data, counters, start, get_AB_Patterns());
             if (bestMatch == -1)
             {
-                return Result("ERROR", BarcodeFormat::NONE);
+                return Result("ERROR", BarcodeType::NONE);
             }
             decode_result[i] = static_cast<char>('0' + bestMatch % 10);
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
@@ -66,7 +66,7 @@ Result Ean13Decoder::decode(vector<uchar> data, int start) const
             int bestMatch = decodeDigit(data, counters, start, get_A_or_C_Patterns());
             if (bestMatch == -1)
             {
-                return Result("ERROR", BarcodeFormat::NONE);
+                return Result("ERROR", BarcodeType::NONE);
             }
             decode_result[i + 7] = static_cast<char>('0' + bestMatch);
             start = std::accumulate(counters.cbegin(), counters.cend(), start);
@@ -76,13 +76,13 @@ Result Ean13Decoder::decode(vector<uchar> data, int start) const
         if (!isValid(result))
         {
             return Result("Wrong: " + result.append(string(constexpr_digitNumber - result.size(), ' ')),
-                          BarcodeFormat::NONE);
+                          BarcodeType::NONE);
         }
     } catch (GuardPatternsNotFindException &e)
     {
-        return Result("ERROR", BarcodeFormat::NONE);
+        return Result("ERROR", BarcodeType::NONE);
     }
-    return Result(result, BarcodeFormat::EAN_13);
+    return Result(result, BarcodeType::EAN_13);
 }
 
 

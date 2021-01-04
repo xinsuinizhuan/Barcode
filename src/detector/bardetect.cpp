@@ -328,9 +328,9 @@ void Detect::regionGrowing(int window_size)
                 src_value = orientation.at<float_t>(pt);
 
                 //growing in eight directions
-                for (int i = 0; i < 8; ++i)
+                for (auto i : DIR)
                 {
-                    pt_to_grow = Point(pt.x + DIR[i][0], pt.y + DIR[i][1]);
+                    pt_to_grow = Point(pt.x + i[0], pt.y + i[1]);
 
                     //check if out of boundary
                     if (!isValidCoord(pt_to_grow, consistency.size()))

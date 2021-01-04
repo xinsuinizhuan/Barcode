@@ -34,11 +34,11 @@ constexpr static int WHITE = std::numeric_limits<uchar>::max();
 struct Result
 {
     std::string result;
-    BarcodeFormat format = BarcodeFormat::NONE;
+    BarcodeType format = BarcodeType::NONE;
 
     Result() = default;
 
-    Result(std::string _result, BarcodeFormat _format)
+    Result(std::string _result, BarcodeType _format)
     {
         result = std::move(_result);
         format = _format;
