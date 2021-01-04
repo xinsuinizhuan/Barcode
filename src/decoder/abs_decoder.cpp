@@ -77,27 +77,6 @@ void fillCounter(const std::vector<uchar> &row, int start, std::vector<int> &cou
     }
 }
 
-/**
- * Determines how closely a set of observed counts of runs of black/white values matches a given
- * target pattern. This is reported as the ratio of the total variance from the expected pattern
- * proportions across all pattern elements, to the length of the pattern.
- *
- * @param counters observed counters
- * @param pattern expected pattern
- * @param maxIndividualVariance The most any counter can differ before we give up
- * @return ratio of total variance between counters and pattern compared to total pattern size,
- *  where the ratio has been multiplied by 256. So, 0 means no variance (perfect match); 256 means
- *  the total variance between counters and patterns equals the pattern length, higher values mean
- *  even more variance
- */
-int patternMatch(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividual)
-{
-    CV_Assert(counters.size() == pattern.size());
-    //return patternMatchConsieDistance(std::move(counters), pattern, maxIndividual);
-    return patternMatchVariance(std::move(counters), pattern, maxIndividual);
-}
-
-
 static inline int
 patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern, int maxIndividualVariance)
 {
@@ -132,6 +111,24 @@ patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern,
     return totalVariance / total;
 }
 
-
+/**
+ * Determines how closely a set of observed counts of runs of black/white values matches a given
+ * target pattern. This is reported as the ratio of the total variance from the expected pattern
+ * proportions across all pattern elements, to the length of the pattern.
+ *
+ * @param counters observed counters
+ * @param pattern expected pattern
+ * @param maxIndividualVariance The most any counter can differ before we give up
+ * @return ratio of total variance between counters and pattern compared to total pattern size,
+ *  where the ratio has been multiplied by 256. So, 0 means no variance (perfect match); 256 means
+ *  the total variance between counters and patterns equals the pattern length, higher values mean
+ *  even more variance
+ */
+int patternMatch(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividual)
+{
+    CV_Assert(counters.size() == pattern.size());
+    //return patternMatchConsieDistance(std::move(counters), pattern, maxIndividual);
+    return patternMatchVariance(std::move(counters), pattern, maxIndividual);
+}
 }
 }
