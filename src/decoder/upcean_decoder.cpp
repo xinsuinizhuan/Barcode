@@ -71,18 +71,18 @@ std::pair<int, int> UPCEANDecoder::findGuardPatterns(const std::vector<uchar> &r
 
 std::pair<int, int> UPCEANDecoder::findStartGuardPatterns(const std::vector<uchar> &row)
 {
-    bool isfind = false;
+    bool is_find = false;
     std::pair<int, int> start_range{0, -1};
     int next_start = 0;
-    while (!isfind)
+    while (!is_find)
     {
-        std::vector<int> gurad_counters{0, 0, 0};
-        start_range = findGuardPatterns(row, next_start, BLACK, BEGIN_PATTERN(), gurad_counters);
+        std::vector<int> guard_counters{0, 0, 0};
+        start_range = findGuardPatterns(row, next_start, BLACK, BEGIN_PATTERN(), guard_counters);
         int start = start_range.first;
         next_start = start_range.second;
         int quiet_start = max(start - (next_start - start), 0);
-        isfind = (quiet_start != start) &&
-                 (std::find(std::begin(row) + quiet_start, std::begin(row) + start, BLACK) == std::begin(row) + start);
+        is_find = (quiet_start != start) &&
+                  (std::find(std::begin(row) + quiet_start, std::begin(row) + start, BLACK) == std::begin(row) + start);
     }
     return start_range;
 }
