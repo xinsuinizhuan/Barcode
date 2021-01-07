@@ -130,22 +130,25 @@ void Verifier::verify()
         std::vector<std::string> infos;
         std::vector<cv::barcode::BarcodeType> formats;
         barcodeDetector.detectAndDecode(img, infos, formats, points);
-        if(infos.size() == 1)// 暂时先这么干
+        if(infos.size() != 0)
         {
-            std::string result = infos[0];
-            if (dataset.find(img_name) != dataset.end())
+            bool iscorrect = false;
+            for (const auto& result : infos)
             {
-                if (result == dataset[img_name])
+                if (dataset.find(img_name) != dataset.end())
                 {
-                    correct_case_num++;
-                }
-                else
-                {
-                    printf("wrong case:%s, wrong result:%s, right result:%s\n", img_name.c_str(), infos[0].c_str(),
-                           dataset[img_name].c_str());
+                    if (result == dataset[img_name])
+                    {
+                        correct_case_num++;
+                        iscorrect = true;
+                        break;
+                    }
                 }
             }
-
+            if(!iscorrect) {
+                printf("wrong case:%s, wrong result:%s, right result:%s\n", img_name.c_str(), infos[0].c_str(),
+                       dataset[img_name].c_str());
+            }
         }
         else
         {
