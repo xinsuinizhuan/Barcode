@@ -13,16 +13,30 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#ifndef __OPENCV_PRECOMP_H__
-#define __OPENCV_PRECOMP_H__
 
-#include <opencv2/imgproc.hpp>
-#include "decoder/bardecode.hpp"
-#include "decoder/ean13_decoder.hpp"
-#include "detector/bardetect.hpp"
+#ifndef __OPENCV_BARCODE_EAN13_DECODER_HPP__
+#define __OPENCV_BARCODE_EAN13_DECODER_HPP__
 
-#include <deque>
-#include <array>
-#include <memory>
+#include "upcean_decoder.hpp"
 
-#endif
+namespace cv {
+namespace barcode {
+//extern struct EncodePair;
+using std::string;
+using std::vector;
+
+class Ean13Decoder : public UPCEANDecoder
+{
+public:
+    Ean13Decoder();
+
+    ~Ean13Decoder() override = default;
+
+protected:
+    Result decode(vector<uchar> data, int start) const override;
+
+    bool isValid(string result) const override;
+};
+}
+} // namespace cv
+#endif // !__OPENCV_BARCODE_EAN13_DECODER_HPP__

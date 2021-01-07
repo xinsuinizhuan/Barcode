@@ -4,7 +4,7 @@
 
 #include "test_precomp.hpp"
 #include "decoder/patternmatch.hpp"
-#include "decoder/ean_decoder.hpp"
+#include "decoder/ean13_decoder.hpp"
 
 using std::vector;
 TEST(patternMatch, build_objects)
@@ -57,7 +57,7 @@ TEST(patternMatch, compare)
 
 TEST(patternMatch, Pictrue)
 {
-    cv::BarcodeDetector bardet;
+    cv::barcode::BarcodeDetector bardet;
     std::string graphs[] = {"ZXing2.png"};
     cv::Point2f points[4];
     //

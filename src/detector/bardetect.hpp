@@ -16,83 +16,67 @@ limitations under the License.
 //
 // Created by 97659 on 2020/10/14.
 //
-#ifndef __OPENCV_BARCODE_DETECT_HPP__
-#define __OPENCV_BARCODE_DETECT_HPP__
-constexpr double PI = 3.1415926535897932;
+#ifndef __OPENCV_BARCODE_BARDETECT_HPP__
+#define __OPENCV_BARCODE_BARDETECT_HPP__
 
-#include "opencv2/opencv.hpp"
 #include <utility>
-#include <vector>
+
+#include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/dnn/dnn.hpp"
 
 namespace cv {
-
+namespace barcode {
 using std::vector;
-using std::pair;
 
 class Detect
 {
 private:
-    const int USE_ROTATED_RECT_ANGLE = 361;
     vector<RotatedRect> localization_rects;
-
-
     vector<RotatedRect> localization_bbox;
     vector<float> bbox_scores;
     vector<int> bbox_indices;
-    vector<float> bbox_orientations;
+    vector<vector<Point2f>> transformation_points;
+
 
 public:
     void init(const Mat &src);
 
     void localization();
 
-    vector<RotatedRect> getLocalizationRects();
+    vector<vector<Point2f>> getTransformationPoints()
+    { return transformation_points; }
 
+    bool computeTransformationPoints();
 
 protected:
     enum resize_direction
     {
         ZOOMING, SHRINKING, UNCHANGED
     } purpose = UNCHANGED;
+
+
     double coeff_expansion = 1.0;
     int height, width;
-    Mat barcode, resized_barcode, gradient_direction, gradient_magnitude, integral_x_sq, integral_y_sq, integral_xy, integral_edges, consistency, orientation, edge_nums;
-    // diagonal, skew_diagonal, horizontal, vertical
-    #ifdef CV_DEBUG
-    Mat debug_img, debug_proposals;
-    #endif
-    Mat structuringElement[4] = {
-            (Mat_<uint8_t>(3, 3) << 255, 0, 0, 0, 0, 0, 0, 0, 255),
-            (Mat_<uint8_t>(3, 3) << 0, 0, 255, 0, 0, 0, 255, 0, 0),
-            (Mat_<uint8_t>(3, 3) << 0, 0, 0, 255, 0, 255, 0, 0, 0),
-            (Mat_<uint8_t>(3, 3) << 0, 255, 0, 0, 0, 0, 0, 255, 0)};
+    Mat resized_barcode, gradient_magnitude, consistency, orientation, edge_nums, integral_x_sq, integral_y_sq, integral_xy, integral_edges;
 
     void preprocess();
 
-    static int compare(const RotatedRect &r1, const RotatedRect &r2)
-    {
-        return r1.size.area() > r2.size.area();
-    }
-
-//        void normalizeRegion(RotatedRect &rect);
-
     void calConsistency(int window_size);
-
 
     static inline bool isValidCoord(const Point &coord, const Size &limit);
 
     static inline double computeOrientation(float y, float x);
 
-
-    //void locateBarcodes();
-
     void regionGrowing(int window_size);
 
     void barcodeErode();
 
+
 };
+}
 }
 
 
-#endif //__OPENCV_BARCODE_DETECT_HPP__
+#endif //__OPENCV_BARCODE_BARDETECT_HPP__
 

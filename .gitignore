@@ -9,7 +9,6 @@
 *.userosscache
 *.sln.docstates
 *.props
-OpenCVPath.cmake
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -18,11 +17,15 @@ OpenCVPath.cmake
 mono_crash.*
 
 # Build results
+test/wrong_decode
+test/screenshot
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
 x64/
+x64-[Dd]ebug/
+x64-[Rr]elease/
 x86/
 [Ww][Ii][Nn]32/
 [Aa][Rr][Mm]/
@@ -33,7 +36,7 @@ bld/
 [Ll]og/
 [Ll]ogs/
 out/
-cmake-[Bb]uild-*/
+cmake-[Bb]uild-*/*
 # IDEs directory
 .vs/
 .vscode/
