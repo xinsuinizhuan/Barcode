@@ -38,7 +38,7 @@ struct PIDivideX
 
 inline bool Detect::isValidCoord(const Point &coord, const Size &limit)
 {
-    if ((coord.x < 0) || ( coord.y < 0))
+    if ((coord.x < 0) || (coord.y < 0))
     {
         return false;
     }
@@ -208,10 +208,10 @@ void Detect::preprocess()
 // depend on width height integral_edges integral_x_sq integral_y_sq integral_xy
 void Detect::calConsistency(int window_size)
 {
-    static constexpr float THRESHOLD_CONSISTENCY = 0.85f;
+    static constexpr float THRESHOLD_CONSISTENCY = 0.9f;
     int right_col, left_col, top_row, bottom_row;
     float xy, x_sq, y_sq, d, rect_area;
-    const float THRESHOLD_AREA = float(window_size * window_size) * 0.5f;
+    const float THRESHOLD_AREA = float(window_size * window_size) * 0.4f;
     Size new_size(width / window_size, height / window_size);
     consistency = Mat(new_size, CV_8U), orientation = Mat(new_size, CV_32F), edge_nums = Mat(new_size, CV_32F);
 
@@ -280,7 +280,7 @@ void Detect::calConsistency(int window_size)
 // depend on consistency orientation edge_nums
 void Detect::regionGrowing(int window_size)
 {
-    static constexpr float LOCAL_THRESHOLD_CONSISTENCY = 0.98, THRESHOLD_RADIAN = PIDivideX<float, 40>::Value, THRESHOLD_BLOCK_NUM = 20, LOCAL_RATIO = 0.4;
+    static constexpr float LOCAL_THRESHOLD_CONSISTENCY = 0.95, THRESHOLD_RADIAN = PIDivideX<float, 30>::Value, THRESHOLD_BLOCK_NUM = 20, LOCAL_RATIO = 0.25, EXPANSION_FACTOR = 1.2;
     Point pt_to_grow, pt;                       //point to grow
 
     float src_value;
@@ -389,8 +389,8 @@ void Detect::regionGrowing(int window_size)
                 continue;
             }
             minRect.angle = static_cast<float>(local_orientation) * XDividePI<180, float>::Value;
-            minRect.size.width *= static_cast<float>(window_size + 1);
-            minRect.size.height *= static_cast<float>(window_size + 1);
+            minRect.size.width *= static_cast<float>(window_size) * EXPANSION_FACTOR;
+            minRect.size.height *= static_cast<float>(window_size);
             minRect.center.x = (minRect.center.x + 0.5) * window_size;
             minRect.center.y = (minRect.center.y + 0.5) * window_size;
 #ifdef CV_DEBUG
