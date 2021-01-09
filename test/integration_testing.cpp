@@ -40,6 +40,7 @@ TEST(integration_testing, detect_and_decode)
     std::string result_file{pre_path + "test/data/integration_test_data/result.csv"};
     Verifier verifier{data_path, result_file, img_types};
     verifier.verify();
+    std::cout<<"Error detection num: "<<verifier.error_detection_num<<std::endl;
     float correctness = verifier.getCorrectness();
     if (correctness >= last_correctness - 0.00001)
     {

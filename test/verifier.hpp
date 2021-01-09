@@ -26,6 +26,7 @@ public:
     datasetType dataset;
     float total_case_num;
     float correct_case_num;
+    size_t error_detection_num;
 private:
     cv::barcode::BarcodeDetector barcodeDetector;
     stringvec postfixes;
@@ -65,7 +66,7 @@ stringvec explode(const std::string &s, const char &c)
     return v;
 }
 
-void read_directory(const std::string &name, stringvec &v, const stringvec& postfixes)
+void read_directory(const std::string &name, stringvec &v, const stringvec &postfixes)
 {
     std::string pattern{name};
     pattern.append(R"(\*)");
@@ -101,7 +102,8 @@ void read_directory(const std::string &name, stringvec &v, const stringvec& post
 Verifier::Verifier(std::string data_dir, std::string result_file_path, stringvec postfixes) : data_dir(
         std::move(data_dir)), result_file_path(std::move(result_file_path)), postfixes(std::move(postfixes)),
                                                                                               total_case_num(0.0f),
-                                                                                              correct_case_num(0.0f)
+                                                                                              correct_case_num(0.0f),
+                                                                                              error_detection_num(0)
 {
     buildDataSet();
 }
@@ -110,6 +112,8 @@ void Verifier::reset()
 {
     this->total_case_num = 0;
     this->correct_case_num = 0;
+    this->error_detection_num = 0;
+
     dataset.clear();
 }
 
@@ -125,15 +129,16 @@ void Verifier::verify()
     for (const auto &img_name : imgs_name)
     {
         total_case_num++;
-        cv::Mat img = cv::imread(data_dir+img_name);
+        cv::Mat img = cv::imread(data_dir + img_name);
         std::vector<cv::Point2f> points;
         std::vector<std::string> infos;
         std::vector<cv::barcode::BarcodeType> formats;
         barcodeDetector.detectAndDecode(img, infos, formats, points);
-        if(infos.size() != 0)
+        if (!infos.empty())
         {
+            error_detection_num += infos.size() - 1;
             bool iscorrect = false;
-            for (const auto& result : infos)
+            for (const auto &result : infos)
             {
                 if (dataset.find(img_name) != dataset.end())
                 {
@@ -145,14 +150,15 @@ void Verifier::verify()
                     }
                 }
             }
-            if(!iscorrect) {
-                printf("wrong case:%s, wrong result:%s, right result:%s\n", img_name.c_str(), infos[0].c_str(),
+            if (!iscorrect)
+            {
+                printf("wrong case: %s wrong result: %s right result: %s\n", img_name.c_str(), infos[0].c_str(),
                        dataset[img_name].c_str());
             }
         }
         else
         {
-            std::cout << "wrong case: " << img_name << "no result" << std::endl;
+            std::cout << "wrong case: " << img_name << " no result" << std::endl;
         }
     }
 

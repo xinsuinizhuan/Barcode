@@ -190,6 +190,7 @@ int main(int argc, char **argv)
         fps = std::to_string(clock() - start) + " ms";
         cv::putText(frame, fps, Point2f(5, 10), cv::FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 255), 1);
         std::cout << fps << std::endl;
+//        resize(frame,frame, Size(),0.5, 0.5,INTER_AREA);
         imshow("bounding boxes", frame);
 
         waitKey();
