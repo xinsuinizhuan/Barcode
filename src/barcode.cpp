@@ -151,7 +151,7 @@ bool BarcodeDetector::detectAndDecode(InputArray img, vector<std::string> &decod
     return ok;
 }
 
-bool BarcodeDetector::decodeDirectly(InputArray img, std::string &decoded_info, BarcodeType &decoded_type) const
+bool BarcodeDetector::decodeDirectly(InputArray img, String &decoded_info, BarcodeType &decoded_type) const
 {
     Mat inarr;
     if (!checkBarInputImage(img, inarr))

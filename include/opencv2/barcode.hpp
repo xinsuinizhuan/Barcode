@@ -98,7 +98,7 @@ public:
      * @param decoded_type vector of BarcodeType, specifies the type of these barcodes
     */
     CV_WRAP bool
-    decodeDirectly(InputArray img, CV_OUT std::string &decoded_info, CV_OUT BarcodeType &decoded_type) const;
+    decodeDirectly(InputArray img, CV_OUT String &decoded_info, CV_OUT BarcodeType &decoded_type) const;
 
 
 protected:
