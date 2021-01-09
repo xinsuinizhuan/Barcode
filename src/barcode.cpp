@@ -19,30 +19,7 @@ limitations under the License.
 
 namespace cv {
 namespace barcode {
-std::ostream &operator<<(std::ostream &out, BarcodeType format)
-{
-    switch (format)
-    {
-        case BarcodeType::EAN_8:
-            out << "EAN_8";
-            break;
-        case BarcodeType::EAN_13:
-            out << "EAN_13";
-            break;
-        case BarcodeType::UPC_E:
-            out << "UPC_E";
-            break;
-        case BarcodeType::UPC_A:
-            out << "UPC_A";
-            break;
-        case BarcodeType::UPC_EAN_EXTENSION:
-            out << "UPC_EAN_EXTENSION";
-            break;
-        default:
-            out << "NONE";
-    }
-    return out;
-}
+
 
 static bool checkBarInputImage(InputArray img, Mat &gray)
 {

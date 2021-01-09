@@ -18,7 +18,7 @@ limitations under the License.
 #define __OPENCV_BARCODE_HPP__
 
 #include "opencv2/core.hpp"
-
+#include <ostream>
 
 namespace cv {
 namespace barcode {
@@ -27,7 +27,30 @@ enum BarcodeType
     EAN_8, EAN_13, UPC_A, UPC_E, UPC_EAN_EXTENSION, NONE
 };
 
-std::ostream &operator<<(std::ostream &out, BarcodeType format);
+static inline std::ostream &operator<<(std::ostream &out, const BarcodeType &format)
+{
+    switch (format)
+    {
+        case BarcodeType::EAN_8:
+            out << "EAN_8";
+            break;
+        case BarcodeType::EAN_13:
+            out << "EAN_13";
+            break;
+        case BarcodeType::UPC_E:
+            out << "UPC_E";
+            break;
+        case BarcodeType::UPC_A:
+            out << "UPC_A";
+            break;
+        case BarcodeType::UPC_EAN_EXTENSION:
+            out << "UPC_EAN_EXTENSION";
+            break;
+        default:
+            out << "NONE";
+    }
+    return out;
+}
 
 class CV_EXPORTS_W BarcodeDetector
 {
@@ -80,7 +103,7 @@ public:
 
 protected:
     struct Impl;
-    Ptr <Impl> p;
+    Ptr<Impl> p;
 };
 }
 } // cv::barcode::
