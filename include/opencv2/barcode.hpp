@@ -85,20 +85,20 @@ public:
 
      * @param img grayscale or color (BGR) image containing barcode.
      * @param decoded_info UTF8-encoded output vector of string(s) or empty vector of string if the codes cannot be decoded.
-     * @param decoded_format vector of BarcodeType, specifies the type of these barcodes
+     * @param decoded_type vector of BarcodeType, specifies the type of these barcodes
      * @param points_ optional output vector of vertices of the found  barcode rectangle. Will be empty if not found.
      */
     CV_WRAP bool detectAndDecode(InputArray img, CV_OUT std::vector<std::string> &decoded_info, CV_OUT
-                                 std::vector<BarcodeType> &decoded_format, OutputArray points = noArray()) const;
+                                 std::vector<BarcodeType> &decoded_type, OutputArray points = noArray()) const;
 
     /** @brief Decode without detects
      *
      * @param img grayscale or color (BGR) image containing barcode.
      * @param decoded_info UTF8-encoded output of string or empty string if the codes do not contain barcode.
-     * @param decoded_format vector of BarcodeType, specifies the type of these barcodes
+     * @param decoded_type vector of BarcodeType, specifies the type of these barcodes
     */
     CV_WRAP bool
-    decodeDirectly(InputArray img, CV_OUT std::string &decoded_info, CV_OUT BarcodeType &decoded_format) const;
+    decodeDirectly(InputArray img, CV_OUT std::string &decoded_info, CV_OUT BarcodeType &decoded_type) const;
 
 
 protected:
