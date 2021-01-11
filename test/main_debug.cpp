@@ -36,6 +36,7 @@ int main(int argc, char **argv)
     barcode::BarcodeDetector bardet;
     Mat frame;
     clock_t start;
+    int video_idx;
     std::vector<Point2f> points;
     std::vector<std::string> decoded_info;
     std::vector<cv::barcode::BarcodeType> decoded_format;
@@ -60,7 +61,8 @@ int main(int argc, char **argv)
 
     if (strcmp(argv[1], "--webcam") == 0)
     {
-        VideoCapture capture(1);
+        video_idx = max(0, std::stoi(argv[2]));
+        VideoCapture capture(video_idx);
         capture.set(CAP_PROP_FRAME_WIDTH, 1280);
         capture.set(CAP_PROP_FRAME_HEIGHT, 720);
 

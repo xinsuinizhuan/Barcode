@@ -128,7 +128,6 @@ patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern,
 int patternMatch(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividual)
 {
     CV_Assert(counters.size() == pattern.size());
-    //return patternMatchConsieDistance(std::move(counters), pattern, maxIndividual);
     return patternMatchVariance(std::move(counters), pattern, maxIndividual);
 }
 }
