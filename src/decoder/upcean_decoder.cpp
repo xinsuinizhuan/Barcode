@@ -32,13 +32,13 @@ static constexpr int DIVIDE_PART = 16;
 std::pair<int, int> UPCEANDecoder::findGuardPatterns(const std::vector<uchar> &row, int rowOffset, uchar whiteFirst,
                                                      const std::vector<int> &pattern, std::vector<int> counters)
 {
-    int patternLength = pattern.size();
-    int width = row.size();
+    size_t patternLength = pattern.size();
+    size_t width = row.size();
     uchar isWhite = whiteFirst ? WHITE : BLACK;
-    rowOffset = std::find(row.cbegin() + rowOffset, row.cend(), isWhite) - row.cbegin();
-    int counterPosition = 0;
+    rowOffset = (int) (std::find(row.cbegin() + rowOffset, row.cend(), isWhite) - row.cbegin());
+    uint counterPosition = 0;
     int patternStart = rowOffset;
-    for (int x = rowOffset; x < width; x++)
+    for (uint x = rowOffset; x < width; x++)
     {
         if (row[x] == isWhite)
         {
@@ -105,7 +105,7 @@ int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, std::vector<int> &
         i++;
     }
     return std::max(-1, bestMatch);
-    // -1 is dismatch or means error.
+    // -1 is Mismatch or means error.
 }
 
 /*Input a mat and it's position rect, return the decode result */
@@ -238,15 +238,14 @@ Result UPCEANDecoder::decodeLine(const Mat &bar_img, const Point2i &begin, const
 void UPCEANDecoder::linesFromRect(const Size2i &shape, int angle, int PART,
                                   std::vector<std::pair<Point2i, Point2i>> &results) const
 {
-    auto shapef = Size2f(shape);
-    Point2i step = Point2i(cvRound(shapef.height) / PART, 0);
-    Point2i cbegin = Point2i(shapef.height / 2, 0);
-    Point2i cend = Point2i(shapef.height / 2, shapef.width - 1);
+    Point2i step = Point2i(shape.height / PART, 0);
+    Point2i cbegin = Point2i(shape.height / 2, 0);
+    Point2i cend = Point2i(shape.height / 2, shape.width - 1);
     if (angle)
     {
-        step = Point2i(0, cvRound(shapef.width) / PART);
-        cbegin = Point2i(0, shapef.width / 2);
-        cend = Point2i(shapef.height - 1, shapef.width / 2);
+        step = Point2i(0, shape.width / PART);
+        cbegin = Point2i(0, shape.width / 2);
+        cend = Point2i(shape.height - 1, shape.width / 2);
     }
     results.reserve(results.size() + PART + 1);
     for (int i = 1; i <= (PART >> 1); ++i)
@@ -264,7 +263,8 @@ Result UPCEANDecoder::decodeImg(InputArray img) const
     auto gray = Mat.clone();
     constexpr int PART = 50;
     std::vector<Point2f> real_rect{
-            Point2f(0, Mat.rows), Point2f(0, 0), Point2f(Mat.cols, 0), Point2f(Mat.cols, Mat.rows)};
+            Point2f(0, (float) Mat.rows), Point2f(0, 0), Point2f((float) Mat.cols, 0),
+            Point2f((float) Mat.cols, (float) Mat.rows)};
     Result result = rectToResult(Mat, real_rect, PART, true);
     return result;
 }

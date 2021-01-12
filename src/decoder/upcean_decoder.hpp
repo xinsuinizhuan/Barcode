@@ -63,7 +63,7 @@ protected:
     void
     linesFromRect(const Size2i &shape, int angle, int PART, std::vector<std::pair<Point2i, Point2i>> &results) const;
 
-    Result decode(std::vector<uchar> bar, int start) const override = 0;
+    Result decode(std::vector<uchar> bar, uint start) const override = 0;
 
     bool isValid(std::string result) const override = 0;
 };

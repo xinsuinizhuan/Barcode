@@ -30,11 +30,11 @@ static constexpr size_t constexpr_digitNumber = 13;
 * it scan begin at the data[start]
 */
 // TODO!, need fix the param: stars's usage
-Result Ean13Decoder::decode(vector<uchar> data, int start) const
+Result Ean13Decoder::decode(vector<uchar> data, uint start) const
 {
     string result;
     char decode_result[constexpr_digitNumber + 1]{'\0'};
-    if (data.size() - start < constexpr_bitsNum)
+    if (data.size() < constexpr_bitsNum + start)
     {
         return Result("size wrong", BarcodeType::NONE);
     }
@@ -42,7 +42,7 @@ Result Ean13Decoder::decode(vector<uchar> data, int start) const
     {
         start = findStartGuardPatterns(data).second;
         vector<int> counters = {0, 0, 0, 0};
-        int end = data.size();
+        size_t end = data.size();
         int first_char_bit = 0;
         // [1,6] are left part of EAN, [7,12] are right part, index 0 is calculated by left part
         for (int i = 1; i < 7 && start < end; ++i)
@@ -78,7 +78,7 @@ Result Ean13Decoder::decode(vector<uchar> data, int start) const
             return Result("Wrong: " + result.append(string(constexpr_digitNumber - result.size(), ' ')),
                           BarcodeType::NONE);
         }
-    } catch (GuardPatternsNotFindException &e)
+    } catch (GuardPatternsNotFindException &)
     {
         return Result("ERROR", BarcodeType::NONE);
     }
@@ -93,7 +93,7 @@ bool Ean13Decoder::isValid(string result) const
         return false;
     }
     int sum = 0;
-    for (int index = (int)result.size() - 2, i = 1; index >= 0; index--, i++)
+    for (int index = (int) result.size() - 2, i = 1; index >= 0; index--, i++)
     {
         int temp = result[index] - '0';
         sum += (temp + ((i & 1) != 0 ? temp << 1 : 0));

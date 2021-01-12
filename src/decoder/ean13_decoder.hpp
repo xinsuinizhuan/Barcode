@@ -33,7 +33,7 @@ public:
     ~Ean13Decoder() override = default;
 
 protected:
-    Result decode(vector<uchar> data, int start) const override;
+    Result decode(vector<uchar> data, uint start) const override;
 
     bool isValid(string result) const override;
 };
