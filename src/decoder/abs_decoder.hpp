@@ -30,7 +30,6 @@ constexpr static int BLACK = std::numeric_limits<uchar>::min();
 constexpr static int WHITE = std::numeric_limits<uchar>::max();
 
 
-
 struct Result
 {
     std::string result;
@@ -62,13 +61,6 @@ protected:
     virtual bool isValid(string result) const = 0;
 };
 
-class GuardPatternsNotFindException : Exception
-{
-public:
-    explicit GuardPatternsNotFindException(const std::string &msg) : Exception(0, msg, "", __FILE__, __LINE__)
-    {}
-};
-
 void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &rect);
 
 void fillCounter(const std::vector<uchar> &row, uint start, std::vector<int> &counters);
@@ -81,4 +73,3 @@ int patternMatch(std::vector<int> counters, const std::vector<int> &pattern, uin
 } // namespace cv
 
 #endif //! __OPENCV_BARCODE_ABS_DECODER_HPP__
-

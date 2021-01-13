@@ -24,6 +24,8 @@ namespace barcode {
 //extern struct EncodePair;
 using std::string;
 using std::vector;
+using std::pair;
+
 
 class Ean13Decoder : public UPCEANDecoder
 {

@@ -29,8 +29,9 @@ namespace barcode {
 
 static constexpr int DIVIDE_PART = 16;
 
-std::pair<int, int> UPCEANDecoder::findGuardPatterns(const std::vector<uchar> &row, int rowOffset, uchar whiteFirst,
-                                                     const std::vector<int> &pattern, std::vector<int> counters)
+bool UPCEANDecoder::findGuardPatterns(const std::vector<uchar> &row, int rowOffset, uchar whiteFirst,
+                                      const std::vector<int> &pattern, std::vector<int> counters,
+                                      std::pair<int, int> &result)
 {
     size_t patternLength = pattern.size();
     size_t width = row.size();
@@ -50,7 +51,9 @@ std::pair<int, int> UPCEANDecoder::findGuardPatterns(const std::vector<uchar> &r
             {
                 if (patternMatch(counters, pattern, MAX_INDIVIDUAL_VARIANCE) < MAX_AVG_VARIANCE)
                 {
-                    return std::make_pair(patternStart, x);
+                    result.first = patternStart;
+                    result.second = x;
+                    return true;
                 }
                 patternStart += counters[0] + counters[1];
                 std::copy(counters.begin() + 2, counters.end(), counters.begin());
@@ -66,25 +69,27 @@ std::pair<int, int> UPCEANDecoder::findGuardPatterns(const std::vector<uchar> &r
             isWhite = (std::numeric_limits<uchar>::max() - isWhite);
         }
     }
-    throw GuardPatternsNotFindException("pattern not find");
+    return false;
 }
 
-std::pair<int, int> UPCEANDecoder::findStartGuardPatterns(const std::vector<uchar> &row)
+bool UPCEANDecoder::findStartGuardPatterns(const std::vector<uchar> &row, std::pair<int, int> &start_range)
 {
     bool is_find = false;
-    std::pair<int, int> start_range{0, -1};
     int next_start = 0;
     while (!is_find)
     {
         std::vector<int> guard_counters{0, 0, 0};
-        start_range = findGuardPatterns(row, next_start, BLACK, BEGIN_PATTERN(), guard_counters);
+        if (!findGuardPatterns(row, next_start, BLACK, BEGIN_PATTERN(), guard_counters, start_range))
+        {
+            return false;
+        }
         int start = start_range.first;
         next_start = start_range.second;
         int quiet_start = max(start - (next_start - start), 0);
         is_find = (quiet_start != start) &&
                   (std::find(std::begin(row) + quiet_start, std::begin(row) + start, BLACK) == std::begin(row) + start);
     }
-    return start_range;
+    return true;
 }
 
 int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, std::vector<int> &counters, int rowOffset,
@@ -153,13 +158,13 @@ Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &
     std::map<BarcodeType, int> format_vote;
     int vote_cnt = 0;
     int total_vote = 0;
-    std::string max_result = "ERROR";
+    std::string max_result;
     BarcodeType max_format = BarcodeType::NONE;
     auto rect_size_height = norm(points[0] - points[1]);
     auto rect_size_width = norm(points[1] - points[2]);
     if (max(rect_size_height, rect_size_width) < this->bits_num)
     {
-        return Result{"ERROR", BarcodeType::NONE};
+        return Result{string(), BarcodeType::NONE};
     }
 #ifdef CV_DEBUG
     Mat bar_copy = gray.clone();
@@ -174,25 +179,24 @@ Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &
     Result barcode;
     for (const auto &i: begin_and_ends)
     {
-        std::vector<uchar> middle;
         const auto &begin = i.first;
         const auto &end = i.second;
         barcode = decodeLine(gray, begin, end);
 #ifdef CV_DEBUG
-        try
-        {
-            std::pair<int, int> start_p = findStartGuardPatterns(middle);
-            circle(bar_copy, Point2f(start_p.second, begin.y), 4, Scalar(0, 0, 0), 2);
-        } catch (GuardPatternsNotFindException &e)
-        {}
-        line(bar_copy, begin, end, Scalar(0, 255, 0));
-        //cv::line(mat,begin,end,Scalar(0,0,255),2);
-        circle(bar_copy, begin, 6, Scalar(0, 0, 0), 2);
-        circle(bar_copy, end, 6, Scalar(0, 0, 0), 2);
+//        try
+//        {
+//            std::pair<int, int> start_p = findStartGuardPatterns(middle);
+//            circle(bar_copy, Point2f(start_p.second, begin.y), 4, Scalar(0, 0, 0), 2);
+//        } catch (GuardPatternsNotFindException &e)
+//        {}
+//        line(bar_copy, begin, end, Scalar(0, 255, 0));
+//        //cv::line(mat,begin,end,Scalar(0,0,255),2);
+//        circle(bar_copy, begin, 6, Scalar(0, 0, 0), 2);
+//        circle(bar_copy, end, 6, Scalar(0, 0, 0), 2);
         //imshow("barscan", bar_copy);
         //cv::waitKey(0);
 #endif
-        if (barcode.result.size() == this->digit_number)
+        if (barcode.format != BarcodeType::NONE)
         {
             total_vote++;
             result_vote[barcode.result] += 1;

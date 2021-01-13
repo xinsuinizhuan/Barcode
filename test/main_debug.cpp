@@ -91,7 +91,7 @@ int main(int argc, char **argv)
                     }
                     cv::putText(frame, decoded_info[bar_idx], barcode_contour[2], cv::FONT_HERSHEY_PLAIN, 1,
                                 Scalar(255, 0, 0), 2);
-                    if (decoded_info[bar_idx] == "ERROR")
+                    if (decoded_format[bar_idx] == barcode::BarcodeType::NONE)
                     {
                         for (int j = 0; j < 4; j++)
                         {
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 
                 cv::putText(frame, decoded_info[bar_idx], barcode_contour[2], cv::FONT_HERSHEY_PLAIN, 1,
                             Scalar(255, 0, 0), 2);
-                if (decoded_info[bar_idx] == "ERROR")
+                if (decoded_format[bar_idx] == barcode::BarcodeType::NONE)
                 {
                     for (int j = 0; j < 4; j++)
                     {
