@@ -272,6 +272,7 @@ Result UPCEANDecoder::decodeLine(const Mat &bar_img, const Point2i &begin, const
 void UPCEANDecoder::linesFromRect(const Size2i &shape, bool horizontal, int PART,
                                   std::vector<std::pair<Point2i, Point2i>> &results) const
 {
+    // scan area around center line
     Point2i step = Point2i((PART-1)*shape.height / (PART*PART), 0);
     Point2i cbegin = Point2i(shape.height / 2, 0);
     Point2i cend = Point2i(shape.height / 2, shape.width - 1);
