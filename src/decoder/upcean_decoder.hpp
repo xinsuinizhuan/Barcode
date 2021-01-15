@@ -66,6 +66,9 @@ protected:
     Result decode(std::vector<uchar> bar, uint start) const override = 0;
 
     bool isValid(std::string result) const override = 0;
+
+private:
+    void drawDebugLine(Mat& debug_img, Point2i begin, Point2i end) const;
 };
 
 const std::vector<std::vector<int>> &get_A_or_C_Patterns();

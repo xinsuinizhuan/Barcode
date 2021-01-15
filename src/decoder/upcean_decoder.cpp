@@ -17,7 +17,7 @@ limitations under the License.
 #include "upcean_decoder.hpp"
 #include <vector>
 #include <array>
-
+#include "hybrid_binarizer.hpp"
 #ifdef CV_DEBUG
 
 #include <opencv2/highgui.hpp>
@@ -28,6 +28,32 @@ namespace cv {
 namespace barcode {
 
 static constexpr int DIVIDE_PART = 16;
+
+void UPCEANDecoder::drawDebugLine(Mat& debug_img, Point2i begin, Point2i end) const
+{
+    Result result;
+    std::vector<uchar> middle;
+    LineIterator line = LineIterator(debug_img, begin, end);
+    middle.reserve(line.count);
+    for (int cnt = 0; cnt < line.count; cnt++, line++)
+    {
+        middle.push_back(debug_img.at<uchar>(line.pos()));
+    }
+    std::pair<int,int> start_range;
+    if(findStartGuardPatterns(middle, start_range))
+    {
+        circle(debug_img, Point2i(begin.x + start_range.second, begin.y), 2, Scalar(0), 2);
+    }
+    result = this->decode(middle, 0);
+    if (result.result.size() != this->digit_number)
+    {
+        result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
+    }
+    if(result.result.size() == this->digit_number)
+    {
+        cv::line(debug_img, begin, end, Scalar(0), 2);
+    }
+}
 
 bool UPCEANDecoder::findGuardPatterns(const std::vector<uchar> &row, int rowOffset, uchar whiteFirst,
                                       const std::vector<int> &pattern, std::vector<int> counters,
@@ -146,13 +172,24 @@ Result UPCEANDecoder::decodeImg(const Mat &gray, const vector<Point2f> &points) 
 Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &points, int PART, int directly) const
 {
     Mat blur;
+#ifdef CV_DEBUG
+    imshow("raw img", gray);
+#endif
     GaussianBlur(gray, blur, Size(0, 0), 25);
     addWeighted(gray, 2, blur, -1, 0, gray);
     gray.convertTo(gray, CV_8UC1, 1, -20);
-    //imshow("preprocess", gray);
+#ifdef CV_DEBUG
+    imshow("pre img", gray);
+    Mat test = gray.clone();
+    threshold(test, test, 155, 255, THRESH_OTSU + THRESH_BINARY);
+#endif
+//    hybridBinarization(gray, gray);
     threshold(gray, gray, 155, 255, THRESH_OTSU + THRESH_BINARY);
 #ifdef CV_DEBUG
-    //imshow("barimg", gray);
+    imshow("binary_bar", gray);
+    imshow("test", test);
+    Mat debug_img;
+    debug_img = gray.clone();
 #endif
     std::map<std::string, int> result_vote;
     std::map<BarcodeType, int> format_vote;
@@ -166,9 +203,7 @@ Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &
     {
         return Result{string(), BarcodeType::NONE};
     }
-#ifdef CV_DEBUG
-    Mat bar_copy = gray.clone();
-#endif
+
     std::vector<std::pair<Point2i, Point2i>> begin_and_ends;
     const Size2i shape{gray.rows, gray.cols};
     linesFromRect(shape, true, PART, begin_and_ends);
@@ -181,21 +216,12 @@ Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &
     {
         const auto &begin = i.first;
         const auto &end = i.second;
-        barcode = decodeLine(gray, begin, end);
+        //[Debug] draw decode line on debug img and mark start guard position
 #ifdef CV_DEBUG
-//        try
-//        {
-//            std::pair<int, int> start_p = findStartGuardPatterns(middle);
-//            circle(bar_copy, Point2f(start_p.second, begin.y), 4, Scalar(0, 0, 0), 2);
-//        } catch (GuardPatternsNotFindException &e)
-//        {}
-//        line(bar_copy, begin, end, Scalar(0, 255, 0));
-//        //cv::line(mat,begin,end,Scalar(0,0,255),2);
-//        circle(bar_copy, begin, 6, Scalar(0, 0, 0), 2);
-//        circle(bar_copy, end, 6, Scalar(0, 0, 0), 2);
-        //imshow("barscan", bar_copy);
-        //cv::waitKey(0);
+        drawDebugLine(debug_img, begin, end);
+        imshow("debug_img", debug_img);
 #endif
+        barcode = decodeLine(gray, begin, end);
         if (barcode.format != BarcodeType::NONE)
         {
             total_vote++;
@@ -252,6 +278,7 @@ void UPCEANDecoder::linesFromRect(const Size2i &shape, int angle, int PART,
         cend = Point2i(shape.height - 1, shape.width / 2);
     }
     results.reserve(results.size() + PART + 1);
+//    results.emplace_back(cbegin, cend);
     for (int i = 1; i <= (PART >> 1); ++i)
     {
         results.emplace_back(cbegin + i * step, cend + i * step);
