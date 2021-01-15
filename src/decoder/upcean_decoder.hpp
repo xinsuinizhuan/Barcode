@@ -61,7 +61,7 @@ protected:
     Result decodeLine(const Mat &bar_img, const Point2i &begin, const Point2i &end) const;
 
     void
-    linesFromRect(const Size2i &shape, int angle, int PART, std::vector<std::pair<Point2i, Point2i>> &results) const;
+    linesFromRect(const Size2i &shape, bool horizontal, int PART, std::vector<std::pair<Point2i, Point2i>> &results) const;
 
     Result decode(std::vector<uchar> bar, uint start) const override = 0;
 

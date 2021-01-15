@@ -52,6 +52,7 @@ void UPCEANDecoder::drawDebugLine(Mat& debug_img, Point2i begin, Point2i end) co
     if(result.result.size() == this->digit_number)
     {
         cv::line(debug_img, begin, end, Scalar(0), 2);
+        cv::putText(debug_img, result.result, begin, cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(0, 0, 255), 1);
     }
 }
 
@@ -153,10 +154,7 @@ std::vector<Result> UPCEANDecoder::decodeImg(Mat &mat, const std::vector<std::ve
 #if CV_DEBUG
         imshow("raw_bar", bar_img);
 #endif
-        if (bar_img.cols < 500)
-        {
-            resize(bar_img, bar_img, Size(500, bar_img.rows));
-        }
+
         Result max_result = rectToResult(bar_img, points, DIVIDE_PART, false);
         will_return.push_back(max_result);
     }
@@ -169,22 +167,33 @@ Result UPCEANDecoder::decodeImg(const Mat &gray, const vector<Point2f> &points) 
 }
 
 // input image is
-Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &points, int PART, int directly) const
+Result UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &points, int PART, int directly) const
 {
-    Mat blur;
+    Mat gray = bar_img.clone();
+    if (gray.cols < this->bits_num)
+    {
+        return Result{string(), BarcodeType::NONE};
+    }
+
+    if (gray.cols < 600)
+    {
+        resize(gray, gray, Size(600, gray.rows));
+    }
+//    Mat blur;
 #ifdef CV_DEBUG
     imshow("raw img", gray);
 #endif
-    GaussianBlur(gray, blur, Size(0, 0), 25);
-    addWeighted(gray, 2, blur, -1, 0, gray);
-    gray.convertTo(gray, CV_8UC1, 1, -20);
+//    GaussianBlur(gray, blur, Size(0, 0), 25);
+//    addWeighted(gray, 2, blur, -1, 0, gray);
+//    gray.convertTo(gray, CV_8UC1, 1, -20);
+    medianBlur(gray, gray, 3);
 #ifdef CV_DEBUG
-    imshow("pre img", gray);
+    imshow("medianBlur", gray);
     Mat test = gray.clone();
     threshold(test, test, 155, 255, THRESH_OTSU + THRESH_BINARY);
 #endif
-//    hybridBinarization(gray, gray);
-    threshold(gray, gray, 155, 255, THRESH_OTSU + THRESH_BINARY);
+    hybridBinarization(gray, gray);
+//    threshold(gray, gray, 155, 255, THRESH_OTSU + THRESH_BINARY);
 #ifdef CV_DEBUG
     imshow("binary_bar", gray);
     imshow("test", test);
@@ -197,12 +206,7 @@ Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &
     int total_vote = 0;
     std::string max_result;
     BarcodeType max_format = BarcodeType::NONE;
-    auto rect_size_height = norm(points[0] - points[1]);
-    auto rect_size_width = norm(points[1] - points[2]);
-    if (max(rect_size_height, rect_size_width) < this->bits_num)
-    {
-        return Result{string(), BarcodeType::NONE};
-    }
+
 
     std::vector<std::pair<Point2i, Point2i>> begin_and_ends;
     const Size2i shape{gray.rows, gray.cols};
@@ -265,20 +269,20 @@ Result UPCEANDecoder::decodeLine(const Mat &bar_img, const Point2i &begin, const
 * 90 vertical
 * (90-180) lower left to upper right
 * */
-void UPCEANDecoder::linesFromRect(const Size2i &shape, int angle, int PART,
+void UPCEANDecoder::linesFromRect(const Size2i &shape, bool horizontal, int PART,
                                   std::vector<std::pair<Point2i, Point2i>> &results) const
 {
-    Point2i step = Point2i(shape.height / PART, 0);
+    Point2i step = Point2i((PART-1)*shape.height / (PART*PART), 0);
     Point2i cbegin = Point2i(shape.height / 2, 0);
     Point2i cend = Point2i(shape.height / 2, shape.width - 1);
-    if (angle)
+    if (horizontal)
     {
-        step = Point2i(0, shape.width / PART);
+        step = Point2i(0, (PART-1)*shape.width / (PART*PART));
         cbegin = Point2i(0, shape.width / 2);
         cend = Point2i(shape.height - 1, shape.width / 2);
     }
     results.reserve(results.size() + PART + 1);
-//    results.emplace_back(cbegin, cend);
+    results.emplace_back(cbegin, cend);
     for (int i = 1; i <= (PART >> 1); ++i)
     {
         results.emplace_back(cbegin + i * step, cend + i * step);

@@ -4,9 +4,6 @@
 #include "opencv2/barcode.hpp"
 #include <opencv2/opencv.hpp>
 #include <direct.h>
-#ifdef CV_DEBUG
-#include "hybrid_binarizer.hpp"
-#endif
 void showInfo(cv::Mat frame, std::vector<std::string> infos)
 {
     //Prompt
@@ -161,15 +158,6 @@ int main(int argc, char **argv)
     {
         frame = imread(argv[1]);
         start = clock();
-#ifdef CV_DEBUG
-        Mat test, f;
-        f = frame;
-        cvtColor(frame, f, COLOR_RGB2GRAY);
-        cv::barcode::hybridBinarization(f, test);
-        imshow("full", test);
-        threshold(f, test, 155, 255, THRESH_OTSU + THRESH_BINARY);
-        imshow("ostu", test);
-#endif
         ok = bardet.detectAndDecode(frame, decoded_info, decoded_format, points);
         if (ok)
         {
