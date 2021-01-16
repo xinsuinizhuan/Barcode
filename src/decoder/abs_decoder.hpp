@@ -49,7 +49,7 @@ class AbsDecoder
 public:
     virtual std::vector<Result> decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const = 0;
 
-    virtual Result decodeImg(const Mat &gray, const std::vector<Point2f> &points) const = 0;
+    virtual Result decodeImg(const Mat &bar_img, const std::vector<Point2f> &points) const = 0;
 
     virtual Result decodeImg(InputArray img) const = 0;
 

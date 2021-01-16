@@ -39,7 +39,7 @@ public:
 
     std::vector<Result> decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const override;
 
-    Result decodeImg(const Mat &gray, const std::vector<Point2f> &points) const override;
+    Result decodeImg(const Mat &bar_img, const std::vector<Point2f> &points) const override;
 
     Result decodeImg(InputArray img) const override;
 
@@ -56,7 +56,7 @@ protected:
 
     static bool findStartGuardPatterns(const std::vector<uchar> &row, std::pair<int, int> &start_range);
 
-    Result rectToResult(const Mat &gray, const std::vector<Point2f> &points, int PART, int directly) const;
+    std::pair<Result, float> UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &points, int PART, int directly) const;
 
     Result decodeLine(const Mat &bar_img, const Point2i &begin, const Point2i &end) const;
 

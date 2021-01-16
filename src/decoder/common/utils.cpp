@@ -14,27 +14,55 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "utils.hpp"
+#include "hybrid_binarizer.hpp"
 
 namespace cv{
 namespace barcode{
 
-void OSTUPreprocess(Mat& src, Mat&dst)
+void resize(InputArray & _src, OutputArray & _dst)
 {
-
+    if (_src.cols()< 600)
+    {
+        resize(_src, _dst, Size(600, _src.rows()));
+    }
+    else
+    {
+        _dst.create(_src.size(), _src.type());
+    }
 }
 
-void resize(Mat&src, Mat& dst)
+void ostuPreprocess(InputArray & _src, OutputArray & _dst)
 {
-
+    resize(_src, _dst);
+    Mat src = _src.getMat();
+    Mat dst = _dst.getMat();
+    Mat blur;
+    GaussianBlur(src, blur, Size(0, 0), 25);
+    addWeighted(src, 2, blur, -1, 0, dst);
+    dst.convertTo(dst, CV_8UC1, 1, -20);
+    threshold(dst, dst, 155, 255, THRESH_OTSU + THRESH_BINARY);
 }
 
-void preprocess(const Mat& src, Mat& dst, int mode)
+void hybridPreprocess(InputArray & _src, OutputArray & _dst)
+{
+    resize(_src, _dst);
+    Mat src = _src.getMat();
+    Mat dst = _src.getMat();
+    medianBlur(src, dst, 3);
+    hybridBinarization(dst, dst);
+}
+
+void preprocess(InputArray & src, OutputArray & dst, int mode)
 {
     switch (mode)
     {
         case OSTU:
+            ostuPreprocess(src, dst);
             break;
-        case HIBRID:
+        case HYBRID:
+            hybridPreprocess(src, dst);
+            break;
+        default:
             break;
     }
 }

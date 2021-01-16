@@ -24,9 +24,9 @@ namespace cv{
 namespace barcode{
 
 constexpr int OSTU = 0;
-constexpr int HIBRID = 1;
+constexpr int HYBRID = 1;
 
-void preprocess(const Mat& src, Mat& dst, int mode);
+void preprocess(InputArray src, OutputArray dst, int mode);
 
 }
 }
