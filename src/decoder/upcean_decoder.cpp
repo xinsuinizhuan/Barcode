@@ -17,7 +17,7 @@ limitations under the License.
 #include "upcean_decoder.hpp"
 #include <vector>
 #include <array>
-#include "hybrid_binarizer.hpp"
+#include "common/hybrid_binarizer.hpp"
 #ifdef CV_DEBUG
 
 #include <opencv2/highgui.hpp>
@@ -169,36 +169,32 @@ Result UPCEANDecoder::decodeImg(const Mat &gray, const vector<Point2f> &points) 
 // input image is
 Result UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &points, int PART, int directly) const
 {
-    Mat gray = bar_img.clone();
-    if (gray.cols < this->bits_num)
+    Mat hibrid_img = bar_img.clone();
+    if (hibrid_img.cols < this->bits_num)
     {
         return Result{string(), BarcodeType::NONE};
     }
 
-    if (gray.cols < 600)
+    if (hibrid_img.cols < 600)
     {
-        resize(gray, gray, Size(600, gray.rows));
+        resize(hibrid_img, hibrid_img, Size(600, hibrid_img.rows));
     }
-//    Mat blur;
 #ifdef CV_DEBUG
-    imshow("raw img", gray);
+    imshow("raw img", hibrid_img);
 #endif
-//    GaussianBlur(gray, blur, Size(0, 0), 25);
-//    addWeighted(gray, 2, blur, -1, 0, gray);
-//    gray.convertTo(gray, CV_8UC1, 1, -20);
-    medianBlur(gray, gray, 3);
+    Mat ostu_img = hibrid_img.clone();
+    Mat blur;
+    GaussianBlur(ostu_img, blur, Size(0, 0), 25);
+    addWeighted(ostu_img, 2, blur, -1, 0, ostu_img);
+    ostu_img.convertTo(ostu_img, CV_8UC1, 1, -20);
+    threshold(ostu_img, ostu_img, 155, 255, THRESH_OTSU + THRESH_BINARY);
+
+    medianBlur(hibrid_img, hibrid_img, 3);
+    hybridBinarization(hibrid_img, hibrid_img);
 #ifdef CV_DEBUG
-    imshow("medianBlur", gray);
-    Mat test = gray.clone();
-    threshold(test, test, 155, 255, THRESH_OTSU + THRESH_BINARY);
-#endif
-    hybridBinarization(gray, gray);
-//    threshold(gray, gray, 155, 255, THRESH_OTSU + THRESH_BINARY);
-#ifdef CV_DEBUG
-    imshow("binary_bar", gray);
-    imshow("test", test);
+    imshow("binary_bar", hibrid_img);
     Mat debug_img;
-    debug_img = gray.clone();
+    debug_img = hibrid_img.clone();
 #endif
     std::map<std::string, int> result_vote;
     std::map<BarcodeType, int> format_vote;
@@ -209,13 +205,11 @@ Result UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f
 
 
     std::vector<std::pair<Point2i, Point2i>> begin_and_ends;
-    const Size2i shape{gray.rows, gray.cols};
+    const Size2i shape{hibrid_img.rows, hibrid_img.cols};
     linesFromRect(shape, true, PART, begin_and_ends);
-    if (directly)
-    {
-        linesFromRect(shape, false, PART, begin_and_ends);
-    }
-    Result barcode;
+
+    Result hibrid_result;
+    Result ostu_result;
     for (const auto &i: begin_and_ends)
     {
         const auto &begin = i.first;
@@ -225,18 +219,33 @@ Result UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f
         drawDebugLine(debug_img, begin, end);
         imshow("debug_img", debug_img);
 #endif
-        barcode = decodeLine(gray, begin, end);
-        if (barcode.format != BarcodeType::NONE)
+        hibrid_result = decodeLine(hibrid_img, begin, end);
+        ostu_result = decodeLine(ostu_img, begin, end);
+        if (hibrid_result.format != BarcodeType::NONE)
         {
             total_vote++;
-            result_vote[barcode.result] += 1;
-            if (result_vote[barcode.result] > vote_cnt)
+            result_vote[hibrid_result.result] += 1;
+            if (result_vote[hibrid_result.result] > vote_cnt)
             {
-                vote_cnt = result_vote[barcode.result];
+                vote_cnt = result_vote[hibrid_result.result];
                 if ((vote_cnt << 1) > total_vote)
                 {
-                    max_result = barcode.result;
-                    max_format = barcode.format;
+                    max_result = hibrid_result.result;
+                    max_format = hibrid_result.format;
+                }
+            }
+        }
+        if (ostu_result.format != BarcodeType::NONE)
+        {
+            total_vote++;
+            result_vote[ostu_result.result] += 1;
+            if (result_vote[ostu_result.result] > vote_cnt)
+            {
+                vote_cnt = result_vote[ostu_result.result];
+                if ((vote_cnt << 1) > total_vote)
+                {
+                    max_result = ostu_result.result;
+                    max_format = ostu_result.format;
                 }
             }
         }
