@@ -142,11 +142,11 @@ int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, std::vector<int> &
 
 /*Input a mat and it's position rect, return the decode result */
 
-std::vector<Result> UPCEANDecoder::decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const
+std::vector<Result> UPCEANDecoder::decodeImg(InputArray bar_img, const std::vector<std::vector<Point2f>> &pointsArrays) const
 {
-    CV_Assert(mat.channels() == 1);
+    CV_Assert(bar_img.channels() == 1);
     std::vector<Result> will_return;
-    Mat gray = mat.clone();
+    Mat gray = bar_img.getMat();
     for (const auto &points : pointsArrays)
     {
         Mat bar_img;
@@ -160,10 +160,10 @@ std::vector<Result> UPCEANDecoder::decodeImg(Mat &mat, const std::vector<std::ve
     return will_return;
 }
 
-Result UPCEANDecoder::decodeImg(const Mat &bar_img, const vector<Point2f> &points) const
+Result UPCEANDecoder::decodeImg(InputArray bar_img, const vector<Point2f> &points) const
 {
-    Mat ostu = bar_img.clone();
-    Mat hybrid = bar_img.clone();
+    Mat ostu = bar_img.getMat();
+    Mat hybrid = ostu.clone();
     preprocess(hybrid, hybrid, HYBRID);
     preprocess(ostu, ostu, OSTU);
     auto result_pair_hybrid = rectToResult(hybrid, points, DIVIDE_PART, false);

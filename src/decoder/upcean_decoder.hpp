@@ -37,9 +37,9 @@ class UPCEANDecoder : public AbsDecoder
 public:
     ~UPCEANDecoder() override = default;
 
-    std::vector<Result> decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const override;
+    std::vector<Result> decodeImg(InputArray bar_img, const std::vector<std::vector<Point2f>> &pointsArrays) const override;
 
-    Result decodeImg(const Mat &bar_img, const std::vector<Point2f> &points) const override;
+    Result decodeImg(InputArray bar_img, const std::vector<Point2f> &points) const override;
 
     Result decodeImg(InputArray img) const override;
 
