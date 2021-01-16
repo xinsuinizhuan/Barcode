@@ -164,14 +164,14 @@ Result UPCEANDecoder::decodeImg(InputArray bar_img, const vector<Point2f> &point
 {
     Mat ostu = bar_img.getMat();
     Mat hybrid = ostu.clone();
-    preprocess(hybrid, hybrid, HYBRID);
     preprocess(ostu, ostu, OSTU);
-    auto result_pair_hybrid = rectToResult(hybrid, points, DIVIDE_PART, false);
-    if(result_pair_hybrid.second == 1.0)
-    {
-        return result_pair_hybrid.first;
-    }
     auto result_pair_ostu = rectToResult(ostu, points, DIVIDE_PART, false);
+    if(result_pair_ostu.second == 1.0)
+    {
+        return result_pair_ostu.first;
+    }
+    preprocess(hybrid, hybrid, HYBRID);
+    auto result_pair_hybrid = rectToResult(hybrid, points, DIVIDE_PART, false);
     Result max_result;
     if(result_pair_hybrid.second > result_pair_ostu.second)
     {
