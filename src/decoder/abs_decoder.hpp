@@ -61,7 +61,7 @@ protected:
     virtual bool isValid(string result) const = 0;
 };
 
-void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &rect);
+void cutImage(Mat _src, Mat &_dst, const std::vector<Point2f> &rect);
 
 void fillCounter(const std::vector<uchar> &row, uint start, std::vector<int> &counters);
 

@@ -149,12 +149,12 @@ std::vector<Result> UPCEANDecoder::decodeImg(InputArray bar_img, const std::vect
     Mat gray = bar_img.getMat();
     for (const auto &points : pointsArrays)
     {
-        Mat bar_img;
-        cutImage(gray, bar_img, points);
+        Mat bar;
+        cutImage(gray, bar, points);
 #if CV_DEBUG
-        imshow("raw_bar", bar_img);
+        imshow("raw_bar", bar);
 #endif
-        Result max_result = decodeImg(bar_img, points);
+        Result max_result = decodeImg(bar, points);
         will_return.push_back(max_result);
     }
     return will_return;
@@ -165,13 +165,13 @@ Result UPCEANDecoder::decodeImg(InputArray bar_img, const vector<Point2f> &point
     Mat ostu = bar_img.getMat();
     Mat hybrid = ostu.clone();
     preprocess(ostu, ostu, OSTU);
-    auto result_pair_ostu = rectToResult(ostu, points, DIVIDE_PART, false);
+    auto result_pair_ostu = rectToResult(ostu, points, DIVIDE_PART);
     if(result_pair_ostu.second == 1.0)
     {
         return result_pair_ostu.first;
     }
     preprocess(hybrid, hybrid, HYBRID);
-    auto result_pair_hybrid = rectToResult(hybrid, points, DIVIDE_PART, false);
+    auto result_pair_hybrid = rectToResult(hybrid, points, DIVIDE_PART);
     Result max_result;
     if(result_pair_hybrid.second > result_pair_ostu.second)
     {
@@ -189,16 +189,16 @@ Result UPCEANDecoder::decodeImg(InputArray bar_img, const vector<Point2f> &point
  * @param bar_img which is a binary image
  * @param points
  * @param PART
- * @param directly
  * @return
  */
-std::pair<Result, float> UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &points, int PART, int directly) const
+std::pair<Result, float>
+UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &points, int PART) const
 {
     auto rect_size_height = norm(points[0] - points[1]);
     auto rect_size_width = norm(points[1] - points[2]);
     if (max(rect_size_height, rect_size_width) < this->bits_num)
     {
-        return std::make_pair(Result{string(), BarcodeType::NONE}, 0);
+        return std::make_pair(Result{string(), BarcodeType::NONE}, 0.0F);
     }
 
     std::map<std::string, int> result_vote;
@@ -299,13 +299,14 @@ void UPCEANDecoder::linesFromRect(const Size2i &shape, bool horizontal, int PART
 
 Result UPCEANDecoder::decodeImg(InputArray img) const
 {
-    auto Mat = img.getMat();
-    auto gray = Mat.clone();
+    auto gray = img.getMat();
     constexpr int PART = 50;
     std::vector<Point2f> real_rect{
-            Point2f(0, (float) Mat.rows), Point2f(0, 0), Point2f((float) Mat.cols, 0),
-            Point2f((float) Mat.cols, (float) Mat.rows)};
-    Result result = rectToResult(Mat, real_rect, PART, true).first;
+            Point2f(0, (float) gray.rows), Point2f(0, 0), Point2f((float) gray.cols, 0),
+            Point2f((float) gray.cols, (float) gray.rows)};
+    Mat binary;
+    hybridPreprocess(gray, binary);
+    Result result = rectToResult(binary, real_rect, PART).first;
     return result;
 }
 

@@ -56,7 +56,7 @@ protected:
 
     static bool findStartGuardPatterns(const std::vector<uchar> &row, std::pair<int, int> &start_range);
 
-    std::pair<Result, float> UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &points, int PART, int directly) const;
+    std::pair<Result, float> rectToResult(const Mat &bar_img, const std::vector<Point2f> &points, int PART) const;
 
     Result decodeLine(const Mat &bar_img, const Point2i &begin, const Point2i &end) const;
 

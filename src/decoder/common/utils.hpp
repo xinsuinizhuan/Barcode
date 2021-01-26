@@ -26,7 +26,10 @@ namespace barcode{
 constexpr int OSTU = 0;
 constexpr int HYBRID = 1;
 
-void preprocess(InputArray src, OutputArray dst, int mode);
+void resize(Mat & src, Mat & dst);
+void hybridPreprocess(Mat & src, Mat & dst);
+void ostuPreprocess(Mat & src, Mat & dst);
+void preprocess(Mat & src, Mat & dst, int mode);
 
 }
 }

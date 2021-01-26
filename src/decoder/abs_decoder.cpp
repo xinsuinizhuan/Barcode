@@ -18,7 +18,7 @@ limitations under the License.
 namespace cv {
 namespace barcode {
 
-void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &rects)
+void cutImage(Mat src, Mat & dst, const std::vector<Point2f> &rects)
 {
     std::vector<Point2f> vertices = rects;
     int height = cvRound(norm(vertices[0] - vertices[1]));
@@ -33,10 +33,9 @@ void cutImage(InputArray _src, OutputArray &_dst, const std::vector<Point2f> &re
     std::vector<Point2f> dst_vertices{
             Point2f(0, (float) (height - 1)), Point2f(0, 0), Point2f((float) (width - 1), 0),
             Point2f((float) (width - 1), (float) (height - 1))};
-    _dst.create(Size(width, height), CV_8UC1);
+    dst.create(Size(width, height), CV_8UC1);
     Mat M = getPerspectiveTransform(vertices, dst_vertices);
-    Mat dst = _dst.getMat();
-    warpPerspective(_src.getMat(), dst, M, _dst.size(), cv::INTER_LINEAR, BORDER_CONSTANT, Scalar(255));
+    warpPerspective(src, dst, M, dst.size(), cv::INTER_LINEAR, BORDER_CONSTANT, Scalar(255));
 }
 
 void fillCounter(const std::vector<uchar> &row, uint start, std::vector<int> &counters)

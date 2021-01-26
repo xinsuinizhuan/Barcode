@@ -204,6 +204,7 @@ int main(int argc, char **argv)
 //        resize(frame,frame, Size(),0.5, 0.5,INTER_AREA);
         imshow("bounding boxes", frame);
 
+        imwrite("./test.jpg", frame);
         waitKey();
     }
     return 0;

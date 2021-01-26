@@ -129,7 +129,7 @@ Mat calculateBlackPoints(std::vector<uchar> luminances, int sub_width, int sub_h
                     }
                 }
             }
-            black_points.at<uchar>(y,x)= average;
+            black_points.at<uchar>(y,x) = (uchar)average;
         }
     }
     return black_points;
@@ -137,9 +137,8 @@ Mat calculateBlackPoints(std::vector<uchar> luminances, int sub_width, int sub_h
 }
 
 
-void hybridBinarization(InputArray _src, OutputArray& _dst)
+void hybridBinarization(Mat src, Mat & dst)
 {
-    Mat src = _src.getMat();
     int width = src.cols;
     int height = src.rows;
 
@@ -157,13 +156,12 @@ void hybridBinarization(InputArray _src, OutputArray& _dst)
 
         Mat black_points = calculateBlackPoints(luminances, sub_width, sub_height, width, height);
 
-        _dst.create(_src.size(), _src.type());
-        Mat dst = _dst.getMat();
+        dst.create(src.size(), src.type());
         calculateThresholdForBlock(luminances, sub_width, sub_height, width, height,black_points, dst);
     }
     else
     {
-        threshold(_src, _dst, 155, 255, THRESH_OTSU + THRESH_BINARY);
+        threshold(src, dst, 155, 255, THRESH_OTSU + THRESH_BINARY);
     }
 
 }

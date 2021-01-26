@@ -1,10 +1,8 @@
 #include "test_precomp.hpp"
 #include "verifier.hpp"
-#ifdef CV_DEBUG
 
 #include <opencv2/highgui.hpp>
 
-#endif
 std::string enumToString(cv::barcode::BarcodeType format)
 {
     using namespace cv::barcode;
@@ -64,7 +62,7 @@ TEST(integration_testing, detect_and_decode)
 
 TEST(integration_testing, ImgUnitTest)
 {
-    std::string img_path = R"(../../test/data/integration_test_data/1.jpg)";
+    std::string img_path = R"(../../test/data/multi.png)";
     cv::barcode::BarcodeDetector bardet;
     cv::Mat frame = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
     cv::Mat decodeFrame = frame.clone();
@@ -83,10 +81,7 @@ TEST(integration_testing, ImgUnitTest)
     {
         std::cout << barcode_info[i] << ", format: " << enumToString(barcode_format[i]) << std::endl;
     }
-#ifdef CV_DEBUG
-    cv::imshow("result", frame);
     cv::imshow("resultdecode", decodeFrame);
     cv::waitKey(0);
-#endif
 }
 

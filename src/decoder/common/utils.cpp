@@ -19,23 +19,21 @@ limitations under the License.
 namespace cv{
 namespace barcode{
 
-void resize(InputArray & _src, OutputArray & _dst)
+void resize(Mat & src, Mat & dst)
 {
-    if (_src.cols()< 600)
+    if (src.cols < 600)
     {
-        resize(_src, _dst, Size(600, _src.rows()));
+        resize(src, dst, Size(600, src.rows));
     }
     else
     {
-        _dst.create(_src.size(), _src.type());
+        dst.create(src.size(), src.type());
     }
 }
 
-void ostuPreprocess(InputArray & _src, OutputArray & _dst)
+void ostuPreprocess(Mat & src, Mat & dst)
 {
-    resize(_src, _dst);
-    Mat src = _src.getMat();
-    Mat dst = _dst.getMat();
+    resize(src, dst);
     Mat blur;
     GaussianBlur(src, blur, Size(0, 0), 25);
     addWeighted(src, 2, blur, -1, 0, dst);
@@ -43,16 +41,14 @@ void ostuPreprocess(InputArray & _src, OutputArray & _dst)
     threshold(dst, dst, 155, 255, THRESH_OTSU + THRESH_BINARY);
 }
 
-void hybridPreprocess(InputArray & _src, OutputArray & _dst)
+void hybridPreprocess(Mat & src, Mat & dst)
 {
-    resize(_src, _dst);
-    Mat src = _src.getMat();
-    Mat dst = _src.getMat();
+    resize(src, dst);
     medianBlur(src, dst, 3);
     hybridBinarization(dst, dst);
 }
 
-void preprocess(InputArray & src, OutputArray & dst, int mode)
+void preprocess(Mat & src, Mat & dst, int mode)
 {
     switch (mode)
     {
