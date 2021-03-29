@@ -19,7 +19,6 @@ limitations under the License.
 
 #include "opencv2/core.hpp"
 #include <ostream>
-
 namespace cv {
 namespace barcode {
 enum BarcodeType
@@ -104,6 +103,8 @@ public:
 protected:
     struct Impl;
     Ptr<Impl> p;
+private:
+
 };
 }
 } // cv::barcode::

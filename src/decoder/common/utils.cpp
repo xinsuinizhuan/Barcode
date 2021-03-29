@@ -15,15 +15,28 @@ limitations under the License.
 */
 #include "utils.hpp"
 #include "hybrid_binarizer.hpp"
-
+#include "barcodesr.hpp"
+#include "opencv2/highgui.hpp"
+#include "super_scale.hpp"
 namespace cv{
 namespace barcode{
 
+
 void resize(Mat & src, Mat & dst)
 {
+    barcode::SuperScale scale;
+    std::string dir = "D:/Project/Barcode/Repository/opencv_3rdparty-wechat_qrcode/";
+    scale.init(dir+"sr.prototxt", dir+"sr.caffemodel");
+
     if (src.cols < 600)
     {
-        resize(src, dst, Size(600, src.rows));
+//        BarcodeSR sr;
+//        dst = sr.upsample(src, 4);
+        dst = scale.processImageScale(src, 2, true);
+        #ifdef CV_DEBUG
+        imshow("sr", dst);
+        #endif
+//        resize(src, dst, Size(600, src.rows), 0, 0, INTER_AREA);
     }
     else
     {
@@ -33,16 +46,20 @@ void resize(Mat & src, Mat & dst)
 
 void ostuPreprocess(Mat & src, Mat & dst)
 {
-    resize(src, dst);
     Mat blur;
     GaussianBlur(src, blur, Size(0, 0), 25);
     addWeighted(src, 2, blur, -1, 0, dst);
     dst.convertTo(dst, CV_8UC1, 1, -20);
+    resize(src, dst);
     threshold(dst, dst, 155, 255, THRESH_OTSU + THRESH_BINARY);
 }
 
 void hybridPreprocess(Mat & src, Mat & dst)
 {
+    Mat blur;
+    GaussianBlur(src, blur, Size(0, 0), 25);
+    addWeighted(src, 2, blur, -1, 0, dst);
+    dst.convertTo(dst, CV_8UC1, 1, -20);
     resize(src, dst);
     medianBlur(src, dst, 3);
     hybridBinarization(dst, dst);

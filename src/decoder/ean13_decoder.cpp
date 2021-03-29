@@ -79,10 +79,10 @@ Result Ean13Decoder::decode(vector<uchar> data, uint start) const
         decode_result[i + 7] = static_cast<char>('0' + bestMatch);
         start = std::accumulate(counters.cbegin(), counters.cend(), start);
     }
-    if (!findGuardPatterns(data, start, false, BEGIN_PATTERN(), vector<int>(BEGIN_PATTERN().size()), pattern))
-    {
-        return Result("End Pattern Not Found", BarcodeType::NONE);
-    }
+//    if (!findGuardPatterns(data, start, false, BEGIN_PATTERN(), vector<int>(BEGIN_PATTERN().size()), pattern))
+//    {
+//        return Result("End Pattern Not Found", BarcodeType::NONE);
+//    }
     result = string(decode_result);
     if (!isValid(result))
     {

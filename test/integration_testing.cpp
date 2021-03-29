@@ -62,7 +62,7 @@ TEST(integration_testing, detect_and_decode)
 
 TEST(integration_testing, ImgUnitTest)
 {
-    std::string img_path = R"(../../test/data/multi.png)";
+    std::string img_path = R"(../../test/data/data_test/sample2.png)";
     cv::barcode::BarcodeDetector bardet;
     cv::Mat frame = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
     cv::Mat decodeFrame = frame.clone();

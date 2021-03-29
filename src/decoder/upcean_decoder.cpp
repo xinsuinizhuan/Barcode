@@ -42,7 +42,7 @@ void UPCEANDecoder::drawDebugLine(Mat& debug_img, Point2i begin, Point2i end) co
     std::pair<int,int> start_range;
     if(findStartGuardPatterns(middle, start_range))
     {
-        circle(debug_img, Point2i(begin.x + start_range.second, begin.y), 2, Scalar(0), 2);
+        circle(debug_img, Point2i(begin.x + start_range.second, begin.y), 5, Scalar(0), 2);
     }
     result = this->decode(middle, 0);
     if (result.result.size() != this->digit_number)
@@ -164,13 +164,22 @@ Result UPCEANDecoder::decodeImg(InputArray bar_img, const vector<Point2f> &point
 {
     Mat ostu = bar_img.getMat();
     Mat hybrid = ostu.clone();
+    #if CV_DEBUG
+    imshow("raw", bar_img);
+    #endif
     preprocess(ostu, ostu, OSTU);
+    #if CV_DEBUG
+    imshow("ostu", ostu);
+    #endif
     auto result_pair_ostu = rectToResult(ostu, points, DIVIDE_PART);
     if(result_pair_ostu.second == 1.0)
     {
         return result_pair_ostu.first;
     }
     preprocess(hybrid, hybrid, HYBRID);
+    #if CV_DEBUG
+    imshow("hybrid", hybrid);
+    #endif
     auto result_pair_hybrid = rectToResult(hybrid, points, DIVIDE_PART);
     Result max_result;
     if(result_pair_hybrid.second > result_pair_ostu.second)
