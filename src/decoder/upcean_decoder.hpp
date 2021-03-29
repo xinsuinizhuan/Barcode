@@ -39,9 +39,8 @@ public:
 
     std::vector<Result> decodeImg(InputArray bar_img, const std::vector<std::vector<Point2f>> &pointsArrays) const override;
 
-    Result decodeImg(InputArray bar_img, const std::vector<Point2f> &points) const override;
+    std::pair<Result, float> decodeImg(InputArray bar_img, const std::vector<Point2f> &points) const override;
 
-    Result decodeImg(InputArray img) const override;
 
 protected:
     size_t bits_num;

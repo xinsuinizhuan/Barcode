@@ -154,43 +154,17 @@ std::vector<Result> UPCEANDecoder::decodeImg(InputArray bar_img, const std::vect
 #if CV_DEBUG
         imshow("raw_bar", bar);
 #endif
-        Result max_result = decodeImg(bar, points);
+        Mat ostu;
+        preprocess(bar, ostu, OSTU);
+        Result max_result = decodeImg(ostu, points).first;
         will_return.push_back(max_result);
     }
     return will_return;
 }
 
-Result UPCEANDecoder::decodeImg(InputArray bar_img, const vector<Point2f> &points) const
+std::pair<Result, float> UPCEANDecoder::decodeImg(InputArray bar_img, const vector<Point2f> &points) const
 {
-    Mat ostu = bar_img.getMat();
-    Mat hybrid = ostu.clone();
-    #if CV_DEBUG
-    imshow("raw", bar_img);
-    #endif
-    preprocess(ostu, ostu, OSTU);
-    #if CV_DEBUG
-    imshow("ostu", ostu);
-    #endif
-    auto result_pair_ostu = rectToResult(ostu, points, DIVIDE_PART);
-    if(result_pair_ostu.second == 1.0)
-    {
-        return result_pair_ostu.first;
-    }
-    preprocess(hybrid, hybrid, HYBRID);
-    #if CV_DEBUG
-    imshow("hybrid", hybrid);
-    #endif
-    auto result_pair_hybrid = rectToResult(hybrid, points, DIVIDE_PART);
-    Result max_result;
-    if(result_pair_hybrid.second > result_pair_ostu.second)
-    {
-        max_result = result_pair_hybrid.first;
-    }
-    else
-    {
-        max_result = result_pair_ostu.first;
-    }
-    return max_result;
+    return rectToResult(bar_img.getMat(), points, DIVIDE_PART);
 }
 
 /**
@@ -305,19 +279,6 @@ void UPCEANDecoder::linesFromRect(const Size2i &shape, bool horizontal, int PART
     results.emplace_back(cbegin, cend);
 }
 
-
-Result UPCEANDecoder::decodeImg(InputArray img) const
-{
-    auto gray = img.getMat();
-    constexpr int PART = 50;
-    std::vector<Point2f> real_rect{
-            Point2f(0, (float) gray.rows), Point2f(0, 0), Point2f((float) gray.cols, 0),
-            Point2f((float) gray.cols, (float) gray.rows)};
-    Mat binary;
-    hybridPreprocess(gray, binary);
-    Result result = rectToResult(binary, real_rect, PART).first;
-    return result;
-}
 
 
 // right for A

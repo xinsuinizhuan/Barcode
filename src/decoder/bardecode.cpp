@@ -15,6 +15,7 @@ limitations under the License.
 */
 #include "ean13_decoder.hpp"
 #include "bardecode.hpp"
+#include "common/utils.hpp"
 
 namespace cv {
 namespace barcode {
@@ -66,7 +67,10 @@ bool BarDecode::decodeMultiplyProcess()
             {
                 Mat bar_img;
                 cutImage(gray, bar_img, src_points[i]);
-                decoded_info[i] = decoder[i]->decodeImg(bar_img, src_points[i]);
+                Mat ostu;
+                preprocess(bar_img, ostu, OSTU);
+                auto res_ostu = decoder[i]->decodeImg(ostu, src_points[i]);
+                decoded_info[i] = res_ostu.first;
             }
         }
 

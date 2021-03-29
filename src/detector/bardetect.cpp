@@ -69,15 +69,6 @@ void Detect::init(const Mat &src)
         Size new_size(width, height);
         resize(src, resized_barcode, new_size, 0, 0, INTER_AREA);
     }
-//        else if (min_side < 512.0) {
-//            purpose = ZOOMING;
-//            coeff_expansion = 512.0 / min_side;
-//            width = cvRound(src.size().width * coeff_expansion);
-//            height = cvRound(src.size().height * coeff_expansion);
-//            Size new_size(width, height);
-//            resize(src, resized_barcode, new_size, 0, 0, INTER_LINEAR);
-//
-//        }
     else
     {
         purpose = UNCHANGED;
