@@ -4,7 +4,6 @@
 // Modified from ZXing. Copyright ZXing authors.
 // Licensed under the Apache License, Version 2.0 (the "License").
 #include "hybrid_binarizer.hpp"
-#include <vector>
 
 namespace cv{
 namespace barcode{

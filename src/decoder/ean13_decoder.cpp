@@ -1,18 +1,8 @@
-/*
-Copyright 2020 ${ALL COMMITTERS}
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://opencv.org/license.html.
+// Copyright (c) 2020-2021 darkliang wangberlinT Certseeds
+#include "../precomp.hpp"
 #include "ean13_decoder.hpp"
 
 // three digit decode method from https://baike.baidu.com/item/EAN-13
@@ -79,10 +69,10 @@ Result Ean13Decoder::decode(vector<uchar> data, uint start) const
         decode_result[i + 7] = static_cast<char>('0' + bestMatch);
         start = std::accumulate(counters.cbegin(), counters.cend(), start);
     }
-//    if (!findGuardPatterns(data, start, false, BEGIN_PATTERN(), vector<int>(BEGIN_PATTERN().size()), pattern))
-//    {
-//        return Result("End Pattern Not Found", BarcodeType::NONE);
-//    }
+    if (!findGuardPatterns(data, start, false, BEGIN_PATTERN(), vector<int>(BEGIN_PATTERN().size()), pattern))
+    {
+        return Result("End Pattern Not Found", BarcodeType::NONE);
+    }
     result = string(decode_result);
     if (!isValid(result))
     {

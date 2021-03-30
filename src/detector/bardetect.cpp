@@ -1,13 +1,9 @@
 //
-// Created by 97659 on 2020/10/14.
 //
+#include "../precomp.hpp"
 #include "bardetect.hpp"
 
-#ifdef CV_DEBUG
 
-#include "opencv2/opencv.hpp"
-
-#endif
 namespace cv {
 namespace barcode {
 static constexpr float PI = static_cast<float>(CV_PI);
@@ -69,6 +65,15 @@ void Detect::init(const Mat &src)
         Size new_size(width, height);
         resize(src, resized_barcode, new_size, 0, 0, INTER_AREA);
     }
+//        else if (min_side < 512.0) {
+//            purpose = ZOOMING;
+//            coeff_expansion = 512.0 / min_side;
+//            width = cvRound(src.size().width * coeff_expansion);
+//            height = cvRound(src.size().height * coeff_expansion);
+//            Size new_size(width, height);
+//            resize(src, resized_barcode, new_size, 0, 0, INTER_LINEAR);
+//
+//        }
     else
     {
         purpose = UNCHANGED;
@@ -148,15 +153,9 @@ void Detect::preprocess()
     // calculate magnitude of gradient, normalize and threshold
     magnitude(scharr_x, scharr_y, gradient_magnitude);
     threshold(gradient_magnitude, gradient_magnitude, 48, 1, THRESH_BINARY);
-    #ifdef CV_DEBUG
-    //imshow("mag", gradient_magnitude);
-    #endif
-
     gradient_magnitude.convertTo(gradient_magnitude, CV_8U);
     integral(gradient_magnitude, integral_edges, CV_32F);
 
-//        normalize(gradient_magnitude, gradient_magnitude, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
-//        adaptiveThreshold(gradient_magnitude, gradient_magnitude, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 9, 0);
 
     for (int y = 0; y < height; y++)
     {
@@ -224,12 +223,10 @@ void Detect::calConsistency(int window_size)
             right_col = min(width, (pos + 1) * window_size);
 
             //we had an integral image to count non-zero elements
-
-
             CALCULATE_SUM(edges_ptr, rect_area)
             if (rect_area < THRESHOLD_AREA)
             {
-                // 有梯度的点占比小于阈值则视为平滑区域
+                // smooth region
                 consistency_row[pos] = 0;
                 continue;
             }
@@ -333,7 +330,7 @@ void Detect::regionGrowing(int window_size)
                         cos_sum += cos(2 * cur_value);
                         counter += 1;
                         edge_num += edge_nums.at<float_t>(pt_to_grow);
-                        growingPoints.push_back(pt_to_grow);                 //将下一个生长点压入栈中
+                        growingPoints.push_back(pt_to_grow);                 //push next point to grow back to stack
                         growingImgPoints.push_back(pt_to_grow);
                     }
                 }
@@ -355,7 +352,6 @@ void Detect::regionGrowing(int window_size)
             {
                 continue;
             }
-//                printf("counter ratio: %f\n", counter / rect.size.area());
             const float local_orientation = computeOrientation(cos_sum, sin_sum) / 2.0f;
             // only orientation_arg is approximately equal to the rectangle orientation_arg
             rect_orientation = (minRect.angle) * PI / 180;
@@ -374,10 +370,6 @@ void Detect::regionGrowing(int window_size)
             minRect.size.height *= static_cast<float>(window_size);
             minRect.center.x = (minRect.center.x + 0.5f) * static_cast<float>(window_size);
             minRect.center.y = (minRect.center.y + 0.5f) * static_cast<float>(window_size);
-#ifdef CV_DEBUG
-            std::cout << local_consistency << " " << local_orientation << " " << edge_num / (float) (width * height)
-                      << " " << edge_num / minRect.size.area() << std::endl;
-#endif
             localization_bbox.push_back(minRect);
             bbox_scores.push_back(edge_num);
 

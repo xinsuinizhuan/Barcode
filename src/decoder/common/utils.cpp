@@ -15,7 +15,6 @@ limitations under the License.
 */
 #include "utils.hpp"
 #include "hybrid_binarizer.hpp"
-#include "opencv2/highgui.hpp"
 
 namespace cv{
 namespace barcode{

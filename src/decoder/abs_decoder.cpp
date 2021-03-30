@@ -1,18 +1,8 @@
-/*
-Copyright 2020 ${ALL COMMITTERS}
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://opencv.org/license.html.
+// Copyright (c) 2020-2021 darkliang wangberlinT Certseeds
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 #include "abs_decoder.hpp"
 
 namespace cv {
@@ -40,13 +30,11 @@ void cutImage(Mat src, Mat & dst, const std::vector<Point2f> &rects)
 
 void fillCounter(const std::vector<uchar> &row, uint start, std::vector<int> &counters)
 {
-    // 先不考虑异常处理
     size_t counter_length = counters.size();
     std::fill(counters.begin(), counters.end(), 0);
     size_t end = row.size();
     if (start >= end)
     {
-        // TODO throw NotFoundException.getNotFoundInstance();
     }
     uchar isWhite = row[start];
     uint counterPosition = 0;
@@ -73,7 +61,6 @@ void fillCounter(const std::vector<uchar> &row, uint start, std::vector<int> &co
     }
     if (!(counterPosition == counter_length || (counterPosition == counter_length - 1 && start == end)))
     {
-        // throw a error or any others
     }
 }
 
@@ -112,18 +99,18 @@ patternMatchVariance(std::vector<int> counters, const std::vector<int> &pattern,
 }
 
 /**
- * Determines how closely a set of observed counts of runs of black/white values matches a given
- * target pattern. This is reported as the ratio of the total variance from the expected pattern
- * proportions across all pattern elements, to the length of the pattern.
- *
- * @param counters observed counters
- * @param pattern expected pattern
- * @param maxIndividualVariance The most any counter can differ before we give up
- * @return ratio of total variance between counters and pattern compared to total pattern size,
- *  where the ratio has been multiplied by 256. So, 0 means no variance (perfect match); 256 means
- *  the total variance between counters and patterns equals the pattern length, higher values mean
- *  even more variance
- */
+* Determines how closely a set of observed counts of runs of black/white values matches a given
+* target pattern. This is reported as the ratio of the total variance from the expected pattern
+* proportions across all pattern elements, to the length of the pattern.
+*
+* @param counters observed counters
+* @param pattern expected pattern
+* @param maxIndividualVariance The most any counter can differ before we give up
+* @return ratio of total variance between counters and pattern compared to total pattern size,
+*  where the ratio has been multiplied by 256. So, 0 means no variance (perfect match); 256 means
+*  the total variance between counters and patterns equals the pattern length, higher values mean
+*  even more variance
+*/
 int patternMatch(std::vector<int> counters, const std::vector<int> &pattern, uint maxIndividual)
 {
     CV_Assert(counters.size() == pattern.size());
