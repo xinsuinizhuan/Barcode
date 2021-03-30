@@ -41,7 +41,7 @@ public:
 
     std::pair<Result, float> decodeImg(InputArray bar_img, const std::vector<Point2f> &points) const override;
 
-
+    std::pair<Result, float> decodeImg(InputArray bar_img) const override;
 protected:
     size_t bits_num;
     size_t digit_number;

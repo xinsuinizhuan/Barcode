@@ -21,6 +21,11 @@ std::string enumToString(cv::barcode::BarcodeType format)
 
 TEST(integration_testing, detect_and_decode)
 {
+    //change model path
+    std::string dir = "D:/Project/Barcode/Repository/Build/downloads/wechat_qrcode/";
+    std::string model = "sr.caffemodel";
+    std::string prototxt = "sr.prototxt";
+
     std::string pre_path = R"(./../../)";
     std::ifstream correctness_file;
     float last_correctness = 0;
@@ -36,7 +41,7 @@ TEST(integration_testing, detect_and_decode)
     std::vector<std::string> img_types = {"jpg", "png"};
     std::string data_path{pre_path + "test/data/integration_test_data/"};
     std::string result_file{pre_path + "test/data/integration_test_data/result.csv"};
-    Verifier verifier{data_path, result_file, img_types};
+    Verifier verifier{dir+prototxt, dir+model, data_path, result_file, img_types};
     verifier.verify();
     std::cout<<"Error detection num: "<<verifier.error_detection_num<<std::endl;
     float correctness = verifier.getCorrectness();
@@ -62,9 +67,12 @@ TEST(integration_testing, detect_and_decode)
 
 TEST(integration_testing, ImgUnitTest)
 {
-    std::string img_path = R"(../../test/data/integration_test_data/sample8.jpg)";
+    std::string img_path = R"(../../test/data/integration_test_data/sample1.jpg)";
 
-    cv::barcode::BarcodeDetector bardet;
+    std::string dir = "./";
+    std::string model = "sr.caffemodel";
+    std::string prototxt = "sr.prototxt";
+    cv::barcode::BarcodeDetector bardet(dir + prototxt, dir + model);
     cv::Mat frame = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
     cv::Mat decodeFrame = frame.clone();
     std::vector<cv::RotatedRect> rects;

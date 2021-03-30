@@ -17,7 +17,7 @@ limitations under the License.
 #define __OPENCV_BARCODE_BARDECODE_HPP__
 
 #include "abs_decoder.hpp"
-
+#include "common/super_scale.hpp"
 namespace cv {
 namespace barcode {
 using std::vector;
@@ -26,7 +26,7 @@ using std::string;
 class BarDecode
 {
 public:
-    void init(const Mat &src, const vector<Point2f> &points);
+    void init(const Mat &src, const vector<Point2f> &points, string prototxt_path, string model_path);
 
     const vector<Result> &getDecodeInformation()
     { return result_info; }
@@ -39,6 +39,8 @@ private:
     vector<vector<Point2f>> src_points;
     Mat original;
     vector<Result> result_info;
+    std::shared_ptr<SuperScale> sr;
+    bool use_nn_sr;
 };
 }
 }

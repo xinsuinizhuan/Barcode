@@ -15,6 +15,9 @@ limitations under the License.
 */
 
 
+#include <utility>
+
+
 #include "precomp.hpp"
 
 namespace cv {
@@ -66,10 +69,13 @@ public:
     Impl() = default;
 
     ~Impl() = default;
+    string prototxt_path;
+    string model_path;
 };
-
-BarcodeDetector::BarcodeDetector() : p(new Impl)
+BarcodeDetector::BarcodeDetector(const string prototxt_path, const string model_path) : p(new Impl)
 {
+    p -> prototxt_path = prototxt_path;
+    p -> model_path = model_path;
 }
 
 BarcodeDetector::~BarcodeDetector() = default;
@@ -115,7 +121,7 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, vector<std::stri
     vector<Point2f> src_points;
     points.copyTo(src_points);
     BarDecode bardec;
-    bardec.init(img.getMat(), src_points);
+    bardec.init(img.getMat(), src_points, p -> prototxt_path, p -> model_path);
     bool ok = bardec.decodeMultiplyProcess();
     const vector<Result> &_decoded_info = bardec.getDecodeInformation();
     decoded_info.clear();
@@ -149,25 +155,6 @@ bool BarcodeDetector::detectAndDecode(InputArray img, vector<std::string> &decod
     decoded_type.clear();
     ok = this->decode(inarr, points, decoded_info, decoded_type);
     return ok;
-}
-
-bool BarcodeDetector::decodeDirectly(InputArray img, String &decoded_info, BarcodeType &decoded_type) const
-{
-    Mat inarr;
-    if (!checkBarInputImage(img, inarr))
-    {
-        return false;
-    }
-    Result _decoded_info;
-    std::unique_ptr<AbsDecoder> decoder{new Ean13Decoder()};
-    _decoded_info = decoder->decodeImg(inarr);
-    decoded_info = _decoded_info.result;
-    decoded_type = _decoded_info.format;
-    if (decoded_type == BarcodeType::NONE || decoded_info.empty())
-    {
-        return false;
-    }
-    return true;
 }
 }// namespace barcode
 } // namespace cv

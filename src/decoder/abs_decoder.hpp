@@ -51,6 +51,8 @@ public:
 
     virtual std::pair<Result, float> decodeImg(InputArray bar_img, const std::vector<Point2f> &points) const = 0;
 
+    virtual std::pair<Result, float> decodeImg(InputArray bar_img) const = 0;
+
     virtual ~AbsDecoder() = default;
 
 protected:

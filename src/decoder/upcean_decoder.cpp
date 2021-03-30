@@ -155,7 +155,7 @@ std::vector<Result> UPCEANDecoder::decodeImg(InputArray bar_img, const std::vect
         imshow("raw_bar", bar);
 #endif
         Mat ostu;
-        preprocess(bar, ostu, OSTU);
+        preprocess(bar, ostu);
         Result max_result = decodeImg(ostu, points).first;
         will_return.push_back(max_result);
     }
@@ -165,6 +165,13 @@ std::vector<Result> UPCEANDecoder::decodeImg(InputArray bar_img, const std::vect
 std::pair<Result, float> UPCEANDecoder::decodeImg(InputArray bar_img, const vector<Point2f> &points) const
 {
     return rectToResult(bar_img.getMat(), points, DIVIDE_PART);
+}
+
+std::pair<Result, float> UPCEANDecoder::decodeImg(InputArray bar_img) const
+{
+    vector<Point2f> corners{Point2f(0, bar_img.rows() - 1), Point2f(0, 0),
+                         Point2f(bar_img.cols() - 1, 0), Point2f(bar_img.rows()-1, bar_img.cols() - 1)};
+    return rectToResult(bar_img.getMat(), corners, DIVIDE_PART);
 }
 
 /**

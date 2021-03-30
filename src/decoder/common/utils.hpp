@@ -19,8 +19,6 @@ limitations under the License.
 #define __OPENCV_BARCODE_UTILS_HPP__
 
 #include <opencv2/imgproc.hpp>
-#include "opencv2/core/utils/filesystem.hpp"
-#include "super_scale.hpp"
 
 namespace cv{
 namespace barcode{
@@ -28,9 +26,8 @@ namespace barcode{
 constexpr int OSTU = 0;
 constexpr int HYBRID = 1;
 
-void enhance(Mat & src, Mat & dst);
-void preprocess(Mat & src, Mat & dst, int mode);
-
+void preprocess(Mat & src, Mat & dst);
+Mat binaryzation(Mat src, int mode);
 }
 }
 #endif //__OPENCV_BARCODE_UTILS_HPP__

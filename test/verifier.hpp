@@ -17,7 +17,6 @@
 
 using stringvec = std::vector<std::string>;
 using datasetType = std::unordered_map<std::string, std::string>;
-
 class Verifier
 {
 public:
@@ -28,11 +27,11 @@ public:
     float correct_case_num;
     size_t error_detection_num;
 private:
-    cv::barcode::BarcodeDetector barcodeDetector;
+    std::unique_ptr<cv::barcode::BarcodeDetector> barcodeDetector;
     stringvec postfixes;
 
 public:
-    Verifier(std::string data_dir, std::string result_file_path, stringvec postfixes);
+    Verifier(std::string prototxt, std::string model, std::string data_dir, std::string result_file_path, stringvec postfixes);
 
     void verify();
 
@@ -99,12 +98,13 @@ void read_directory(const std::string &name, stringvec &v, const stringvec &post
     }
 }
 
-Verifier::Verifier(std::string data_dir, std::string result_file_path, stringvec postfixes) : data_dir(
+Verifier::Verifier(std::string prototxt, std::string model, std::string data_dir, std::string result_file_path, stringvec postfixes) : data_dir(
         std::move(data_dir)), result_file_path(std::move(result_file_path)), postfixes(std::move(postfixes)),
                                                                                               total_case_num(0.0f),
                                                                                               correct_case_num(0.0f),
                                                                                               error_detection_num(0)
 {
+    barcodeDetector = std::make_unique<cv::barcode::BarcodeDetector>(prototxt, model);
     buildDataSet();
 }
 
@@ -133,7 +133,7 @@ void Verifier::verify()
         std::vector<cv::Point2f> points;
         std::vector<std::string> infos;
         std::vector<cv::barcode::BarcodeType> formats;
-        barcodeDetector.detectAndDecode(img, infos, formats, points);
+        barcodeDetector -> detectAndDecode(img, infos, formats, points);
         if (!infos.empty())
         {
             error_detection_num += infos.size() - 1;

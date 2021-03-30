@@ -54,7 +54,12 @@ static inline std::ostream &operator<<(std::ostream &out, const BarcodeType &bar
 class CV_EXPORTS_W BarcodeDetector
 {
 public:
-    CV_WRAP BarcodeDetector();
+    /**
+     * @brief initialize the BarcodeDetector
+     * @param prototxt_path prototxt file path for the super resolution model
+     * @param model_path model file path for the super resolution model
+     */
+    CV_WRAP BarcodeDetector(const std::string prototxt_path = "", const std::string model_path = "");
 
     ~BarcodeDetector();
 
@@ -89,16 +94,6 @@ public:
      */
     CV_WRAP bool detectAndDecode(InputArray img, CV_OUT std::vector<std::string> &decoded_info, CV_OUT
                                  std::vector<BarcodeType> &decoded_type, OutputArray points = noArray()) const;
-
-    /** @brief Decode without detects
-     *
-     * @param img grayscale or color (BGR) image containing barcode.
-     * @param decoded_info UTF8-encoded output of string or empty string if the codes do not contain barcode.
-     * @param decoded_type vector of BarcodeType, specifies the type of these barcodes
-    */
-    CV_WRAP bool
-    decodeDirectly(InputArray img, CV_OUT String &decoded_info, CV_OUT BarcodeType &decoded_type) const;
-
 
 protected:
     struct Impl;

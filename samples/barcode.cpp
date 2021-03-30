@@ -123,16 +123,30 @@ runBarcode(barcode::BarcodeDetector &barcode, const Mat &input, vector<Point> &c
         // +global: bool g_modeMultiQR, bool g_detectOnly
 )
 {
-    if (!g_detectOnly)
+    try
     {
-        bool result_detection = barcode.detectAndDecode(input, decode_info, decode_type, corners);
-        CV_UNUSED(result_detection);
-    }
-    else
+        if (!g_detectOnly)
+        {
+            bool result_detection = barcode.detectAndDecode(input, decode_info, decode_type, corners);
+            CV_UNUSED(result_detection);
+        }
+        else
+        {
+            bool result_detection = barcode.detect(input, corners);
+            CV_UNUSED(result_detection);
+        }
+    } catch (const std::exception& e)
     {
-        bool result_detection = barcode.detect(input, corners);
-        CV_UNUSED(result_detection);
+        cout <<
+            "\n---------------------------------------------------------------\n"
+            "Failed to initialize super resolution.\n"
+            "Please, download 'sr.*' from\n"
+            "https://github.com/WeChatCV/opencv_3rdparty/tree/wechat_qrcode\n"
+            "and put them into the current directory.\n"
+            "---------------------------------------------------------------\n";
+        cout << e.what() << endl;
     }
+
 }
 
 int liveBarCodeDetect()
@@ -147,7 +161,7 @@ int liveBarCodeDetect()
 
     cout << "Press 'd' to switch between decoder and detector" << endl;
     cout << "Press 'ESC' to exit" << endl;
-    barcode::BarcodeDetector barcode;
+    barcode::BarcodeDetector barcode("sr.prototxt", "sr.caffemodel");
 
     for (;;)
     {

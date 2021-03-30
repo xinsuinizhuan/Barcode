@@ -16,10 +16,11 @@ limitations under the License.
 #include "ean13_decoder.hpp"
 #include "bardecode.hpp"
 #include "common/utils.hpp"
-
+#include "opencv2/core/utils/filesystem.hpp"
 namespace cv {
 namespace barcode {
-void BarDecode::init(const cv::Mat &src, const std::vector<cv::Point2f> &points)
+void BarDecode::init(const cv::Mat &src, const std::vector<cv::Point2f> &points,
+                     const string prototxt_path, const string model_path)
 {
     //CV_TRACE_FUNCTION();
     original = src.clone();
@@ -35,6 +36,20 @@ void BarDecode::init(const cv::Mat &src, const std::vector<cv::Point2f> &points)
         }
     }
     CV_Assert(!src_points.empty());
+    if(!prototxt_path.empty() && !model_path.empty())
+    {
+        CV_Assert(utils::fs::exists(prototxt_path));
+        CV_Assert(utils::fs::exists(model_path));
+        sr = std::make_shared<SuperScale>();
+        int res = sr -> init(prototxt_path, model_path);
+        CV_Assert(res == 0);
+        use_nn_sr = true;
+    }
+    else
+    {
+        use_nn_sr = false;
+    }
+
 }
 
 bool BarDecode::decodingProcess()
@@ -50,40 +65,45 @@ bool BarDecode::decodeMultiplyProcess()
     class ParallelBarCodeDecodeProcess : public ParallelLoopBody
     {
     public:
-        ParallelBarCodeDecodeProcess(Mat &inarr_, vector<vector<Point2f>> &src_points_, vector<Result> &decoded_info_)
-                : inarr(inarr_), decoded_info(decoded_info_), src_points(src_points_)
+        ParallelBarCodeDecodeProcess(vector<Mat> &bar_imgs_, vector<Result> &decoded_info_)
+                : bar_imgs(bar_imgs_), decoded_info(decoded_info_)
         {
-            for (size_t i = 0; i < src_points.size(); ++i)
-            {
-                decoder.push_back(std::unique_ptr<AbsDecoder>(new Ean13Decoder()));
-            }
+            //indicate Decoder
+            decoders.push_back(std::shared_ptr<AbsDecoder>(new Ean13Decoder()));
         }
 
         void operator()(const Range &range) const CV_OVERRIDE
         {
-            CV_Assert(inarr.channels() == 1);
-            Mat gray = inarr.clone();
             for (int i = range.start; i < range.end; i++)
             {
-                Mat bar_img;
-                cutImage(gray, bar_img, src_points[i]);
-                Mat ostu;
-                preprocess(bar_img, ostu, OSTU);
-                auto res_ostu = decoder[i]->decodeImg(ostu, src_points[i]);
-                decoded_info[i] = res_ostu.first;
+                auto res = decoders[0]->decodeImg(bar_imgs[i]);
+                decoded_info[i] = res.first;
             }
         }
 
     private:
-        Mat &inarr;
+        vector<Mat> &bar_imgs;
         vector<Result> &decoded_info;
-        vector<vector<Point2f> > &src_points;
-        vector<std::unique_ptr<AbsDecoder>> decoder;
+        vector<std::shared_ptr<AbsDecoder>> decoders;
     };
     result_info.clear();
     result_info.resize(src_points.size());
-    ParallelBarCodeDecodeProcess parallelDecodeProcess{original, src_points, result_info};
-    parallel_for_(Range(0, int(src_points.size())), parallelDecodeProcess);
+    //sr and cut img
+    vector<Mat> bar_imgs;
+    for(auto & corners : src_points)
+    {
+        Mat bar_img;
+        cutImage(original, bar_img, corners);
+        preprocess(bar_img, bar_img);
+        // scale by 4
+        bar_img = sr -> processImageScale(bar_img, 2, use_nn_sr);
+        bar_img = sr -> processImageScale(bar_img, 2, use_nn_sr);
+
+        bar_img = binaryzation(bar_img, OSTU);
+        bar_imgs.emplace_back(bar_img);
+    }
+    ParallelBarCodeDecodeProcess parallelDecodeProcess{bar_imgs, result_info};
+    parallel_for_(Range(0, int(bar_imgs.size())), parallelDecodeProcess);
     return !result_info.empty();
 }
 }
