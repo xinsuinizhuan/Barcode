@@ -179,7 +179,7 @@ int main(int argc, char **argv)
                 std::vector<Point> barcode_contour(points.begin() + i, points.begin() + i + 4);
                 std::cout << decoded_info[bar_idx] << " " << decoded_format[bar_idx] << std::endl;
 
-                cv::putText(frame, decoded_info[bar_idx], barcode_contour[2], cv::FONT_HERSHEY_PLAIN, 1,
+                cv::putText(frame, decoded_info[bar_idx], barcode_contour[1], cv::FONT_HERSHEY_PLAIN, 1,
                             Scalar(255, 0, 0), 2);
                 if (decoded_format[bar_idx] == barcode::BarcodeType::NONE)
                 {
@@ -204,7 +204,7 @@ int main(int argc, char **argv)
         std::cout << fps << std::endl;
         imshow("bounding boxes", frame);
 
-        imwrite("./test.jpg", frame);
+        imwrite("./test.png", frame);
         waitKey();
     }
     return 0;

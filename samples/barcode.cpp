@@ -1,3 +1,8 @@
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://opencv.org/license.html.
+// Copyright (c) 2020-2021 darkliang wangberlinT Certseeds
+
 #include <iostream>
 #include "opencv2/barcode.hpp"
 #include "opencv2/imgproc.hpp"
@@ -12,13 +17,20 @@ static int imageBarCodeDetect(const string &in_file);
 
 static bool g_detectOnly = false;
 
+static string g_out_file_name, g_out_file_ext;
+
+static Ptr<barcode::BarcodeDetector> bardet;
+
 int main(int argc, char **argv)
 {
 
 
     const string keys = "{h help ? |        | print help messages }"
                         "{i in     |        | input image path (also switches to image detection mode) }"
-                        "{detect   | false  | detect 1D barcode only (skip decoding) }";
+                        "{detect   | false  | detect 1D barcode only (skip decoding) }"
+                        "{o out    |        | path to result file (only for single image decode) }"
+                        "{sr_prototxt|      | super resolution prototxt path }"
+                        "{sr_model |        | super resolution model path }";
 
     CommandLineParser cmd_parser(argc, argv, keys);
 
@@ -30,13 +42,45 @@ int main(int argc, char **argv)
     }
 
     string in_file_name = cmd_parser.get<string>("in");    // path to input image
-
+    string sr_prototxt = cmd_parser.get<string>("sr_prototxt");    // path to sr_prototxt
+    string sr_model = cmd_parser.get<string>("sr_model");    // path to sr_model
+    if (cmd_parser.has("out"))
+    {
+        std::string fpath = cmd_parser.get<string>("out");   // path to output image
+        std::string::size_type idx = fpath.rfind('.');
+        if (idx != std::string::npos)
+        {
+            g_out_file_name = fpath.substr(0, idx);
+            g_out_file_ext = fpath.substr(idx);
+        }
+        else
+        {
+            g_out_file_name = fpath;
+            g_out_file_ext = ".png";
+        }
+    }
     if (!cmd_parser.check())
     {
         cmd_parser.printErrors();
         return -1;
     }
     g_detectOnly = cmd_parser.has("detect") && cmd_parser.get<bool>("detect");
+    //! [initialize]
+    try
+    {
+        bardet = makePtr<barcode::BarcodeDetector>(sr_prototxt, sr_model);
+    } catch (const std::exception &e)
+    {
+        cout << "\n---------------------------------------------------------------\n"
+                "Failed to initialize super resolution.\n"
+                "Please, download 'sr.*' from\n"
+                "https://github.com/WeChatCV/opencv_3rdparty/tree/wechat_qrcode\n"
+                "and put them into the current directory.\n"
+                "---------------------------------------------------------------\n";
+        cout << e.what() << endl;
+        return -1;
+    }
+    //! [initialize]
     int return_code;
     if (in_file_name.empty())
     {
@@ -73,6 +117,7 @@ static void drawBarcodeContour(Mat &color_image, const vector<Point> &corners, b
     }
 }
 
+//! [visualize]
 static void drawFPS(Mat &color_image, double fps)
 {
     ostringstream convert;
@@ -116,37 +161,25 @@ static void drawBarcodeResults(Mat &frame, const vector<Point> &corners, const v
 
     drawFPS(frame, fps);
 }
+//! [visualize]
 
-static void
-runBarcode(barcode::BarcodeDetector &barcode, const Mat &input, vector<Point> &corners, vector<cv::String> &decode_info,
-           vector<cv::barcode::BarcodeType> &decode_type
-        // +global: bool g_modeMultiQR, bool g_detectOnly
-)
+static void runBarcode(const Mat &input, vector<Point> &corners, vector<cv::String> &decode_info,
+                       vector<cv::barcode::BarcodeType> &decode_type)
 {
-    try
+    if (!g_detectOnly)
     {
-        if (!g_detectOnly)
-        {
-            bool result_detection = barcode.detectAndDecode(input, decode_info, decode_type, corners);
-            CV_UNUSED(result_detection);
-        }
-        else
-        {
-            bool result_detection = barcode.detect(input, corners);
-            CV_UNUSED(result_detection);
-        }
-    } catch (const std::exception& e)
-    {
-        cout <<
-            "\n---------------------------------------------------------------\n"
-            "Failed to initialize super resolution.\n"
-            "Please, download 'sr.*' from\n"
-            "https://github.com/WeChatCV/opencv_3rdparty/tree/wechat_qrcode\n"
-            "and put them into the current directory.\n"
-            "---------------------------------------------------------------\n";
-        cout << e.what() << endl;
+        //! [detectAndDecode]
+        bool result_detection = bardet->detectAndDecode(input, decode_info, decode_type, corners);
+        //! [detectAndDecode]
+        CV_UNUSED(result_detection);
     }
-
+    else
+    {
+        //! [detect]
+        bool result_detection = bardet->detect(input, corners);
+        //! [detect]
+        CV_UNUSED(result_detection);
+    }
 }
 
 int liveBarCodeDetect()
@@ -161,7 +194,6 @@ int liveBarCodeDetect()
 
     cout << "Press 'd' to switch between decoder and detector" << endl;
     cout << "Press 'ESC' to exit" << endl;
-    barcode::BarcodeDetector barcode("sr.prototxt", "sr.caffemodel");
 
     for (;;)
     {
@@ -184,12 +216,13 @@ int liveBarCodeDetect()
             frame.copyTo(result);
         }
         TickMeter timer;
+        //! [output]
         vector<cv::String> decode_info;
         vector<barcode::BarcodeType> decoded_type;
         vector<Point> corners;
-
+        //! [output]
         timer.start();
-        runBarcode(barcode, frame, corners, decode_info, decoded_type);
+        runBarcode(frame, corners, decode_info, decoded_type);
         timer.stop();
 
         double fps = 1 / timer.getTimeSec();
@@ -231,7 +264,6 @@ int imageBarCodeDetect(const string &in_file)
     cout << "Run BarCode" << (g_detectOnly ? " detector" : " decoder") << " on image: " << input.size() << " ("
          << typeToString(input.type()) << ")" << endl;
 
-    barcode::BarcodeDetector barcode;
     vector<Point> corners;
     vector<cv::String> decode_info;
     vector<barcode::BarcodeType> decoded_type;
@@ -242,7 +274,7 @@ int imageBarCodeDetect(const string &in_file)
         decode_info.clear();
 
         timer.start();
-        runBarcode(barcode, input, corners, decode_info, decoded_type);
+        runBarcode(input, corners, decode_info, decoded_type);
         timer.stop();
     }
     double fps = count_experiments / timer.getTimeSec();
@@ -251,7 +283,12 @@ int imageBarCodeDetect(const string &in_file)
     Mat result;
     input.copyTo(result);
     drawBarcodeResults(result, corners, decode_info, decoded_type, fps);
-
+    if (!g_out_file_name.empty())
+    {
+        string out_file = g_out_file_name + g_out_file_ext;
+        cout << "Saving result: " << out_file << endl;
+        imwrite(out_file, result);
+    }
     imshow("barcode", result);
     waitKey(1);
 

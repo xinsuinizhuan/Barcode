@@ -5,7 +5,6 @@
 
 #include "../precomp.hpp"
 #include "upcean_decoder.hpp"
-#include "common/utils.hpp"
 #include <map>
 
 namespace cv {
@@ -13,7 +12,7 @@ namespace barcode {
 
 static constexpr int DIVIDE_PART = 16;
 
-void UPCEANDecoder::drawDebugLine(Mat& debug_img, Point2i begin, Point2i end) const
+void UPCEANDecoder::drawDebugLine(Mat &debug_img, const Point2i &begin, const Point2i &end) const
 {
     Result result;
     std::vector<uchar> middle;
@@ -23,8 +22,8 @@ void UPCEANDecoder::drawDebugLine(Mat& debug_img, Point2i begin, Point2i end) co
     {
         middle.push_back(debug_img.at<uchar>(line.pos()));
     }
-    std::pair<int,int> start_range;
-    if(findStartGuardPatterns(middle, start_range))
+    std::pair<int, int> start_range;
+    if (findStartGuardPatterns(middle, start_range))
     {
         circle(debug_img, Point2i(begin.x + start_range.second, begin.y), 2, Scalar(0), 2);
     }
@@ -33,7 +32,7 @@ void UPCEANDecoder::drawDebugLine(Mat& debug_img, Point2i begin, Point2i end) co
     {
         result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
     }
-    if(result.result.size() == this->digit_number)
+    if (result.result.size() == this->digit_number)
     {
         cv::line(debug_img, begin, end, Scalar(0), 2);
         cv::putText(debug_img, result.result, begin, cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(0, 0, 255), 1);
@@ -127,8 +126,9 @@ int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, std::vector<int> &
 /*Input a ROI mat return result */
 std::pair<Result, float> UPCEANDecoder::decodeROI(InputArray bar_img) const
 {
-    vector<Point2f> corners{Point2f(0, bar_img.rows() - 1), Point2f(0, 0),
-                         Point2f(bar_img.cols() - 1, 0), Point2f(bar_img.rows()-1, bar_img.cols() - 1)};
+    vector<Point2f> corners{
+            Point2f(0, bar_img.rows() - 1), Point2f(0, 0), Point2f(bar_img.cols() - 1, 0),
+            Point2f(bar_img.rows() - 1, bar_img.cols() - 1)};
     return rectToResult(bar_img.getMat(), corners, DIVIDE_PART);
 }
 
@@ -183,9 +183,9 @@ UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &poin
         }
     }
     float accuracy = 0;
-    if(total_vote != 0)
+    if (total_vote != 0)
     {
-        accuracy = (float)vote_cnt / (float)total_vote;
+        accuracy = (float) vote_cnt / (float) total_vote;
     }
     return std::make_pair(Result(max_result, max_format), accuracy);
 }
@@ -219,12 +219,12 @@ void UPCEANDecoder::linesFromRect(const Size2i &shape, bool horizontal, int PART
                                   std::vector<std::pair<Point2i, Point2i>> &results) const
 {
     // scan area around center line
-    Point2i step = Point2i((PART-1)*shape.height / (PART*PART), 0);
+    Point2i step = Point2i((PART - 1) * shape.height / (PART * PART), 0);
     Point2i cbegin = Point2i(shape.height / 2, 0);
     Point2i cend = Point2i(shape.height / 2, shape.width - 1);
     if (horizontal)
     {
-        step = Point2i(0, (PART-1)*shape.width / (PART*PART));
+        step = Point2i(0, (PART - 1) * shape.width / (PART * PART));
         cbegin = Point2i(0, shape.width / 2);
         cend = Point2i(shape.height - 1, shape.width / 2);
     }
@@ -237,7 +237,6 @@ void UPCEANDecoder::linesFromRect(const Size2i &shape, bool horizontal, int PART
     }
     results.emplace_back(cbegin, cend);
 }
-
 
 
 // right for A

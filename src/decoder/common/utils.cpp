@@ -7,11 +7,11 @@
 #include "utils.hpp"
 #include "hybrid_binarizer.hpp"
 
-namespace cv{
-namespace barcode{
+namespace cv {
+namespace barcode {
 
 
-void preprocess(Mat & src, Mat & dst)
+void preprocess(Mat &src, Mat &dst)
 {
     Mat blur;
     GaussianBlur(src, blur, Size(0, 0), 25);
@@ -19,12 +19,12 @@ void preprocess(Mat & src, Mat & dst)
     dst.convertTo(dst, CV_8UC1, 1, -20);
 }
 
-Mat binaryzation(Mat src, int mode)
+Mat binarize(const Mat &src, int mode)
 {
     Mat dst;
     switch (mode)
     {
-        case OSTU:
+        case OTSU:
             threshold(src, dst, 155, 255, THRESH_OTSU + THRESH_BINARY);
             break;
         case HYBRID:

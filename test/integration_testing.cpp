@@ -22,7 +22,7 @@ std::string enumToString(cv::barcode::BarcodeType format)
 TEST(integration_testing, detect_and_decode)
 {
     //change model path
-    std::string dir = "D:/Project/Barcode/Repository/Build/downloads/wechat_qrcode/";
+    std::string dir = "../../model/";
     std::string model = "sr.caffemodel";
     std::string prototxt = "sr.prototxt";
 

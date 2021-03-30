@@ -1,26 +1,23 @@
-/*
-Copyright 2020 ${ALL COMMITTERS}
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://opencv.org/license.html.
+// Copyright (c) 2020-2021 darkliang wangberlinT Certseeds
 
 #ifndef __OPENCV_BARCODE_HPP__
 #define __OPENCV_BARCODE_HPP__
 
-#include "opencv2/core.hpp"
+#include <opencv2/core.hpp>
 #include <ostream>
+
+/** @defgroup barcode Barcode detecting and decoding methods
+*/
+
 namespace cv {
 namespace barcode {
+
+//! @addtogroup barcode
+//! @{
+
 enum BarcodeType
 {
     NONE, EAN_8, EAN_13, UPC_A, UPC_E, UPC_EAN_EXTENSION
@@ -59,7 +56,7 @@ public:
      * @param prototxt_path prototxt file path for the super resolution model
      * @param model_path model file path for the super resolution model
      */
-    CV_WRAP BarcodeDetector(const std::string prototxt_path = "", const std::string model_path = "");
+    CV_WRAP BarcodeDetector(const std::string &prototxt_path = "", const std::string &model_path = "");
 
     ~BarcodeDetector();
 
@@ -73,7 +70,6 @@ public:
     CV_WRAP bool detect(InputArray img, OutputArray points) const;
 
     /** @brief Decodes barcode in image once it's found by the detect() method.
-     * Returns UTF8-encoded output string or empty string if the code cannot be decoded.
      *
      * @param img grayscale or color (BGR) image containing bar code.
      * @param points vector of rotated rectangle vertices found by detect() method (or some other algorithm).
@@ -90,7 +86,7 @@ public:
      * @param img grayscale or color (BGR) image containing barcode.
      * @param decoded_info UTF8-encoded output vector of string(s) or empty vector of string if the codes cannot be decoded.
      * @param decoded_type vector of BarcodeType, specifies the type of these barcodes
-     * @param points_ optional output vector of vertices of the found  barcode rectangle. Will be empty if not found.
+     * @param points optional output vector of vertices of the found  barcode rectangle. Will be empty if not found.
      */
     CV_WRAP bool detectAndDecode(InputArray img, CV_OUT std::vector<std::string> &decoded_info, CV_OUT
                                  std::vector<BarcodeType> &decoded_type, OutputArray points = noArray()) const;
@@ -98,9 +94,8 @@ public:
 protected:
     struct Impl;
     Ptr<Impl> p;
-private:
-
 };
+//! @}
 }
 } // cv::barcode::
 #endif //__OPENCV_BARCODE_HPP__

@@ -13,37 +13,51 @@
 #define CLIP(x, x1, x2) max(x1, min(x, x2))
 namespace cv {
 namespace barcode {
-int SuperScale::init(const std::string &proto_path, const std::string &model_path) {
+int SuperScale::init(const std::string &proto_path, const std::string &model_path)
+{
     srnet_ = dnn::readNetFromCaffe(proto_path, model_path);
     net_loaded_ = true;
     return 0;
 }
 
-Mat SuperScale::processImageScale(const Mat &src, float scale, const bool &use_sr,
-                                  int sr_max_size) {
+Mat SuperScale::processImageScale(const Mat &src, float scale, const bool &use_sr, int sr_max_size)
+{
     Mat dst = src;
-
+    if (scale <= .0)
+    { return dst; }
+    scale = min(scale, MAX_SCALE);
     int width = src.cols;
     int height = src.rows;
-    if (scale == 4.0) {
-        dst = processImageScale(src, 2, use_sr);
-        dst = processImageScale(dst, 2, use_sr);
-        return dst;
-    }else if (scale == 2.0) {  // upsample
-        int SR_TH = sr_max_size;
-        if (use_sr && (int)sqrt(width * height * 1.0) < SR_TH && net_loaded_) {
-            int ret = superResolutionScale(src, dst);
-            if (ret == 0) return dst;
-        }
-        resize(src, dst, Size(), scale, scale, INTER_CUBIC);
-    } else if (scale < 1.0 && scale > .0) {  // downsample
+    if (scale > .0 && scale < 1.0)
+    {  // down sample
         resize(src, dst, Size(), scale, scale, INTER_AREA);
+    }
+    else if (scale > 1.0 && scale < 2.0)
+    {
+        resize(src, dst, Size(), scale, scale, INTER_CUBIC);
+    }
+    else if (scale >= 2.0)
+    {
+        if (use_sr && (int) sqrt(width * height * 1.0) < sr_max_size && net_loaded_)
+        {
+            int ret = superResolutionScale(src, dst);
+            if (ret != 0)
+            { resize(src, dst, Size(), scale, scale, INTER_CUBIC); }
+            if (scale > 2.0)
+            {
+                dst = processImageScale(dst, scale / 2.0f, use_sr);
+            }
+        }
+        else
+        { resize(src, dst, Size(), scale, scale, INTER_CUBIC); }
+
     }
 
     return dst;
 }
 
-int SuperScale::superResolutionScale(const Mat &src, Mat &dst) {
+int SuperScale::superResolutionScale(const Mat &src, Mat &dst)
+{
     Mat blob;
     dnn::blobFromImage(src, blob, 1.0 / 255, Size(src.cols, src.rows), {0.0f}, false, false);
 
@@ -52,9 +66,11 @@ int SuperScale::superResolutionScale(const Mat &src, Mat &dst) {
 
     dst = Mat(prob.size[2], prob.size[3], CV_8UC1);
 
-    for (int row = 0; row < prob.size[2]; row++) {
+    for (int row = 0; row < prob.size[2]; row++)
+    {
         const float *prob_score = prob.ptr<float>(0, 0, row);
-        for (int col = 0; col < prob.size[3]; col++) {
+        for (int col = 0; col < prob.size[3]; col++)
+        {
             float pixel = prob_score[col] * 255.0;
             dst.at<uint8_t>(row, col) = static_cast<uint8_t>(CLIP(pixel, 0.0f, 255.0f));
         }

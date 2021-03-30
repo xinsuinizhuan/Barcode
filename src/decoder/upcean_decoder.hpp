@@ -43,15 +43,15 @@ protected:
 
     Result decodeLine(const Mat &bar_img, const Point2i &begin, const Point2i &end) const;
 
-    void
-    linesFromRect(const Size2i &shape, bool horizontal, int PART, std::vector<std::pair<Point2i, Point2i>> &results) const;
+    void linesFromRect(const Size2i &shape, bool horizontal, int PART,
+                       std::vector<std::pair<Point2i, Point2i>> &results) const;
 
     Result decode(std::vector<uchar> bar, uint start) const override = 0;
 
     bool isValid(std::string result) const override = 0;
 
 private:
-    void drawDebugLine(Mat& debug_img, Point2i begin, Point2i end) const;
+    void drawDebugLine(Mat &debug_img, const Point2i &begin, const Point2i &end) const;
 };
 
 const std::vector<std::vector<int>> &get_A_or_C_Patterns();

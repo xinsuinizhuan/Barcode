@@ -7,14 +7,15 @@
 #define __OPENCV_BARCODE_UTILS_HPP__
 
 
-namespace cv{
-namespace barcode{
+namespace cv {
+namespace barcode {
 
-constexpr int OSTU = 0;
+constexpr int OTSU = 0;
 constexpr int HYBRID = 1;
 
-void preprocess(Mat & src, Mat & dst);
-Mat binaryzation(Mat src, int mode);
+void preprocess(Mat &src, Mat &dst);
+
+Mat binarize(const Mat &src, int mode);
 }
 }
 #endif //__OPENCV_BARCODE_UTILS_HPP__

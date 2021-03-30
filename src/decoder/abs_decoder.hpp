@@ -44,7 +44,7 @@ protected:
     virtual bool isValid(string result) const = 0;
 };
 
-void cropROI(Mat _src, Mat &_dst, const std::vector<Point2f> &rect);
+void cropROI(const Mat &_src, Mat &_dst, const std::vector<Point2f> &rect);
 
 void fillCounter(const std::vector<uchar> &row, uint start, std::vector<int> &counters);
 
