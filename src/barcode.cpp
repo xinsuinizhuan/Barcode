@@ -58,19 +58,20 @@ class BarDecode
 public:
     void init(const vector<Mat> &bar_imgs_);
 
-    const vector<Result> &getDecodeInformation()
+    const vector<std::pair<Result, float>> &getDecodeInformation()
     { return result_info; }
 
     bool decodeMultiplyProcess();
 
 private:
     vector<Mat> bar_imgs;
-    vector<Result> result_info;
+    vector<std::pair<Result, float>> result_info;
 };
 
 void BarDecode::init(const vector<Mat> &bar_imgs_)
 {
     bar_imgs = bar_imgs_;
+    result_info.clear();
 }
 
 bool BarDecode::decodeMultiplyProcess()
@@ -78,7 +79,7 @@ bool BarDecode::decodeMultiplyProcess()
     class ParallelBarCodeDecodeProcess : public ParallelLoopBody
     {
     public:
-        ParallelBarCodeDecodeProcess(vector<Mat> &bar_imgs_, vector<Result> &decoded_info_) : bar_imgs(bar_imgs_),
+        ParallelBarCodeDecodeProcess(vector<Mat> &bar_imgs_, vector<pair<Result, float>> &decoded_info_) : bar_imgs(bar_imgs_),
                                                                                               decoded_info(
                                                                                                       decoded_info_)
         {
@@ -91,13 +92,13 @@ bool BarDecode::decodeMultiplyProcess()
             for (int i = range.start; i < range.end; i++)
             {
                 auto res = decoders[0]->decodeROI(bar_imgs[i]);
-                decoded_info[i] = res.first;
+                decoded_info[i] = res;
             }
         }
 
     private:
         vector<Mat> bar_imgs;
-        vector<Result> &decoded_info;
+        vector<std::pair<Result, float>> &decoded_info;
         vector<std::shared_ptr<AbsDecoder>> decoders;
     };
     result_info.clear();
@@ -117,13 +118,14 @@ public:
 
     ~Impl() = default;;
 
-    vector<Mat> initDecode(const cv::Mat &src, const std::vector<cv::Point2f> &points) const;
+    vector <Mat> initDecode(const cv::Mat &src, const std::vector<cv::Point2f> &points, int mode) const;
 
     std::shared_ptr<SuperScale> sr;
     bool use_nn_sr = false;
 };
 
-vector<Mat> BarcodeDetector::Impl::initDecode(const Mat &src, const vector<cv::Point2f> &points) const
+vector <Mat>
+BarcodeDetector::Impl::initDecode(const cv::Mat &src, const std::vector<cv::Point2f> &points, int mode) const
 {
     vector<vector<Point2f>> src_points;
     //CV_TRACE_FUNCTION();
@@ -151,7 +153,7 @@ vector<Mat> BarcodeDetector::Impl::initDecode(const Mat &src, const vector<cv::P
             float scale = 620.0f / static_cast<float>(bar_img.cols);
             bar_img = sr->processImageScale(bar_img, scale, use_nn_sr);
         }
-        bar_img = binarize(bar_img, OTSU);
+        bar_img = binarize(bar_img, mode);
         bar_imgs.emplace_back(bar_img);
     }
     return bar_imgs;
@@ -214,17 +216,31 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, vector<std::stri
     CV_Assert((points.size().width % 4) == 0);
     vector<Point2f> src_points;
     points.copyTo(src_points);
-    vector<Mat> bar_imgs = p->initDecode(img.getMat(), src_points);
+    vector<Mat> bar_imgs = p->initDecode(inarr, src_points, OTSU);
+    vector<Mat> hybrid_bar = p -> initDecode(inarr, src_points, HYBRID);
     BarDecode bardec;
     bardec.init(bar_imgs);
-    bool ok = bardec.decodeMultiplyProcess();
-    const vector<Result> &_decoded_info = bardec.getDecodeInformation();
+    bardec.decodeMultiplyProcess();
+    const vector<pair<Result, float>> otsu_info = bardec.getDecodeInformation();
+
+    bardec.init(hybrid_bar);
+    bardec.decodeMultiplyProcess();
+    const vector<pair<Result, float>> hybird_info = bardec.getDecodeInformation();
     decoded_info.clear();
     decoded_type.clear();
-    for (const auto &info : _decoded_info)
+    bool ok = false;
+    for (int i = 0;i < otsu_info.size();i ++)
     {
-        decoded_info.emplace_back(info.result);
-        decoded_type.emplace_back(info.format);
+        auto res = otsu_info[i].first;
+        if(otsu_info[i].second < hybird_info[i].second)
+        {
+            res = hybird_info[i].first;
+        }
+
+        if(res.format != NONE)
+            ok = true;
+        decoded_info.emplace_back(res.result);
+        decoded_type.emplace_back(res.format);
     }
     return ok;
 }
