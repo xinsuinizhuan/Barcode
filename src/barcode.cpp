@@ -1,48 +1,18 @@
-/*
-Copyright 2020 ${ALL COMMITTERS}
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://opencv.org/license.html.
+// Copyright (c) 2020-2021 darkliang wangberlinT Certseeds
 
 #include "precomp.hpp"
+#include <opencv2/barcode.hpp>
+#include <opencv2/core/utils/filesystem.hpp>
+#include "decoder/ean13_decoder.hpp"
+#include "detector/bardetect.hpp"
+#include "decoder/common/super_scale.hpp"
+#include "decoder/common/utils.hpp"
 
 namespace cv {
 namespace barcode {
-std::ostream &operator<<(std::ostream &out, BarcodeType format)
-{
-    switch (format)
-    {
-        case BarcodeType::EAN_8:
-            out << "EAN_8";
-            break;
-        case BarcodeType::EAN_13:
-            out << "EAN_13";
-            break;
-        case BarcodeType::UPC_E:
-            out << "UPC_E";
-            break;
-        case BarcodeType::UPC_A:
-            out << "UPC_A";
-            break;
-        case BarcodeType::UPC_EAN_EXTENSION:
-            out << "UPC_EAN_EXTENSION";
-            break;
-        default:
-            out << "NONE";
-    }
-    return out;
-}
 
 static bool checkBarInputImage(InputArray img, Mat &gray)
 {
@@ -83,17 +53,126 @@ static void updatePointsResult(OutputArray points_, const vector<Point2f> &point
     }
 }
 
+class BarDecode
+{
+public:
+    void init(const vector<Mat> &bar_imgs_);
+
+    const vector<std::pair<Result, float>> &getDecodeInformation()
+    { return result_info; }
+
+    bool decodeMultiplyProcess();
+
+private:
+    vector<Mat> bar_imgs;
+    vector<std::pair<Result, float>> result_info;
+};
+
+void BarDecode::init(const vector<Mat> &bar_imgs_)
+{
+    bar_imgs = bar_imgs_;
+    result_info.clear();
+}
+
+bool BarDecode::decodeMultiplyProcess()
+{
+    class ParallelBarCodeDecodeProcess : public ParallelLoopBody
+    {
+    public:
+        ParallelBarCodeDecodeProcess(vector<Mat> &bar_imgs_, vector<pair<Result, float>> &decoded_info_) : bar_imgs(bar_imgs_),
+                                                                                              decoded_info(
+                                                                                                      decoded_info_)
+        {
+            //indicate Decoder
+            decoders.push_back(std::shared_ptr<AbsDecoder>(new Ean13Decoder()));
+        }
+
+        void operator()(const Range &range) const CV_OVERRIDE
+        {
+            for (int i = range.start; i < range.end; i++)
+            {
+                auto res = decoders[0]->decodeROI(bar_imgs[i]);
+                decoded_info[i] = res;
+            }
+        }
+
+    private:
+        vector<Mat> bar_imgs;
+        vector<std::pair<Result, float>> &decoded_info;
+        vector<std::shared_ptr<AbsDecoder>> decoders;
+    };
+    result_info.clear();
+    result_info.resize(bar_imgs.size());
+    //sr and cut img
+
+    ParallelBarCodeDecodeProcess parallelDecodeProcess{bar_imgs, result_info};
+    parallel_for_(Range(0, int(bar_imgs.size())), parallelDecodeProcess);
+    return !result_info.empty();
+}
+
+
 struct BarcodeDetector::Impl
 {
 public:
-    Impl() = default;
+    Impl() = default;;
 
-    ~Impl() = default;
+    ~Impl() = default;;
+
+    vector <Mat> initDecode(const cv::Mat &src, const std::vector<cv::Point2f> &points, int mode) const;
+
+    std::shared_ptr<SuperScale> sr;
+    bool use_nn_sr = false;
 };
 
-BarcodeDetector::BarcodeDetector() : p(new Impl)
+vector <Mat>
+BarcodeDetector::Impl::initDecode(const cv::Mat &src, const std::vector<cv::Point2f> &points, int mode) const
 {
+    vector<vector<Point2f>> src_points;
+    //CV_TRACE_FUNCTION();
+    CV_Assert(!points.empty());
+    CV_Assert((points.size() % 4) == 0);
+    src_points.clear();
+    for (size_t i = 0; i < points.size(); i += 4)
+    {
+        vector<Point2f> tempMat{points.cbegin() + i, points.cbegin() + i + 4};
+        if (contourArea(tempMat) > 0.0)
+        {
+            src_points.push_back(tempMat);
+        }
+    }
+    CV_Assert(!src_points.empty());
+    vector<Mat> bar_imgs;
+    for (auto &corners : src_points)
+    {
+        Mat bar_img;
+        cropROI(src, bar_img, corners);
+        preprocess(bar_img, bar_img);
+        // empirical settings
+        if (bar_img.cols < 320 || bar_img.cols > 640)
+        {
+            float scale = 620.0f / static_cast<float>(bar_img.cols);
+            bar_img = sr->processImageScale(bar_img, scale, use_nn_sr);
+        }
+        bar_img = binarize(bar_img, mode);
+        bar_imgs.emplace_back(bar_img);
+    }
+    return bar_imgs;
+
 }
+
+BarcodeDetector::BarcodeDetector(const string &prototxt_path, const string &model_path) : p(new Impl)
+{
+    if (!prototxt_path.empty() && !model_path.empty())
+    {
+        CV_Assert(utils::fs::exists(prototxt_path));
+        CV_Assert(utils::fs::exists(model_path));
+        p->sr = std::make_shared<SuperScale>();
+        int res = p->sr->init(prototxt_path, model_path);
+        CV_Assert(res == 0);
+        p->use_nn_sr = true;
+    }
+}
+
 
 BarcodeDetector::~BarcodeDetector() = default;
 
@@ -137,22 +216,38 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, vector<std::stri
     CV_Assert((points.size().width % 4) == 0);
     vector<Point2f> src_points;
     points.copyTo(src_points);
+    vector<Mat> bar_imgs = p->initDecode(inarr, src_points, OTSU);
+    vector<Mat> hybrid_bar = p -> initDecode(inarr, src_points, HYBRID);
     BarDecode bardec;
-    bardec.init(img.getMat(), src_points);
-    bool ok = bardec.decodeMultiplyProcess();
-    const vector<Result> &_decoded_info = bardec.getDecodeInformation();
+    bardec.init(bar_imgs);
+    bardec.decodeMultiplyProcess();
+    const vector<pair<Result, float>> otsu_info = bardec.getDecodeInformation();
+
+    bardec.init(hybrid_bar);
+    bardec.decodeMultiplyProcess();
+    const vector<pair<Result, float>> hybird_info = bardec.getDecodeInformation();
     decoded_info.clear();
     decoded_type.clear();
-    for (const auto &info : _decoded_info)
+    bool ok = false;
+    for (int i = 0;i < otsu_info.size();i ++)
     {
-        decoded_info.emplace_back(info.result);
-        decoded_type.emplace_back(info.format);
+        auto res = otsu_info[i].first;
+        if(otsu_info[i].second < hybird_info[i].second)
+        {
+            res = hybird_info[i].first;
+        }
+
+        if(res.format != NONE)
+            ok = true;
+        decoded_info.emplace_back(res.result);
+        decoded_type.emplace_back(res.format);
     }
     return ok;
 }
 
-bool BarcodeDetector::detectAndDecode(InputArray img, vector<std::string> &decoded_info,
-                                      vector<BarcodeType> &decoded_format, OutputArray points_) const
+bool
+BarcodeDetector::detectAndDecode(InputArray img, vector<std::string> &decoded_info, vector<BarcodeType> &decoded_type,
+                                 OutputArray points_) const
 {
     Mat inarr;
     if (!checkBarInputImage(img, inarr))
@@ -169,28 +264,10 @@ bool BarcodeDetector::detectAndDecode(InputArray img, vector<std::string> &decod
     }
     updatePointsResult(points_, points);
     decoded_info.clear();
-    decoded_format.clear();
-    ok = this->decode(inarr, points, decoded_info, decoded_format);
+    decoded_type.clear();
+    ok = this->decode(inarr, points, decoded_info, decoded_type);
     return ok;
 }
 
-bool BarcodeDetector::decodeDirectly(InputArray img, std::string &decoded_info, BarcodeType &decoded_format) const
-{
-    Mat inarr;
-    if (!checkBarInputImage(img, inarr))
-    {
-        return false;
-    }
-    Result _decoded_info;
-    std::unique_ptr<AbsDecoder> decoder{new Ean13Decoder()};
-    _decoded_info = decoder->decodeImg(inarr);
-    decoded_info = _decoded_info.result;
-    decoded_format = _decoded_info.format;
-    if (decoded_format == BarcodeType::NONE || decoded_info.empty())
-    {
-        return false;
-    }
-    return true;
-}
 }// namespace barcode
 } // namespace cv

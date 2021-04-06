@@ -1,44 +1,55 @@
-/*
-Copyright 2020 ${ALL COMMITTERS}
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://opencv.org/license.html.
+// Copyright (c) 2020-2021 darkliang wangberlinT Certseeds
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
+#include "../precomp.hpp"
 #include "upcean_decoder.hpp"
-#include <vector>
-#include <array>
-
-#ifdef CV_DEBUG
-
-#include <opencv2/highgui.hpp>
-
-#endif
+#include <map>
 
 namespace cv {
 namespace barcode {
 
 static constexpr int DIVIDE_PART = 16;
 
-std::pair<int, int> UPCEANDecoder::findGuardPatterns(const std::vector<uchar> &row, int rowOffset, uchar whiteFirst,
-                                                     const std::vector<int> &pattern, std::vector<int> counters)
+void UPCEANDecoder::drawDebugLine(Mat &debug_img, const Point2i &begin, const Point2i &end) const
 {
-    int patternLength = pattern.size();
-    int width = row.size();
+    Result result;
+    std::vector<uchar> middle;
+    LineIterator line = LineIterator(debug_img, begin, end);
+    middle.reserve(line.count);
+    for (int cnt = 0; cnt < line.count; cnt++, line++)
+    {
+        middle.push_back(debug_img.at<uchar>(line.pos()));
+    }
+    std::pair<int, int> start_range;
+    if (findStartGuardPatterns(middle, start_range))
+    {
+        circle(debug_img, Point2i(begin.x + start_range.second, begin.y), 2, Scalar(0), 2);
+    }
+    result = this->decode(middle, 0);
+    if (result.result.size() != this->digit_number)
+    {
+        result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
+    }
+    if (result.result.size() == this->digit_number)
+    {
+        cv::line(debug_img, begin, end, Scalar(0), 2);
+        cv::putText(debug_img, result.result, begin, cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(0, 0, 255), 1);
+    }
+}
+
+bool UPCEANDecoder::findGuardPatterns(const std::vector<uchar> &row, int rowOffset, uchar whiteFirst,
+                                      const std::vector<int> &pattern, std::vector<int> counters,
+                                      std::pair<int, int> &result)
+{
+    size_t patternLength = pattern.size();
+    size_t width = row.size();
     uchar isWhite = whiteFirst ? WHITE : BLACK;
-    rowOffset = std::find(row.cbegin() + rowOffset, row.cend(), isWhite) - row.cbegin();
-    int counterPosition = 0;
+    rowOffset = (int) (std::find(row.cbegin() + rowOffset, row.cend(), isWhite) - row.cbegin());
+    uint counterPosition = 0;
     int patternStart = rowOffset;
-    for (int x = rowOffset; x < width; x++)
+    for (uint x = rowOffset; x < width; x++)
     {
         if (row[x] == isWhite)
         {
@@ -50,7 +61,9 @@ std::pair<int, int> UPCEANDecoder::findGuardPatterns(const std::vector<uchar> &r
             {
                 if (patternMatch(counters, pattern, MAX_INDIVIDUAL_VARIANCE) < MAX_AVG_VARIANCE)
                 {
-                    return std::make_pair(patternStart, x);
+                    result.first = patternStart;
+                    result.second = x;
+                    return true;
                 }
                 patternStart += counters[0] + counters[1];
                 std::copy(counters.begin() + 2, counters.end(), counters.begin());
@@ -66,25 +79,27 @@ std::pair<int, int> UPCEANDecoder::findGuardPatterns(const std::vector<uchar> &r
             isWhite = (std::numeric_limits<uchar>::max() - isWhite);
         }
     }
-    throw GuardPatternsNotFindException("pattern not find");
+    return false;
 }
 
-std::pair<int, int> UPCEANDecoder::findStartGuardPatterns(const std::vector<uchar> &row)
+bool UPCEANDecoder::findStartGuardPatterns(const std::vector<uchar> &row, std::pair<int, int> &start_range)
 {
-    bool isfind = false;
-    std::pair<int, int> start_range{0, -1};
+    bool is_find = false;
     int next_start = 0;
-    while (!isfind)
+    while (!is_find)
     {
-        std::vector<int> gurad_counters{0, 0, 0};
-        start_range = findGuardPatterns(row, next_start, BLACK, BEGIN_PATTERN(), gurad_counters);
+        std::vector<int> guard_counters{0, 0, 0};
+        if (!findGuardPatterns(row, next_start, BLACK, BEGIN_PATTERN(), guard_counters, start_range))
+        {
+            return false;
+        }
         int start = start_range.first;
         next_start = start_range.second;
         int quiet_start = max(start - (next_start - start), 0);
-        isfind = (quiet_start != start) &&
-                 (std::find(std::begin(row) + quiet_start, std::begin(row) + start, BLACK) == std::begin(row) + start);
+        is_find = (quiet_start != start) &&
+                  (std::find(std::begin(row) + quiet_start, std::begin(row) + start, BLACK) == std::begin(row) + start);
     }
-    return start_range;
+    return true;
 }
 
 int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, std::vector<int> &counters, int rowOffset,
@@ -105,109 +120,74 @@ int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, std::vector<int> &
         i++;
     }
     return std::max(-1, bestMatch);
-    // -1 is dismatch or means error.
+    // -1 is Mismatch or means error.
 }
 
-/*Input a mat and it's position rect, return the decode result */
-
-std::vector<Result> UPCEANDecoder::decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const
+/*Input a ROI mat return result */
+std::pair<Result, float> UPCEANDecoder::decodeROI(InputArray bar_img) const
 {
-    CV_Assert(mat.channels() == 1);
-    std::vector<Result> will_return;
-    Mat gray = mat.clone();
-    for (const auto &points : pointsArrays)
-    {
-        Mat bar_img;
-        cutImage(gray, bar_img, points);
-#if CV_DEBUG
-        imshow("raw_bar", bar_img);
-#endif
-        if (bar_img.cols < 500)
-        {
-            resize(bar_img, bar_img, Size(500, bar_img.rows));
-        }
-        Result max_result = rectToResult(bar_img, points, DIVIDE_PART, false);
-        will_return.push_back(max_result);
-    }
-    return will_return;
+    vector<Point2f> corners{
+            Point2f(0, bar_img.rows() - 1), Point2f(0, 0), Point2f(bar_img.cols() - 1, 0),
+            Point2f(bar_img.rows() - 1, bar_img.cols() - 1)};
+    return rectToResult(bar_img.getMat(), corners, DIVIDE_PART);
 }
 
-Result UPCEANDecoder::decodeImg(const Mat &gray, const vector<Point2f> &points) const
+/**
+*
+* @param bar_img which is a binary image
+* @param points
+* @param PART
+* @return
+*/
+std::pair<Result, float>
+UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &points, int PART) const
 {
-    return rectToResult(gray, points, DIVIDE_PART, false);
-}
-
-// input image is
-Result UPCEANDecoder::rectToResult(const Mat &gray, const std::vector<Point2f> &points, int PART, int directly) const
-{
-    Mat blur;
-    GaussianBlur(gray, blur, Size(0, 0), 25);
-    addWeighted(gray, 2, blur, -1, 0, gray);
-    gray.convertTo(gray, CV_8UC1, 1, -20);
-    //imshow("preprocess", gray);
-    threshold(gray, gray, 155, 255, THRESH_OTSU + THRESH_BINARY);
-#ifdef CV_DEBUG
-    //imshow("barimg", gray);
-#endif
-    std::map<std::string, int> result_vote;
-    std::map<BarcodeType, int> format_vote;
-    int vote_cnt = 0;
-    int total_vote = 0;
-    std::string max_result = "ERROR";
-    BarcodeType max_format = BarcodeType::NONE;
     auto rect_size_height = norm(points[0] - points[1]);
     auto rect_size_width = norm(points[1] - points[2]);
     if (max(rect_size_height, rect_size_width) < this->bits_num)
     {
-        return Result{"ERROR", BarcodeType::NONE};
+        return std::make_pair(Result{string(), BarcodeType::NONE}, 0.0F);
     }
-#ifdef CV_DEBUG
-    Mat bar_copy = gray.clone();
-#endif
+
+    std::map<std::string, int> result_vote;
+    std::map<BarcodeType, int> format_vote;
+    int vote_cnt = 0;
+    int total_vote = 0;
+    std::string max_result;
+    BarcodeType max_format = BarcodeType::NONE;
+
+
     std::vector<std::pair<Point2i, Point2i>> begin_and_ends;
-    const Size2i shape{gray.rows, gray.cols};
+    const Size2i shape{bar_img.rows, bar_img.cols};
     linesFromRect(shape, true, PART, begin_and_ends);
-    if (directly)
-    {
-        linesFromRect(shape, false, PART, begin_and_ends);
-    }
-    Result barcode;
+
+    Result result;
     for (const auto &i: begin_and_ends)
     {
-        std::vector<uchar> middle;
         const auto &begin = i.first;
         const auto &end = i.second;
-        barcode = decodeLine(gray, begin, end);
-#ifdef CV_DEBUG
-        try
-        {
-            std::pair<int, int> start_p = findStartGuardPatterns(middle);
-            circle(bar_copy, Point2f(start_p.second, begin.y), 4, Scalar(0, 0, 0), 2);
-        } catch (GuardPatternsNotFindException &e)
-        {}
-        line(bar_copy, begin, end, Scalar(0, 255, 0));
-        //cv::line(mat,begin,end,Scalar(0,0,255),2);
-        circle(bar_copy, begin, 6, Scalar(0, 0, 0), 2);
-        circle(bar_copy, end, 6, Scalar(0, 0, 0), 2);
-        //imshow("barscan", bar_copy);
-        //cv::waitKey(0);
-#endif
-        if (barcode.result.size() == this->digit_number)
+        result = decodeLine(bar_img, begin, end);
+        if (result.format != BarcodeType::NONE)
         {
             total_vote++;
-            result_vote[barcode.result] += 1;
-            if (result_vote[barcode.result] > vote_cnt)
+            result_vote[result.result] += 1;
+            if (result_vote[result.result] > vote_cnt)
             {
-                vote_cnt = result_vote[barcode.result];
+                vote_cnt = result_vote[result.result];
                 if ((vote_cnt << 1) > total_vote)
                 {
-                    max_result = barcode.result;
-                    max_format = barcode.format;
+                    max_result = result.result;
+                    max_format = result.format;
                 }
             }
         }
     }
-    return Result(max_result, max_format);
+    float accuracy = 0;
+    if (total_vote != 0)
+    {
+        accuracy = (float) vote_cnt / (float) total_vote;
+    }
+    return std::make_pair(Result(max_result, max_format), accuracy);
 }
 
 Result UPCEANDecoder::decodeLine(const Mat &bar_img, const Point2i &begin, const Point2i &end) const
@@ -235,38 +215,27 @@ Result UPCEANDecoder::decodeLine(const Mat &bar_img, const Point2i &begin, const
 * 90 vertical
 * (90-180) lower left to upper right
 * */
-void UPCEANDecoder::linesFromRect(const Size2i &shape, int angle, int PART,
+void UPCEANDecoder::linesFromRect(const Size2i &shape, bool horizontal, int PART,
                                   std::vector<std::pair<Point2i, Point2i>> &results) const
 {
-    auto shapef = Size2f(shape);
-    Point2i step = Point2i(cvRound(shapef.height) / PART, 0);
-    Point2i cbegin = Point2i(shapef.height / 2, 0);
-    Point2i cend = Point2i(shapef.height / 2, shapef.width - 1);
-    if (angle)
+    // scan area around center line
+    Point2i step = Point2i((PART - 1) * shape.height / (PART * PART), 0);
+    Point2i cbegin = Point2i(shape.height / 2, 0);
+    Point2i cend = Point2i(shape.height / 2, shape.width - 1);
+    if (horizontal)
     {
-        step = Point2i(0, cvRound(shapef.width) / PART);
-        cbegin = Point2i(0, shapef.width / 2);
-        cend = Point2i(shapef.height - 1, shapef.width / 2);
+        step = Point2i(0, (PART - 1) * shape.width / (PART * PART));
+        cbegin = Point2i(0, shape.width / 2);
+        cend = Point2i(shape.height - 1, shape.width / 2);
     }
     results.reserve(results.size() + PART + 1);
+    results.emplace_back(cbegin, cend);
     for (int i = 1; i <= (PART >> 1); ++i)
     {
         results.emplace_back(cbegin + i * step, cend + i * step);
         results.emplace_back(cbegin - i * step, cend - i * step);
     }
     results.emplace_back(cbegin, cend);
-}
-
-
-Result UPCEANDecoder::decodeImg(InputArray img) const
-{
-    auto Mat = img.getMat();
-    auto gray = Mat.clone();
-    constexpr int PART = 50;
-    std::vector<Point2f> real_rect{
-            Point2f(0, Mat.rows), Point2f(0, 0), Point2f(Mat.cols, 0), Point2f(Mat.cols, Mat.rows)};
-    Result result = rectToResult(Mat, real_rect, PART, true);
-    return result;
 }
 
 

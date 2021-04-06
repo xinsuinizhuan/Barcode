@@ -5,16 +5,18 @@
 #include <opencv2/opencv.hpp>
 #include <direct.h>
 
-void showInfo(cv::Mat frame, std::vector<std::string> infos)
+using namespace cv;
+
+void showInfo(Mat frame, std::vector<std::string> infos)
 {
     //Prompt
     infos.emplace_back("type \'s\' to capture screenshot");
-    cv::Point2f start(5, 10);
-    cv::Point2f step(0, 10);
+    Point2f start(5, 10);
+    Point2f step(0, 10);
 
     for (const std::string &info : infos)
     {
-        cv::putText(frame, info, start, cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(0, 0, 255), 1);
+        putText(frame, info, start, cv::FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 255), 1);
         start += step;
     }
 }
@@ -22,18 +24,24 @@ void showInfo(cv::Mat frame, std::vector<std::string> infos)
 
 int main(int argc, char **argv)
 {
-    using namespace cv;
     std::cout << __DATE__ << " " << __TIME__ << std::endl;
     char *buffer;
     buffer = _getcwd(nullptr, 0);
     std::cout << buffer << std::endl;
-    if (argc < 2)
+
+    const std::string keys = "{h help ?     |        | print help messages }"
+                             "{i in         |        | input image path (also switches to image detection mode) }"
+                             "{r right      |        | compare the right result }"
+                             "{v video_idx  |  0     | capture video index }";
+    CommandLineParser cmd_parser(argc, argv, keys);
+
+    cmd_parser.about("This program detects the bar-codes from camera or images using the OpenCV library.");
+    if (cmd_parser.has("help"))
     {
-        printf("Usage: ./main_debug --webcam\n"
-               "./main_debug <input_file>\n");
-        exit(-1);
+        cmd_parser.printMessage();
+        return 0;
     }
-    barcode::BarcodeDetector bardet;
+    barcode::BarcodeDetector bardet("sr.prototxt", "sr.caffemodel");
     Mat frame;
     clock_t start;
     std::vector<Point2f> points;
@@ -42,25 +50,27 @@ int main(int argc, char **argv)
     std::string fps;
     bool ok;
 
-    std::string right_result;
     std::string test_dir = "../../test/";
     std::string postfix = ".jpg";
     std::vector<std::string> wrong_results;
 //    int total_cnt = 0;
-    bool has_result = false;
-    for (int i = 0; i < argc; i++)
+    std::string in_file_name = cmd_parser.get<std::string>("in");
+    std::string right_result = cmd_parser.get<std::string>("right");
+    int video_idx = cmd_parser.get<int>("video_idx");
+    if (!cmd_parser.check())
     {
-        if (strcmp(argv[i], "-r") == 0 && i + 1 < argc)
-        {
-            right_result = argv[i + 1];
-            has_result = true;
-        }
+        cmd_parser.printErrors();
+        return -1;
     }
+    bool has_result = !right_result.empty();
+
     std::map<std::string, bool> img_map;
 
-    if (strcmp(argv[1], "--webcam") == 0)
+    if (in_file_name.empty())
     {
-        VideoCapture capture(1);
+
+        video_idx = max(0, video_idx);
+        VideoCapture capture(video_idx);
         capture.set(CAP_PROP_FRAME_WIDTH, 1280);
         capture.set(CAP_PROP_FRAME_HEIGHT, 720);
 
@@ -84,14 +94,15 @@ int main(int argc, char **argv)
                         if (img_map.find(decoded_info[bar_idx]) == img_map.end())
                         {
                             std::string dir = test_dir + "wrong_decode/";
+                            dir.append(decoded_info[bar_idx]).append(postfix);
                             img_map[decoded_info[bar_idx]] = true;
-                            imwrite(dir + decoded_info[bar_idx] + postfix, frame);
+                            imwrite(dir, frame);
                             wrong_results.push_back(decoded_info[bar_idx]);
                         }
                     }
                     cv::putText(frame, decoded_info[bar_idx], barcode_contour[2], cv::FONT_HERSHEY_PLAIN, 1,
                                 Scalar(255, 0, 0), 2);
-                    if (decoded_info[bar_idx] == "ERROR")
+                    if (decoded_format[bar_idx] == barcode::BarcodeType::NONE)
                     {
                         for (int j = 0; j < 4; j++)
                         {
@@ -127,21 +138,21 @@ int main(int argc, char **argv)
             int key = waitKey(1);
             if (key == 's')
             {
-                time_t t = time(0);
+                time_t t = time(nullptr);
                 char *dt = ctime(&t);
                 std::string date(dt);
                 date.erase(remove(date.begin(), date.end(), '\n'), date.end());
                 date.erase(remove(date.begin(), date.end(), ' '), date.end());
                 replace(date.begin(), date.end(), ':', '_');
                 std::string path = test_dir + "screenshot/";
-
-                if (imwrite(path + date + postfix, frame_copy))
+                path.append(date).append(postfix);
+                if (imwrite(path, frame_copy))
                 {
-                    std::cout << "save success " << path + date + postfix << std::endl;
+                    std::cout << "save success " << path << std::endl;
                 }
                 else
                 {
-                    std::cout << "fail" << path + date + postfix << std::endl;
+                    std::cout << "fail" << path << std::endl;
                 }
             }
             else if (key > 0)
@@ -155,9 +166,10 @@ int main(int argc, char **argv)
     }
     else
     {
-        frame = imread(argv[1]);
+        frame = imread(in_file_name);
         start = clock();
-
+        std::vector<Point2f> points;
+        std::vector<std::string> decoded_info;
         ok = bardet.detectAndDecode(frame, decoded_info, decoded_format, points);
         if (ok)
         {
@@ -167,9 +179,9 @@ int main(int argc, char **argv)
                 std::vector<Point> barcode_contour(points.begin() + i, points.begin() + i + 4);
                 std::cout << decoded_info[bar_idx] << " " << decoded_format[bar_idx] << std::endl;
 
-                cv::putText(frame, decoded_info[bar_idx], barcode_contour[2], cv::FONT_HERSHEY_PLAIN, 1,
+                cv::putText(frame, decoded_info[bar_idx], barcode_contour[1], cv::FONT_HERSHEY_PLAIN, 1,
                             Scalar(255, 0, 0), 2);
-                if (decoded_info[bar_idx] == "ERROR")
+                if (decoded_format[bar_idx] == barcode::BarcodeType::NONE)
                 {
                     for (int j = 0; j < 4; j++)
                     {
@@ -192,6 +204,7 @@ int main(int argc, char **argv)
         std::cout << fps << std::endl;
         imshow("bounding boxes", frame);
 
+        imwrite("./test.png", frame);
         waitKey();
     }
     return 0;

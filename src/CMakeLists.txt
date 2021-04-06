@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.16.6)
 aux_source_directory(decoder SRC_FILES)
+aux_source_directory(decoder/common SRC_FILES)
 aux_source_directory(detector SRC_FILES)
 set(SRC_FILES "${SRC_FILES};./barcode.cpp")
 

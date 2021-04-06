@@ -1,26 +1,13 @@
-/*
-Copyright 2020 ${ALL COMMITTERS}
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://opencv.org/license.html.
+// Copyright (c) 2020-2021 darkliang wangberlinT Certseeds
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 #ifndef __OPENCV_BARCODE_UPCEAN_DECODER_HPP__
 #define __OPENCV_BARCODE_UPCEAN_DECODER_HPP__
 
 #include "abs_decoder.hpp"
 #include <opencv2/core.hpp>
-#include <map>
-#include <utility>
-#include <string>
 
 /**
  *   upcean_decoder the abstract basic class for decode formats,
@@ -37,11 +24,7 @@ class UPCEANDecoder : public AbsDecoder
 public:
     ~UPCEANDecoder() override = default;
 
-    std::vector<Result> decodeImg(Mat &mat, const std::vector<std::vector<Point2f>> &pointsArrays) const override;
-
-    Result decodeImg(const Mat &gray, const std::vector<Point2f> &points) const override;
-
-    Result decodeImg(InputArray img) const override;
+    std::pair<Result, float> decodeROI(InputArray bar_img) const override;
 
 protected:
     size_t bits_num;
@@ -50,22 +33,25 @@ protected:
     int decodeDigit(const std::vector<uchar> &row, std::vector<int> &counters, int rowOffset,
                     const std::vector<std::vector<int>> &patterns) const;
 
-    static std::pair<int, int>
+    static bool
     findGuardPatterns(const std::vector<uchar> &row, int rowOffset, uchar whiteFirst, const std::vector<int> &pattern,
-                      std::vector<int> counters);
+                      std::vector<int> counters, std::pair<int, int> &result);
 
-    static std::pair<int, int> findStartGuardPatterns(const std::vector<uchar> &row);
+    static bool findStartGuardPatterns(const std::vector<uchar> &row, std::pair<int, int> &start_range);
 
-    Result rectToResult(const Mat &gray, const std::vector<Point2f> &points, int PART, int directly) const;
+    std::pair<Result, float> rectToResult(const Mat &bar_img, const std::vector<Point2f> &points, int PART) const;
 
     Result decodeLine(const Mat &bar_img, const Point2i &begin, const Point2i &end) const;
 
-    void
-    linesFromRect(const Size2i &shape, int angle, int PART, std::vector<std::pair<Point2i, Point2i>> &results) const;
+    void linesFromRect(const Size2i &shape, bool horizontal, int PART,
+                       std::vector<std::pair<Point2i, Point2i>> &results) const;
 
-    Result decode(std::vector<uchar> bar, int start) const override = 0;
+    Result decode(std::vector<uchar> bar, uint start) const override = 0;
 
     bool isValid(std::string result) const override = 0;
+
+private:
+    void drawDebugLine(Mat &debug_img, const Point2i &begin, const Point2i &end) const;
 };
 
 const std::vector<std::vector<int>> &get_A_or_C_Patterns();

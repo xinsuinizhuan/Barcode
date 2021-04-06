@@ -1,26 +1,16 @@
-//
-// Created by 97659 on 2020/10/14.
-//
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://opencv.org/license.html.
+// Copyright (c) 2020-2021 darkliang wangberlinT Certseeds
+
+#include "../precomp.hpp"
 #include "bardetect.hpp"
 
-#ifdef CV_DEBUG
 
-#include "opencv2/opencv.hpp"
-
-#endif
 namespace cv {
 namespace barcode {
-static constexpr double PI = CV_PI;
-template<int x, typename Type>
-struct XDividePI
-{
-    static constexpr Type Value = x / PI;
-};
-template<typename Type, int x>
-struct PIDivideX
-{
-    static constexpr Type Value = PI / x;
-};
+static constexpr float PI = static_cast<float>(CV_PI);
+static constexpr float HALF_PI = static_cast<float>(CV_PI / 2);
 
 #define CALCULATE_SUM(ptr, result) \
     ptr += left_col + integral_cols * top_row;\
@@ -38,7 +28,7 @@ struct PIDivideX
 
 inline bool Detect::isValidCoord(const Point &coord, const Size &limit)
 {
-    if ((coord.x < 0) || ( coord.y < 0))
+    if ((coord.x < 0) || (coord.y < 0))
     {
         return false;
     }
@@ -51,7 +41,7 @@ inline bool Detect::isValidCoord(const Point &coord, const Size &limit)
     return true;
 }
 
-inline double Detect::computeOrientation(float y, float x)
+inline float Detect::computeOrientation(float y, float x)
 {
     if (x >= 0)
     {
@@ -68,10 +58,10 @@ inline double Detect::computeOrientation(float y, float x)
 void Detect::init(const Mat &src)
 {
     const double min_side = std::min(src.size().width, src.size().height);
-    if (min_side > 1024.0)
+    if (min_side > 512.0)
     {
         purpose = SHRINKING;
-        coeff_expansion = min_side / 1024.0;
+        coeff_expansion = min_side / 512.0;
         width = cvRound(src.size().width / coeff_expansion);
         height = cvRound(src.size().height / coeff_expansion);
         Size new_size(width, height);
@@ -109,7 +99,7 @@ void Detect::localization()
     preprocess();
     float window_ratio = 0.01f;
     static constexpr float window_ratio_step = 0.02f;
-    static constexpr int window_ratio_stepTimes = 6; // 6 = (0.13-0.01)/0.02
+    static constexpr int window_ratio_stepTimes = 6;
     int window_size;
     for (size_t i = 0; i < window_ratio_stepTimes; i++)
     {
@@ -131,25 +121,23 @@ bool Detect::computeTransformationPoints()
     transformation_points.reserve(bbox_indices.size());
     RotatedRect rect;
     Point2f temp[4];
-    const float THRESHOLD_SCORE = float(width * height) / 1000;
-    dnn::NMSBoxes(localization_bbox, bbox_scores, THRESHOLD_SCORE, 0.1, bbox_indices);
+    const float THRESHOLD_SCORE = float(width * height) / 500.f;
+    dnn::NMSBoxes(localization_bbox, bbox_scores, THRESHOLD_SCORE, 0.1f, bbox_indices);
 
     for (const auto &bbox_index : bbox_indices)
     {
         rect = localization_bbox[bbox_index];
         if (purpose == ZOOMING)
         {
-            rect.center.x /= coeff_expansion;
-            rect.center.y /= coeff_expansion;
-            rect.size.height /= coeff_expansion;
-            rect.size.width /= coeff_expansion;
+            rect.center /= coeff_expansion;
+            rect.size.height /= static_cast<float>(coeff_expansion);
+            rect.size.width /= static_cast<float>(coeff_expansion);
         }
         else if (purpose == SHRINKING)
         {
-            rect.center.x *= coeff_expansion;
-            rect.center.y *= coeff_expansion;
-            rect.size.height *= coeff_expansion;
-            rect.size.width *= coeff_expansion;
+            rect.center *= coeff_expansion;
+            rect.size.height *= static_cast<float>(coeff_expansion);
+            rect.size.width *= static_cast<float>(coeff_expansion);
         }
         rect.points(temp);
         transformation_points.emplace_back(vector<Point2f>{temp[0], temp[1], temp[2], temp[3]});
@@ -167,15 +155,9 @@ void Detect::preprocess()
     // calculate magnitude of gradient, normalize and threshold
     magnitude(scharr_x, scharr_y, gradient_magnitude);
     threshold(gradient_magnitude, gradient_magnitude, 48, 1, THRESH_BINARY);
-    #ifdef CV_DEBUG
-    //imshow("mag", gradient_magnitude);
-    #endif
-
     gradient_magnitude.convertTo(gradient_magnitude, CV_8U);
     integral(gradient_magnitude, integral_edges, CV_32F);
 
-//        normalize(gradient_magnitude, gradient_magnitude, 0, 255, NormTypes::NORM_MINMAX, CV_8U);
-//        adaptiveThreshold(gradient_magnitude, gradient_magnitude, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 9, 0);
 
     for (int y = 0; y < height; y++)
     {
@@ -208,10 +190,10 @@ void Detect::preprocess()
 // depend on width height integral_edges integral_x_sq integral_y_sq integral_xy
 void Detect::calConsistency(int window_size)
 {
-    static constexpr float THRESHOLD_CONSISTENCY = 0.85f;
+    static constexpr float THRESHOLD_CONSISTENCY = 0.9f;
     int right_col, left_col, top_row, bottom_row;
     float xy, x_sq, y_sq, d, rect_area;
-    const float THRESHOLD_AREA = float(window_size * window_size) * 0.5f;
+    const float THRESHOLD_AREA = float(window_size * window_size) * 0.42f;
     Size new_size(width / window_size, height / window_size);
     consistency = Mat(new_size, CV_8U), orientation = Mat(new_size, CV_32F), edge_nums = Mat(new_size, CV_32F);
 
@@ -243,12 +225,10 @@ void Detect::calConsistency(int window_size)
             right_col = min(width, (pos + 1) * window_size);
 
             //we had an integral image to count non-zero elements
-
-
             CALCULATE_SUM(edges_ptr, rect_area)
             if (rect_area < THRESHOLD_AREA)
             {
-                // 有梯度的点占比小于阈值则视为平滑区域
+                // smooth region
                 consistency_row[pos] = 0;
                 continue;
             }
@@ -262,7 +242,7 @@ void Detect::calConsistency(int window_size)
             if (d > THRESHOLD_CONSISTENCY)
             {
                 consistency_row[pos] = 255;
-                orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy) / 2.0;
+                orientation_row[pos] = computeOrientation(x_sq - y_sq, 2 * xy) / 2.0f;
                 edge_nums_row[pos] = rect_area;
             }
             else
@@ -280,13 +260,14 @@ void Detect::calConsistency(int window_size)
 // depend on consistency orientation edge_nums
 void Detect::regionGrowing(int window_size)
 {
-    static constexpr float LOCAL_THRESHOLD_CONSISTENCY = 0.98, THRESHOLD_RADIAN = PIDivideX<float, 40>::Value, THRESHOLD_BLOCK_NUM = 20, LOCAL_RATIO = 0.4;
+    static constexpr float LOCAL_THRESHOLD_CONSISTENCY = 0.95f, THRESHOLD_RADIAN =
+            PI / 30, THRESHOLD_BLOCK_NUM = 35, LOCAL_RATIO = 0.5f, EXPANSION_FACTOR = 1.2f;
     Point pt_to_grow, pt;                       //point to grow
 
     float src_value;
     float cur_value;
     float edge_num;
-    double rect_orientation;
+    float rect_orientation;
     float sin_sum, cos_sum, counter;
     //grow direction
     static constexpr int DIR[8][2] = {{-1, -1},
@@ -351,7 +332,7 @@ void Detect::regionGrowing(int window_size)
                         cos_sum += cos(2 * cur_value);
                         counter += 1;
                         edge_num += edge_nums.at<float_t>(pt_to_grow);
-                        growingPoints.push_back(pt_to_grow);                 //将下一个生长点压入栈中
+                        growingPoints.push_back(pt_to_grow);                 //push next point to grow back to stack
                         growingImgPoints.push_back(pt_to_grow);
                     }
                 }
@@ -373,14 +354,12 @@ void Detect::regionGrowing(int window_size)
             {
                 continue;
             }
-//                printf("counter ratio: %f\n", counter / rect.size.area());
-            const double local_orientation = computeOrientation(cos_sum, sin_sum) / 2.0;
+            const float local_orientation = computeOrientation(cos_sum, sin_sum) / 2.0f;
             // only orientation_arg is approximately equal to the rectangle orientation_arg
-            rect_orientation = (minRect.angle) * PIDivideX<double, 180>::Value;
+            rect_orientation = (minRect.angle) * PI / 180;
             if (minRect.size.width < minRect.size.height)
             {
-                rect_orientation += (rect_orientation <= 0 ? PIDivideX<double, 2>::Value
-                                                           : PIDivideX<double, -2>::Value);
+                rect_orientation += (rect_orientation <= 0 ? HALF_PI : -HALF_PI);
                 std::swap(minRect.size.width, minRect.size.height);
             }
             if (abs(local_orientation - rect_orientation) > THRESHOLD_RADIAN &&
@@ -388,18 +367,13 @@ void Detect::regionGrowing(int window_size)
             {
                 continue;
             }
-            minRect.angle = static_cast<float>(local_orientation) * XDividePI<180, float>::Value;
-            minRect.size.width *= static_cast<float>(window_size + 1);
-            minRect.size.height *= static_cast<float>(window_size + 1);
-            minRect.center.x = (minRect.center.x + 0.5) * window_size;
-            minRect.center.y = (minRect.center.y + 0.5) * window_size;
-#ifdef CV_DEBUG
-            std::cout << local_consistency << " " << local_orientation << " " << edge_num / (float) (width * height)
-                      << " " << edge_num / minRect.size.area() << std::endl;
-#endif
+            minRect.angle = local_orientation * 180.f / PI;
+            minRect.size.width *= static_cast<float>(window_size) * EXPANSION_FACTOR;
+            minRect.size.height *= static_cast<float>(window_size);
+            minRect.center.x = (minRect.center.x + 0.5f) * static_cast<float>(window_size);
+            minRect.center.y = (minRect.center.y + 0.5f) * static_cast<float>(window_size);
             localization_bbox.push_back(minRect);
             bbox_scores.push_back(edge_num);
-//            bbox_scores_arg.push_back(edge_num);
 
         }
     }

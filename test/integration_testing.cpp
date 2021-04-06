@@ -1,10 +1,8 @@
 #include "test_precomp.hpp"
 #include "verifier.hpp"
-#ifdef CV_DEBUG
 
 #include <opencv2/highgui.hpp>
 
-#endif
 std::string enumToString(cv::barcode::BarcodeType format)
 {
     using namespace cv::barcode;
@@ -23,6 +21,11 @@ std::string enumToString(cv::barcode::BarcodeType format)
 
 TEST(integration_testing, detect_and_decode)
 {
+    //change model path
+    std::string dir = "../../model/";
+    std::string model = "sr.caffemodel";
+    std::string prototxt = "sr.prototxt";
+
     std::string pre_path = R"(./../../)";
     std::ifstream correctness_file;
     float last_correctness = 0;
@@ -38,8 +41,9 @@ TEST(integration_testing, detect_and_decode)
     std::vector<std::string> img_types = {"jpg", "png"};
     std::string data_path{pre_path + "test/data/integration_test_data/"};
     std::string result_file{pre_path + "test/data/integration_test_data/result.csv"};
-    Verifier verifier{data_path, result_file, img_types};
+    Verifier verifier{dir+prototxt, dir+model, data_path, result_file, img_types};
     verifier.verify();
+    std::cout<<"Error detection num: "<<verifier.error_detection_num<<std::endl;
     float correctness = verifier.getCorrectness();
     if (correctness >= last_correctness - 0.00001)
     {
@@ -63,9 +67,13 @@ TEST(integration_testing, detect_and_decode)
 
 TEST(integration_testing, ImgUnitTest)
 {
-    std::string img_path = R"(../../test/data/integration_test_data/1.jpg)";
-    cv::barcode::BarcodeDetector bardet;
-    cv::Mat frame = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
+    std::string img_path = R"(../../test/data/integration_test_data/11.jpg)";
+
+    std::string dir = "./";
+    std::string model = "sr.caffemodel";
+    std::string prototxt = "sr.prototxt";
+    cv::barcode::BarcodeDetector bardet(dir + prototxt, dir + model);
+    cv::Mat frame = cv::imread(img_path);
     cv::Mat decodeFrame = frame.clone();
     std::vector<cv::RotatedRect> rects;
     std::vector<cv::Point2f> points;
@@ -82,10 +90,6 @@ TEST(integration_testing, ImgUnitTest)
     {
         std::cout << barcode_info[i] << ", format: " << enumToString(barcode_format[i]) << std::endl;
     }
-#ifdef CV_DEBUG
-    cv::imshow("result", frame);
-    cv::imshow("resultdecode", decodeFrame);
     cv::waitKey(0);
-#endif
 }
 
