@@ -13,7 +13,7 @@ namespace barcode {
 constexpr int OTSU = 0;
 constexpr int HYBRID = 1;
 
-void preprocess(Mat &src, Mat &dst);
+Mat preprocess(Mat &src);
 
 Mat binarize(const Mat &src, int mode);
 }

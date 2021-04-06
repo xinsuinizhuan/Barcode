@@ -58,20 +58,19 @@ class BarDecode
 public:
     void init(const vector<Mat> &bar_imgs_);
 
-    const vector<std::pair<Result, float>> &getDecodeInformation()
+    const vector<Result> &getDecodeInformation()
     { return result_info; }
 
     bool decodeMultiplyProcess();
 
 private:
     vector<Mat> bar_imgs;
-    vector<std::pair<Result, float>> result_info;
+    vector<Result> result_info;
 };
 
 void BarDecode::init(const vector<Mat> &bar_imgs_)
 {
     bar_imgs = bar_imgs_;
-    result_info.clear();
 }
 
 bool BarDecode::decodeMultiplyProcess()
@@ -79,7 +78,7 @@ bool BarDecode::decodeMultiplyProcess()
     class ParallelBarCodeDecodeProcess : public ParallelLoopBody
     {
     public:
-        ParallelBarCodeDecodeProcess(vector<Mat> &bar_imgs_, vector<pair<Result, float>> &decoded_info_) : bar_imgs(bar_imgs_),
+        ParallelBarCodeDecodeProcess(vector<Mat> &bar_imgs_, vector<Result> &decoded_info_) : bar_imgs(bar_imgs_),
                                                                                               decoded_info(
                                                                                                       decoded_info_)
         {
@@ -91,14 +90,22 @@ bool BarDecode::decodeMultiplyProcess()
         {
             for (int i = range.start; i < range.end; i++)
             {
-                auto res = decoders[0]->decodeROI(bar_imgs[i]);
+                Mat otsu_bar = binarize(bar_imgs[i], OTSU);
+                Mat hybird_bar = binarize(bar_imgs[i], HYBRID);
+                auto otsu_res = decoders[0]->decodeROI(otsu_bar);
+                auto hybird_res = decoders[0]->decodeROI(hybird_bar);
+                auto res = otsu_res.first;
+                if(otsu_res.second < hybird_res.second)
+                {
+                    res = hybird_res.first;
+                }
                 decoded_info[i] = res;
             }
         }
 
     private:
         vector<Mat> bar_imgs;
-        vector<std::pair<Result, float>> &decoded_info;
+        vector<Result> &decoded_info;
         vector<std::shared_ptr<AbsDecoder>> decoders;
     };
     result_info.clear();
@@ -118,14 +125,15 @@ public:
 
     ~Impl() = default;;
 
-    vector <Mat> initDecode(const cv::Mat &src, const std::vector<cv::Point2f> &points, int mode) const;
+    vector <Mat> initDecode(const cv::Mat &src, const std::vector<cv::Point2f> &points) const;
 
     std::shared_ptr<SuperScale> sr;
     bool use_nn_sr = false;
 };
 
+// return crop bar img
 vector <Mat>
-BarcodeDetector::Impl::initDecode(const cv::Mat &src, const std::vector<cv::Point2f> &points, int mode) const
+BarcodeDetector::Impl::initDecode(const cv::Mat &src, const std::vector<cv::Point2f> &points) const
 {
     vector<vector<Point2f>> src_points;
     //CV_TRACE_FUNCTION();
@@ -146,14 +154,13 @@ BarcodeDetector::Impl::initDecode(const cv::Mat &src, const std::vector<cv::Poin
     {
         Mat bar_img;
         cropROI(src, bar_img, corners);
-        preprocess(bar_img, bar_img);
+        bar_img = preprocess( bar_img);
         // empirical settings
         if (bar_img.cols < 320 || bar_img.cols > 640)
         {
             float scale = 620.0f / static_cast<float>(bar_img.cols);
             bar_img = sr->processImageScale(bar_img, scale, use_nn_sr);
         }
-        bar_img = binarize(bar_img, mode);
         bar_imgs.emplace_back(bar_img);
     }
     return bar_imgs;
@@ -216,29 +223,19 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, vector<std::stri
     CV_Assert((points.size().width % 4) == 0);
     vector<Point2f> src_points;
     points.copyTo(src_points);
-    vector<Mat> bar_imgs = p->initDecode(inarr, src_points, OTSU);
-    vector<Mat> hybrid_bar = p -> initDecode(inarr, src_points, HYBRID);
+    vector<Mat> bar_imgs = p->initDecode(inarr, src_points);
     BarDecode bardec;
     bardec.init(bar_imgs);
     bardec.decodeMultiplyProcess();
-    const vector<pair<Result, float>> otsu_info = bardec.getDecodeInformation();
-
-    bardec.init(hybrid_bar);
-    bardec.decodeMultiplyProcess();
-    const vector<pair<Result, float>> hybird_info = bardec.getDecodeInformation();
+    const vector<Result> info = bardec.getDecodeInformation();
     decoded_info.clear();
     decoded_type.clear();
     bool ok = false;
-    for (int i = 0;i < otsu_info.size();i ++)
+    for (const auto& res : info)
     {
-        auto res = otsu_info[i].first;
-        if(otsu_info[i].second < hybird_info[i].second)
-        {
-            res = hybird_info[i].first;
-        }
-
         if(res.format != NONE)
             ok = true;
+
         decoded_info.emplace_back(res.result);
         decoded_type.emplace_back(res.format);
     }

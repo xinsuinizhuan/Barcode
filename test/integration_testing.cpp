@@ -42,8 +42,12 @@ TEST(integration_testing, detect_and_decode)
     std::string data_path{pre_path + "test/data/integration_test_data/"};
     std::string result_file{pre_path + "test/data/integration_test_data/result.csv"};
     Verifier verifier{dir+prototxt, dir+model, data_path, result_file, img_types};
+    cv::TickMeter time;
+    time.start();
     verifier.verify();
+    time.stop();
     std::cout<<"Error detection num: "<<verifier.error_detection_num<<std::endl;
+    std::cout<<"time: " << time.getTimeSec() << " s" << std::endl;
     float correctness = verifier.getCorrectness();
     if (correctness >= last_correctness - 0.00001)
     {
