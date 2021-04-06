@@ -26,7 +26,11 @@ Mat SuperScale::processImageScale(const Mat &src, float scale, const bool &use_s
 
     int width = src.cols;
     int height = src.rows;
-    if (scale == 2.0) {  // upsample
+    if (scale == 4.0) {
+        dst = processImageScale(src, 2, use_sr);
+        dst = processImageScale(dst, 2, use_sr);
+        return dst;
+    }else if (scale == 2.0) {  // upsample
         int SR_TH = sr_max_size;
         if (use_sr && (int)sqrt(width * height * 1.0) < SR_TH && net_loaded_) {
             int ret = superResoutionScale(src, dst);

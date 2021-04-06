@@ -67,7 +67,7 @@ TEST(integration_testing, detect_and_decode)
 
 TEST(integration_testing, ImgUnitTest)
 {
-    std::string img_path = R"(../../test/data/integration_test_data/sample1.jpg)";
+    std::string img_path = R"(../../test/data/integration_test_data/8.jpg)";
 
     std::string dir = "./";
     std::string model = "sr.caffemodel";
@@ -90,7 +90,6 @@ TEST(integration_testing, ImgUnitTest)
     {
         std::cout << barcode_info[i] << ", format: " << enumToString(barcode_format[i]) << std::endl;
     }
-    cv::imshow("resultdecode", decodeFrame);
     cv::waitKey(0);
 }
 

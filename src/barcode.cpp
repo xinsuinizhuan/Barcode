@@ -7,6 +7,7 @@
 #include "precomp.hpp"
 #include <opencv2/barcode.hpp>
 #include <opencv2/core/utils/filesystem.hpp>
+#include <opencv2/opencv.hpp>
 #include "decoder/ean13_decoder.hpp"
 #include "detector/bardetect.hpp"
 #include "decoder/common/super_scale.hpp"
@@ -95,7 +96,7 @@ bool BarDecode::decodeMultiplyProcess()
         }
 
     private:
-        vector<Mat> &bar_imgs;
+        vector<Mat> bar_imgs;
         vector<Result> &decoded_info;
         vector<std::shared_ptr<AbsDecoder>> decoders;
     };
@@ -142,9 +143,10 @@ vector<Mat> BarcodeDetector::Impl::initDecode(const Mat &src, const vector<cv::P
         cutImage(src, bar_img, corners);
         preprocess(bar_img, bar_img);
         // scale by 4
-        bar_img = sr -> processImageScale(bar_img, 2, use_nn_sr);
-        bar_img = sr -> processImageScale(bar_img, 2, use_nn_sr);
-
+        if(bar_img.cols < 300)
+        {
+            bar_img = sr -> processImageScale(bar_img, 4, use_nn_sr);
+        }
         bar_img = binaryzation(bar_img, OSTU);
         bar_imgs.emplace_back(bar_img);
     }
@@ -213,7 +215,7 @@ bool BarcodeDetector::decode(InputArray img, InputArray points, vector<std::stri
     CV_Assert((points.size().width % 4) == 0);
     vector<Point2f> src_points;
     points.copyTo(src_points);
-    vector<Mat> bar_imgs = p -> initDecode(img.getMat(), src_points);
+    vector<Mat> bar_imgs = p -> initDecode(inarr, src_points);
     BarDecode bardec;
     bardec.init(bar_imgs);
     bool ok = bardec.decodeMultiplyProcess();

@@ -41,7 +41,7 @@ int main(int argc, char **argv)
         cmd_parser.printMessage();
         return 0;
     }
-    barcode::BarcodeDetector bardet;
+    barcode::BarcodeDetector bardet("sr.prototxt", "sr.caffemodel");
     Mat frame;
     clock_t start;
     std::vector<Point2f> points;
@@ -168,7 +168,8 @@ int main(int argc, char **argv)
     {
         frame = imread(in_file_name);
         start = clock();
-
+        std::vector<Point2f> points;
+        std::vector<std::string> decoded_info;
         ok = bardet.detectAndDecode(frame, decoded_info, decoded_format, points);
         if (ok)
         {
