@@ -5,12 +5,11 @@
 // Tencent is pleased to support the open source community by making WeChat QRCode available.
 // Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
 
-#ifndef __SCALE_SUPER_SCALE_HPP_
-#define __SCALE_SUPER_SCALE_HPP_
+#ifndef __OPENCV_BARCODE_SUPER_SCALE_HPP__
+#define __OPENCV_BARCODE_SUPER_SCALE_HPP__
 
 #include <stdio.h>
 #include "opencv2/dnn.hpp"
-#include "opencv2/imgproc.hpp"
 namespace cv {
 namespace barcode {
 
@@ -24,16 +23,9 @@ public:
 private:
     dnn::Net srnet_;
     bool net_loaded_ = false;
-    int superResoutionScale(const cv::Mat &src, cv::Mat &dst);
+    int superResolutionScale(const cv::Mat &src, cv::Mat &dst);
 };
 
-}  // namespace wechat_qrcode
+}  // namespace barcode
 }  // namespace cv
-#endif  // __SCALE_SUPER_SCALE_HPP_/
-// Created by YitaiWTQ on 2021/3/29.
-//
-
-#ifndef __OPENCV_BARCODE_SUPER_SCALE_HPP__
-#define __OPENCV_BARCODE_SUPER_SCALE_HPP__
-
 #endif //__OPENCV_BARCODE_SUPER_SCALE_HPP__

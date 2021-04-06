@@ -3,12 +3,13 @@
 // of this distribution and at http://opencv.org/license.html.
 // Copyright (c) 2020-2021 darkliang wangberlinT Certseeds
 
+#include "../precomp.hpp"
 #include "abs_decoder.hpp"
 
 namespace cv {
 namespace barcode {
 
-void cutImage(Mat src, Mat & dst, const std::vector<Point2f> &rects)
+void cropROI(Mat src, Mat & dst, const std::vector<Point2f> &rects)
 {
     std::vector<Point2f> vertices = rects;
     int height = cvRound(norm(vertices[0] - vertices[1]));

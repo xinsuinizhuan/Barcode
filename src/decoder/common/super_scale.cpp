@@ -4,6 +4,8 @@
 //
 // Tencent is pleased to support the open source community by making WeChat QRCode available.
 // Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+// Modified by darkliang wangberlinT
+
 #include "../../precomp.hpp"
 #include "super_scale.hpp"
 
@@ -20,9 +22,6 @@ int SuperScale::init(const std::string &proto_path, const std::string &model_pat
 Mat SuperScale::processImageScale(const Mat &src, float scale, const bool &use_sr,
                                   int sr_max_size) {
     Mat dst = src;
-    if (scale == 1.0) {  // src
-        return dst;
-    }
 
     int width = src.cols;
     int height = src.rows;
@@ -33,19 +32,18 @@ Mat SuperScale::processImageScale(const Mat &src, float scale, const bool &use_s
     }else if (scale == 2.0) {  // upsample
         int SR_TH = sr_max_size;
         if (use_sr && (int)sqrt(width * height * 1.0) < SR_TH && net_loaded_) {
-            int ret = superResoutionScale(src, dst);
+            int ret = superResolutionScale(src, dst);
             if (ret == 0) return dst;
         }
-
-        { resize(src, dst, Size(), scale, scale, INTER_CUBIC); }
-    } else if (scale < 1.0) {  // downsample
+        resize(src, dst, Size(), scale, scale, INTER_CUBIC);
+    } else if (scale < 1.0 && scale > .0) {  // downsample
         resize(src, dst, Size(), scale, scale, INTER_AREA);
     }
 
     return dst;
 }
 
-int SuperScale::superResoutionScale(const Mat &src, Mat &dst) {
+int SuperScale::superResolutionScale(const Mat &src, Mat &dst) {
     Mat blob;
     dnn::blobFromImage(src, blob, 1.0 / 255, Size(src.cols, src.rows), {0.0f}, false, false);
 
@@ -65,5 +63,3 @@ int SuperScale::superResoutionScale(const Mat &src, Mat &dst) {
 }
 }  // namespace barcode
 }  // namespace cv
-
-

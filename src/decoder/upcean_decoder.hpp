@@ -1,26 +1,13 @@
-/*
-Copyright 2020 ${ALL COMMITTERS}
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://opencv.org/license.html.
+// Copyright (c) 2020-2021 darkliang wangberlinT Certseeds
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 #ifndef __OPENCV_BARCODE_UPCEAN_DECODER_HPP__
 #define __OPENCV_BARCODE_UPCEAN_DECODER_HPP__
 
 #include "abs_decoder.hpp"
 #include <opencv2/core.hpp>
-#include <map>
-#include <utility>
-#include <string>
 
 /**
  *   upcean_decoder the abstract basic class for decode formats,
@@ -37,11 +24,8 @@ class UPCEANDecoder : public AbsDecoder
 public:
     ~UPCEANDecoder() override = default;
 
-    std::vector<Result> decodeImg(InputArray bar_img, const std::vector<std::vector<Point2f>> &pointsArrays) const override;
+    std::pair<Result, float> decodeROI(InputArray bar_img) const override;
 
-    std::pair<Result, float> decodeImg(InputArray bar_img, const std::vector<Point2f> &points) const override;
-
-    std::pair<Result, float> decodeImg(InputArray bar_img) const override;
 protected:
     size_t bits_num;
     size_t digit_number;

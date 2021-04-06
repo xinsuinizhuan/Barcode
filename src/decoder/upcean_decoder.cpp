@@ -1,28 +1,12 @@
-/*
-Copyright 2020 ${ALL COMMITTERS}
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://opencv.org/license.html.
+// Copyright (c) 2020-2021 darkliang wangberlinT Certseeds
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
+#include "../precomp.hpp"
 #include "upcean_decoder.hpp"
-#include <vector>
-#include <array>
 #include "common/utils.hpp"
-#ifdef CV_DEBUG
-
-#include <opencv2/highgui.hpp>
-
-#endif
+#include <map>
 
 namespace cv {
 namespace barcode {
@@ -42,7 +26,7 @@ void UPCEANDecoder::drawDebugLine(Mat& debug_img, Point2i begin, Point2i end) co
     std::pair<int,int> start_range;
     if(findStartGuardPatterns(middle, start_range))
     {
-        circle(debug_img, Point2i(begin.x + start_range.second, begin.y), 5, Scalar(0), 2);
+        circle(debug_img, Point2i(begin.x + start_range.second, begin.y), 2, Scalar(0), 2);
     }
     result = this->decode(middle, 0);
     if (result.result.size() != this->digit_number)
@@ -140,34 +124,8 @@ int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, std::vector<int> &
     // -1 is Mismatch or means error.
 }
 
-/*Input a mat and it's position rect, return the decode result */
-
-std::vector<Result> UPCEANDecoder::decodeImg(InputArray bar_img, const std::vector<std::vector<Point2f>> &pointsArrays) const
-{
-    CV_Assert(bar_img.channels() == 1);
-    std::vector<Result> will_return;
-    Mat gray = bar_img.getMat();
-    for (const auto &points : pointsArrays)
-    {
-        Mat bar;
-        cutImage(gray, bar, points);
-#if CV_DEBUG
-        imshow("raw_bar", bar);
-#endif
-        Mat ostu;
-        preprocess(bar, ostu);
-        Result max_result = decodeImg(ostu, points).first;
-        will_return.push_back(max_result);
-    }
-    return will_return;
-}
-
-std::pair<Result, float> UPCEANDecoder::decodeImg(InputArray bar_img, const vector<Point2f> &points) const
-{
-    return rectToResult(bar_img.getMat(), points, DIVIDE_PART);
-}
-
-std::pair<Result, float> UPCEANDecoder::decodeImg(InputArray bar_img) const
+/*Input a ROI mat return result */
+std::pair<Result, float> UPCEANDecoder::decodeROI(InputArray bar_img) const
 {
     vector<Point2f> corners{Point2f(0, bar_img.rows() - 1), Point2f(0, 0),
                          Point2f(bar_img.cols() - 1, 0), Point2f(bar_img.rows()-1, bar_img.cols() - 1)};
@@ -175,12 +133,12 @@ std::pair<Result, float> UPCEANDecoder::decodeImg(InputArray bar_img) const
 }
 
 /**
- *
- * @param bar_img which is a binary image
- * @param points
- * @param PART
- * @return
- */
+*
+* @param bar_img which is a binary image
+* @param points
+* @param PART
+* @return
+*/
 std::pair<Result, float>
 UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &points, int PART) const
 {
@@ -208,12 +166,6 @@ UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &poin
     {
         const auto &begin = i.first;
         const auto &end = i.second;
-        //[Debug] draw decode line on debug img and mark start guard position
-#ifdef CV_DEBUG
-        Mat debug_img = bar_img.clone();
-        drawDebugLine(debug_img, begin, end);
-        imshow("debug_img", debug_img);
-#endif
         result = decodeLine(bar_img, begin, end);
         if (result.format != BarcodeType::NONE)
         {

@@ -3,10 +3,10 @@
 // of this distribution and at http://opencv.org/license.html.
 // Modified from ZXing. Copyright ZXing authors.
 // Licensed under the Apache License, Version 2.0 (the "License").
+
 #ifndef __OPENCV_BARCODE_HYBRID_BINARIZER_HPP__
 #define __OPENCV_BARCODE_HYBRID_BINARIZER_HPP__
 
-#include <opencv2/imgproc.hpp>
 namespace cv {
 namespace barcode {
 

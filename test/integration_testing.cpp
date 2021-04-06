@@ -73,7 +73,7 @@ TEST(integration_testing, ImgUnitTest)
     std::string model = "sr.caffemodel";
     std::string prototxt = "sr.prototxt";
     cv::barcode::BarcodeDetector bardet(dir + prototxt, dir + model);
-    cv::Mat frame = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
+    cv::Mat frame = cv::imread(img_path);
     cv::Mat decodeFrame = frame.clone();
     std::vector<cv::RotatedRect> rects;
     std::vector<cv::Point2f> points;
