@@ -92,14 +92,29 @@ bool BarDecode::decodeMultiplyProcess()
             {
                 Mat otsu_bar = binarize(bar_imgs[i], OTSU);
                 Mat hybird_bar = binarize(bar_imgs[i], HYBRID);
-                auto otsu_res = decoders[0]->decodeROI(otsu_bar);
-                auto hybird_res = decoders[0]->decodeROI(hybird_bar);
-                auto res = otsu_res.first;
-                if(otsu_res.second < hybird_res.second)
+                Result max_res;
+                float max_rate = -1;
+                for(auto const& decoder:decoders)
                 {
-                    res = hybird_res.first;
+                    auto otsu_res = decoder -> decodeROI(otsu_bar);
+                    auto hybird_res = decoder -> decodeROI(hybird_bar);
+                    auto res = otsu_res.first;
+                    float vote_rate = otsu_res.second;
+                    if(otsu_res.second < hybird_res.second)
+                    {
+                        res = hybird_res.first;
+                        vote_rate = hybird_res.second;
+                    }
+                    if(vote_rate > max_rate)
+                    {
+                        max_res = res;
+                        max_rate = vote_rate;
+                        if(max_rate > 0.6)
+                            break;
+                    }
+
                 }
-                decoded_info[i] = res;
+                decoded_info[i] = max_res;
             }
         }
 
