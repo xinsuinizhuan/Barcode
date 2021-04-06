@@ -170,7 +170,7 @@ Mat calculateBlackPoints(std::vector<uchar> luminances, int sub_width, int sub_h
 }
 
 
-void hybridBinarization(Mat src, Mat &dst)
+void hybridBinarization(const Mat &src, Mat &dst)
 {
     int width = src.cols;
     int height = src.rows;

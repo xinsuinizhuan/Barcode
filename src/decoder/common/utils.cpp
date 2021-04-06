@@ -11,18 +11,16 @@ namespace cv {
 namespace barcode {
 
 
-Mat preprocess(Mat &src)
+void preprocess(const Mat &src,const Mat &dst)
 {
-    Mat dst, blur;
+    Mat blur;
     GaussianBlur(src, blur, Size(0, 0), 25);
     addWeighted(src, 2, blur, -1, 0, dst);
     dst.convertTo(dst, CV_8UC1, 1, -20);
-    return dst;
 }
 
-Mat binarize(const Mat &src, int mode)
+void binarize(const Mat &src, Mat &dst, int mode)
 {
-    Mat dst;
     switch (mode)
     {
         case OTSU:
@@ -34,7 +32,6 @@ Mat binarize(const Mat &src, int mode)
         default:
             break;
     }
-    return dst;
 }
 }
 }

@@ -13,9 +13,9 @@ namespace barcode {
 constexpr int OTSU = 0;
 constexpr int HYBRID = 1;
 
-Mat preprocess(Mat &src);
+void preprocess(const Mat &src, const Mat &dst);
 
-Mat binarize(const Mat &src, int mode);
+void binarize(const Mat &src, Mat &dst, int mode);
 }
 }
 #endif //__OPENCV_BARCODE_UTILS_HPP__
