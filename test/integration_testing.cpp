@@ -6,7 +6,7 @@
 std::string enumToString(cv::barcode::BarcodeType format)
 {
     using namespace cv::barcode;
-    switch(format)
+    switch (format)
     {
         case BarcodeType::EAN_13:
             return "EAN_13";
@@ -41,13 +41,13 @@ TEST(integration_testing, detect_and_decode)
     std::vector<std::string> img_types = {"jpg", "png"};
     std::string data_path{pre_path + "test/data/integration_test_data/"};
     std::string result_file{pre_path + "test/data/integration_test_data/result.csv"};
-    Verifier verifier{dir+prototxt, dir+model, data_path, result_file, img_types};
+    Verifier verifier{dir + prototxt, dir + model, data_path, result_file, img_types};
     cv::TickMeter time;
     time.start();
     verifier.verify();
     time.stop();
-    std::cout<<"Error detection num: "<<verifier.error_detection_num<<std::endl;
-    std::cout<<"time: " << time.getTimeSec() << " s" << std::endl;
+    std::cout << "Error detection num: " << verifier.error_detection_num << std::endl;
+    std::cout << "time: " << time.getTimeSec() << " s" << std::endl;
     float correctness = verifier.getCorrectness();
     if (correctness >= last_correctness - 0.00001)
     {
@@ -68,32 +68,3 @@ TEST(integration_testing, detect_and_decode)
     }
     ASSERT_TRUE(correctness >= last_correctness - 0.00001);
 }
-
-TEST(integration_testing, ImgUnitTest)
-{
-    std::string img_path = R"(../../test/data/integration_test_data/11.jpg)";
-
-    std::string dir = "./";
-    std::string model = "sr.caffemodel";
-    std::string prototxt = "sr.prototxt";
-    cv::barcode::BarcodeDetector bardet(dir + prototxt, dir + model);
-    cv::Mat frame = cv::imread(img_path);
-    cv::Mat decodeFrame = frame.clone();
-    std::vector<cv::RotatedRect> rects;
-    std::vector<cv::Point2f> points;
-    std::vector<std::string> barcode_info;
-    std::vector<cv::barcode::BarcodeType> barcode_format;
-    try
-    {
-        bardet.detectAndDecode(frame, barcode_info,barcode_format , points);
-    } catch (cv::Exception &ex)
-    {
-        std::cerr << ex.what() << "No detect pictures\n";
-    }
-    for (int i = 0;i < barcode_info.size();i ++)
-    {
-        std::cout << barcode_info[i] << ", format: " << enumToString(barcode_format[i]) << std::endl;
-    }
-    cv::waitKey(0);
-}
-

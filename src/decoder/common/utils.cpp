@@ -11,7 +11,7 @@ namespace cv {
 namespace barcode {
 
 
-void preprocess(const Mat &src,const Mat &dst)
+void preprocess(const Mat &src, const Mat &dst)
 {
     Mat blur;
     GaussianBlur(src, blur, Size(0, 0), 25);
@@ -19,7 +19,7 @@ void preprocess(const Mat &src,const Mat &dst)
     dst.convertTo(dst, CV_8UC1, 1, -20);
 }
 
-void binarize(const Mat &src, Mat &dst, int mode)
+void binarize(const Mat &src, Mat &dst, BinaryType mode)
 {
     switch (mode)
     {
@@ -30,7 +30,7 @@ void binarize(const Mat &src, Mat &dst, int mode)
             hybridBinarization(src, dst);
             break;
         default:
-            break;
+            CV_Error(Error::StsNotImplemented, "This binary type is not yet implemented");
     }
 }
 }
