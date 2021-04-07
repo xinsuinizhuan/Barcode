@@ -41,7 +41,7 @@ int main(int argc, char **argv)
         cmd_parser.printMessage();
         return 0;
     }
-    barcode::BarcodeDetector bardet("sr.prototxt", "sr.caffemodel");
+    barcode::BarcodeDetector bardet("../../model/sr.prototxt", "../../model/sr.caffemodel");
     Mat frame;
     clock_t start;
     std::vector<Point2f> points;
