@@ -134,7 +134,15 @@ std::pair<Result, float> UPCEANDecoder::decodeROI(InputArray bar_img) const
     vector<Point2f> corners{
             Point2f(0, bar_img.rows() - 1), Point2f(0, 0), Point2f(bar_img.cols() - 1, 0),
             Point2f(bar_img.rows() - 1, bar_img.cols() - 1)};
-    return rectToResult(bar_img.getMat(), corners, DIVIDE_PART);
+    std::pair<Result, float> result = rectToResult(bar_img.getMat(), corners, DIVIDE_PART);
+    Result* res = &result.first;
+    //Check if it is UPC-A format
+    if(res->result[0] == '0' && res->format == EAN_13)
+    {
+        res->result = res->result.substr(1,12); //UPC-A length 12
+        res->format = UPC_A;
+    }
+    return result;
 }
 
 /**
