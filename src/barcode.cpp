@@ -90,34 +90,34 @@ bool BarDecode::decodeMultiplyProcess()
         {
             for (int i = range.start; i < range.end; i++)
             {
-                Mat otsu_bar, hybrid_bar;
-                binarize(bar_imgs[i], otsu_bar, OTSU);
-                binarize(bar_imgs[i], hybrid_bar, HYBRID);
+                Mat bin_bar;
                 Result max_res;
                 float max_rate = -1;
-                for (auto const &decoder:decoders)
+                bool decoded = false;
+                for (const auto binary_type : binary_types)
                 {
-                    auto otsu_res = decoder->decodeROI(otsu_bar);
-                    auto hybird_res = decoder->decodeROI(hybrid_bar);
-                    auto res = otsu_res.first;
-                    float vote_rate = otsu_res.second;
-                    if (otsu_res.second < hybird_res.second)
+                    if (decoded)
+                    { break; }
+                    binarize(bar_imgs[i], bin_bar, binary_type);
+                    for (auto const &decoder:decoders)
                     {
-                        res = hybird_res.first;
-                        vote_rate = hybird_res.second;
-                    }
-                    if (vote_rate > max_rate)
-                    {
-                        max_res = res;
-                        max_rate = vote_rate;
-                        // find the right decoder and decoded info
-                        if (max_rate > 0.6)
-                        {
-                            break;
-                        }
-                    }
+                        auto cur_res = decoder->decodeROI(bin_bar);
 
+                        if (cur_res.second > max_rate)
+                        {
+                            max_res = cur_res.first;
+                            max_rate = cur_res.second;
+                            if (max_rate > 0.6)
+                            {
+                                // code decoded
+                                decoded = true;
+                                break;
+                            }
+                        }
+
+                    }
                 }
+
                 decoded_info[i] = max_res;
             }
         }
