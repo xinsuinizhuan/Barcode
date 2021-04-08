@@ -27,10 +27,10 @@ void UPCEANDecoder::drawDebugLine(Mat &debug_img, const Point2i &begin, const Po
     {
         circle(debug_img, Point2i(begin.x + start_range.second, begin.y), 2, Scalar(0), 2);
     }
-    result = this->decode(middle, 0);
+    result = this->decode(middle);
     if (result.result.size() != this->digit_number)
     {
-        result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
+        result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()));
     }
     if (result.result.size() == this->digit_number)
     {
@@ -40,43 +40,48 @@ void UPCEANDecoder::drawDebugLine(Mat &debug_img, const Point2i &begin, const Po
 }
 
 bool UPCEANDecoder::findGuardPatterns(const std::vector<uchar> &row, int rowOffset, uchar whiteFirst,
-                                      const std::vector<int> &pattern, std::vector<int> counters,
+                                      const std::vector<int> &pattern, Counter &counter,
                                       std::pair<int, int> &result)
 {
     size_t patternLength = pattern.size();
     size_t width = row.size();
-    uchar isWhite = whiteFirst ? WHITE : BLACK;
-    rowOffset = (int) (std::find(row.cbegin() + rowOffset, row.cend(), isWhite) - row.cbegin());
+    uchar color = whiteFirst ? WHITE : BLACK;
+    rowOffset = (int) (std::find(row.cbegin() + rowOffset, row.cend(), color) - row.cbegin());
     uint counterPosition = 0;
     int patternStart = rowOffset;
     for (uint x = rowOffset; x < width; x++)
     {
-        if (row[x] == isWhite)
+        if (row[x] == color)
         {
-            counters[counterPosition]++;
+            counter.pattern[counterPosition]++;
+            counter.sum ++;
         }
         else
         {
             if (counterPosition == patternLength - 1)
             {
-                if (patternMatch(counters, pattern, MAX_INDIVIDUAL_VARIANCE) < MAX_AVG_VARIANCE)
+                if (patternMatch(counter, pattern, MAX_INDIVIDUAL_VARIANCE) < MAX_AVG_VARIANCE)
                 {
                     result.first = patternStart;
                     result.second = x;
                     return true;
                 }
-                patternStart += counters[0] + counters[1];
-                std::copy(counters.begin() + 2, counters.end(), counters.begin());
-                counters[patternLength - 2] = 0;
-                counters[patternLength - 1] = 0;
+                patternStart += counter.pattern[0] + counter.pattern[1];
+                counter.sum -= counter.pattern[0] + counter.pattern[1];
+
+                std::copy(counter.pattern.begin() + 2, counter.pattern.end(), counter.pattern.begin());
+
+                counter.pattern[patternLength - 2] = 0;
+                counter.pattern[patternLength - 1] = 0;
                 counterPosition--;
             }
             else
             {
                 counterPosition++;
             }
-            counters[counterPosition] = 1;
-            isWhite = (std::numeric_limits<uchar>::max() - isWhite);
+            counter.pattern[counterPosition] = 1;
+            counter.sum ++;
+            color = (std::numeric_limits<uchar>::max() - color);
         }
     }
     return false;
@@ -88,7 +93,7 @@ bool UPCEANDecoder::findStartGuardPatterns(const std::vector<uchar> &row, std::p
     int next_start = 0;
     while (!is_find)
     {
-        std::vector<int> guard_counters{0, 0, 0};
+        Counter guard_counters(std::vector<int>{0, 0, 0});
         if (!findGuardPatterns(row, next_start, BLACK, BEGIN_PATTERN(), guard_counters, start_range))
         {
             return false;
@@ -102,7 +107,7 @@ bool UPCEANDecoder::findStartGuardPatterns(const std::vector<uchar> &row, std::p
     return true;
 }
 
-int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, std::vector<int> &counters, int rowOffset,
+int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, Counter &counters, int rowOffset,
                                const std::vector<std::vector<int>> &patterns) const
 {
     fillCounter(row, rowOffset, counters);
@@ -159,7 +164,7 @@ UPCEANDecoder::rectToResult(const Mat &bar_img, const std::vector<Point2f> &poin
 
     std::vector<std::pair<Point2i, Point2i>> begin_and_ends;
     const Size2i shape{bar_img.rows, bar_img.cols};
-    linesFromRect(shape, true, PART, begin_and_ends);
+    linesFromRect(shape, PART, begin_and_ends);
 
     Result result;
     for (const auto &i: begin_and_ends)
@@ -200,10 +205,10 @@ Result UPCEANDecoder::decodeLine(const Mat &bar_img, const Point2i &begin, const
     {
         middle.push_back(bar_img.at<uchar>(line.pos()));
     }
-    result = this->decode(middle, 0);
+    result = this->decode(middle);
     if (result.result.size() != this->digit_number)
     {
-        result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()), 0);
+        result = this->decode(std::vector<uchar>(middle.crbegin(), middle.crend()));
     }
     return result;
 }
@@ -215,19 +220,16 @@ Result UPCEANDecoder::decodeLine(const Mat &bar_img, const Point2i &begin, const
 * 90 vertical
 * (90-180) lower left to upper right
 * */
-void UPCEANDecoder::linesFromRect(const Size2i &shape, bool horizontal, int PART,
-                                  std::vector<std::pair<Point2i, Point2i>> &results) const
+void
+UPCEANDecoder::linesFromRect(const Size2i &shape, int PART, std::vector<std::pair<Point2i, Point2i>> &results) const
 {
     // scan area around center line
     Point2i step = Point2i((PART - 1) * shape.height / (PART * PART), 0);
     Point2i cbegin = Point2i(shape.height / 2, 0);
     Point2i cend = Point2i(shape.height / 2, shape.width - 1);
-    if (horizontal)
-    {
-        step = Point2i(0, (PART - 1) * shape.width / (PART * PART));
-        cbegin = Point2i(0, shape.width / 2);
-        cend = Point2i(shape.height - 1, shape.width / 2);
-    }
+    step = Point2i(0, (PART - 1) * shape.width / (PART * PART));
+    cbegin = Point2i(0, shape.width / 2);
+    cend = Point2i(shape.height - 1, shape.width / 2);
     results.reserve(results.size() + PART + 1);
     results.emplace_back(cbegin, cend);
     for (int i = 1; i <= (PART >> 1); ++i)

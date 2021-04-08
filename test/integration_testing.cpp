@@ -71,7 +71,7 @@ TEST(integration_testing, detect_and_decode)
 
 TEST(integration_testing, ImgUnitTest)
 {
-    std::string img_path = R"(../../test/data/integration_test_data/11.jpg)";
+    std::string img_path = R"(../../test/data/integration_test_data/05102009193.jpg)";
 
     std::string dir = "./";
     std::string model = "sr.caffemodel";
