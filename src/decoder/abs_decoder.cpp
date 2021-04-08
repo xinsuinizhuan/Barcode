@@ -45,7 +45,7 @@ void fillCounter(const std::vector<uchar> &row, uint start, Counter &counter)
         if (row[start] == color)
         { // that is, exactly one is true
             counter.pattern[counterPosition]++;
-            counter.sum ++;
+            counter.sum++;
         }
         else
         {
@@ -57,7 +57,7 @@ void fillCounter(const std::vector<uchar> &row, uint start, Counter &counter)
             else
             {
                 counter.pattern[counterPosition] = 1;
-                counter.sum ++;
+                counter.sum++;
                 color = 255 - color;
             }
         }

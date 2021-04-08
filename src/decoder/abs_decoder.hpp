@@ -7,6 +7,7 @@
 #define __OPENCV_BARCODE_ABS_DECODER_HPP__
 
 #include <opencv2/barcode.hpp>
+#include <utility>
 
 namespace cv {
 namespace barcode {
@@ -35,9 +36,10 @@ struct Counter
 {
     std::vector<int> pattern;
     uint sum;
-    Counter(vector<int> _pattern)
+
+    explicit Counter(vector<int> _pattern)
     {
-        pattern = _pattern;
+        pattern = std::move(_pattern);
         sum = 0;
     }
 };
@@ -45,7 +47,7 @@ struct Counter
 class AbsDecoder
 {
 public:
-    virtual std::pair<Result, float> decodeROI(InputArray bar_img) const = 0;
+    virtual std::pair<Result, float> decodeROI(const Mat &bar_img) const = 0;
 
     virtual ~AbsDecoder() = default;
 
