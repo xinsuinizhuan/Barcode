@@ -130,7 +130,7 @@ int UPCEANDecoder::decodeDigit(const std::vector<uchar> &row, Counter &counters,
 /*Input a ROI mat return result */
 std::pair<Result, float> UPCEANDecoder::decodeROI(const Mat &bar_img) const
 {
-    if (max(bar_img.cols, bar_img.rows) < this->bits_num)
+    if ((size_t) bar_img.cols < this->bits_num)
     {
         return std::make_pair(Result{string(), BarcodeType::NONE}, 0.0F);
     }

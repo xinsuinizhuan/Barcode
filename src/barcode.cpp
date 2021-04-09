@@ -177,7 +177,7 @@ vector<Mat> BarcodeDetector::Impl::initDecode(const Mat &src, const vector<Point
         if (bar_img.cols < 320 || bar_img.cols > 640)
         {
             float scale = 560.0f / static_cast<float>(bar_img.cols);
-            bar_img = sr->processImageScale(bar_img, scale, use_nn_sr);
+            sr->processImageScale(bar_img, bar_img, scale, use_nn_sr);
         }
         bar_imgs.emplace_back(bar_img);
     }
