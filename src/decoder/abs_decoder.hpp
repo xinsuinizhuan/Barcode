@@ -37,9 +37,9 @@ struct Counter
     std::vector<int> pattern;
     uint sum;
 
-    explicit Counter(vector<int> &_pattern)
+    explicit Counter(vector<int> _pattern)
     {
-        pattern = _pattern;
+        pattern = std::move(_pattern);
         sum = 0;
     }
 };
