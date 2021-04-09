@@ -37,9 +37,9 @@ struct Counter
     std::vector<int> pattern;
     uint sum;
 
-    explicit Counter(vector<int> _pattern)
+    explicit Counter(vector<int> &_pattern)
     {
-        pattern = std::move(_pattern);
+        pattern = _pattern;
         sum = 0;
     }
 };
@@ -52,7 +52,7 @@ public:
     virtual ~AbsDecoder() = default;
 
 protected:
-    virtual Result decode(vector<uchar> data) const = 0;
+    virtual Result decode(const vector <uchar> &data) const = 0;
 
     virtual bool isValid(string result) const = 0;
 };

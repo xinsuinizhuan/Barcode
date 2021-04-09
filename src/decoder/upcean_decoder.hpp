@@ -43,9 +43,9 @@ protected:
 
 //    void linesFromRect(const Size2i &shape, int PART, std::vector<std::pair<Point2i, Point2i>> &results) const;
 
-    Result decode(std::vector<uchar> bar) const override = 0;
+    Result decode(const vector <uchar> &bar) const override = 0;
 
-    bool isValid(std::string result) const override = 0;
+    bool isValid(std::string result) const override;
 
 //private:
 //    void drawDebugLine(Mat &debug_img, const Point2i &begin, const Point2i &end) const;

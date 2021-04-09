@@ -191,6 +191,21 @@ Result UPCEANDecoder::decodeLine(const vector<uchar> &line) const
     return result;
 }
 
+bool UPCEANDecoder::isValid(std::string result) const
+{
+    if (result.size() != digit_number)
+    {
+        return false;
+    }
+    int sum = 0;
+    for (int index = (int) result.size() - 2, i = 1; index >= 0; index--, i++)
+    {
+        int temp = result[index] - '0';
+        sum += (temp + ((i & 1) != 0 ? temp << 1 : 0));
+    }
+    return (result.back() - '0') == ((10 - (sum % 10)) % 10);
+}
+
 /**@Prama img_size is the graph's size ,
 * @Prama angle from [0,180)
 * 0 is horizontal

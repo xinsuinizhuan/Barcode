@@ -6,7 +6,7 @@
 #include "precomp.hpp"
 #include <opencv2/barcode.hpp>
 #include <opencv2/core/utils/filesystem.hpp>
-#include "decoder/ean13_decoder.hpp"
+#include "decoder/multidecoders.hpp"
 #include "detector/bardetect.hpp"
 #include "decoder/common/super_scale.hpp"
 #include "decoder/common/utils.hpp"
@@ -84,6 +84,7 @@ bool BarDecode::decodeMultiplyProcess()
         {
             //indicate Decoder
             decoders.push_back(std::shared_ptr<AbsDecoder>(new Ean13Decoder()));
+            decoders.push_back(std::shared_ptr<AbsDecoder>(new Ean8Decoder()));
         }
 
         void operator()(const Range &range) const CV_OVERRIDE
