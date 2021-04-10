@@ -5,15 +5,17 @@
 
 #ifndef __OPENCV_BARCODE_EAN8_DECODER_HPP__
 #define __OPENCV_BARCODE_EAN8_DECODER_HPP__
+
 #include "upcean_decoder.hpp"
-namespace cv{
-namespace barcode{
+
+namespace cv {
+namespace barcode {
 
 using std::string;
 using std::vector;
 using std::pair;
 
-class Ean8Decoder: public UPCEANDecoder
+class Ean8Decoder : public UPCEANDecoder
 {
 
 public:
@@ -22,11 +24,9 @@ public:
     ~Ean8Decoder() override = default;
 
 protected:
-    Result decode(const vector <uchar> &data) const override;
+    Result decode(const vector<uchar> &data) const override;
 };
 }
-
 }
-
 
 #endif //__OPENCV_BARCODE_EAN8_DECODER_HPP__

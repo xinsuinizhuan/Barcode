@@ -6,11 +6,12 @@
 #include "../precomp.hpp"
 #include "ean8_decoder.hpp"
 
-namespace cv{
-namespace barcode{
-constexpr size_t EAN8DIGIT_NUM = 8;
-constexpr size_t EAN8BITS_NUM = 70;
-Result Ean8Decoder::decode(const vector <uchar> &data) const
+namespace cv {
+namespace barcode {
+static constexpr size_t EAN8BITS_NUM = 70;
+static constexpr size_t EAN8DIGIT_NUM = 8;
+
+Result Ean8Decoder::decode(const vector<uchar> &data) const
 {
     std::string result;
     char decode_result[EAN8DIGIT_NUM + 1]{'\0'};

@@ -24,7 +24,7 @@ public:
     ~Ean13Decoder() override = default;
 
 protected:
-    Result decode(const vector <uchar> &data) const override;
+    Result decode(const vector<uchar> &data) const override;
 };
 }
 } // namespace cv

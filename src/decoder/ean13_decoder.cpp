@@ -20,7 +20,7 @@ static constexpr size_t EAN13DIGIT_NUM = 13;
 * @prama: start: the index of start order, begin at 0, max-value is data.size()-1
 * it scan begin at the data[start]
 */
-Result Ean13Decoder::decode(const vector <uchar> &data) const
+Result Ean13Decoder::decode(const vector<uchar> &data) const
 {
     string result;
     char decode_result[EAN13DIGIT_NUM + 1]{'\0'};
