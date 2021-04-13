@@ -31,7 +31,7 @@ private:
     stringvec postfixes;
 
 public:
-    Verifier(std::string prototxt, std::string model, std::string data_dir, std::string result_file_path, stringvec postfixes);
+    Verifier(const std::string& prototxt, const std::string& model, std::string data_dir, std::string result_file_path, stringvec postfixes);
 
     void verify();
 
@@ -98,7 +98,7 @@ void read_directory(const std::string &name, stringvec &v, const stringvec &post
     }
 }
 
-Verifier::Verifier(std::string prototxt, std::string model, std::string data_dir, std::string result_file_path, stringvec postfixes) : data_dir(
+Verifier::Verifier(const std::string& prototxt, const std::string& model, std::string data_dir, std::string result_file_path, stringvec postfixes) : data_dir(
         std::move(data_dir)), result_file_path(std::move(result_file_path)), postfixes(std::move(postfixes)),
                                                                                               total_case_num(0.0f),
                                                                                               correct_case_num(0.0f),
