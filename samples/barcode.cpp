@@ -61,18 +61,18 @@ int main(int argc, char **argv)
     }
     g_detectOnly = cmd_parser.has("detect") && cmd_parser.get<bool>("detect");
     //! [initialize]
-    try{
-        bardet = makePtr<barcode::BarcodeDetector>(sr_prototxt, sr_model);
-    } catch (const std::exception& e)
+    try
     {
-        cout <<
-             "\n---------------------------------------------------------------\n"
-             "Failed to initialize super resolution.\n"
-             "Please, download 'sr.*' from\n"
-             "https://github.com/WeChatCV/opencv_3rdparty/tree/wechat_qrcode\n"
-             "and put them into the current directory.\n"
-             "Or you can leave sr_prototxt and sr_model unspecified.\n"
-             "---------------------------------------------------------------\n";
+        bardet = makePtr<barcode::BarcodeDetector>(sr_prototxt, sr_model);
+    } catch (const std::exception &e)
+    {
+        cout << "\n---------------------------------------------------------------\n"
+                "Failed to initialize super resolution.\n"
+                "Please, download 'sr.*' from\n"
+                "https://github.com/WeChatCV/opencv_3rdparty/tree/wechat_qrcode\n"
+                "and put them into the current directory.\n"
+                "Or you can leave sr_prototxt and sr_model unspecified.\n"
+                "---------------------------------------------------------------\n";
         cout << e.what() << endl;
         return -1;
     }
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 
 }
 
-static void drawBarcodeContour(Mat &color_image, const vector<Point> &corners, bool decodable)
+static void drawBarcodeContour(Mat &color_image, const vector<Point> &corners, const string &info, bool decoded)
 {
     if (!corners.empty())
     {
@@ -101,8 +101,12 @@ static void drawBarcodeContour(Mat &color_image, const vector<Point> &corners, b
         vector<vector<Point> > contours;
         contours.push_back(corners);
 
-        drawContours(color_image, contours, 0, decodable ? Scalar(0, 255, 0) : Scalar(0, 0, 255),
+        drawContours(color_image, contours, 0, decoded ? Scalar(0, 255, 0) : Scalar(0, 0, 255),
                      cvRound(contour_radius));
+        if (decoded)
+        {
+            putText(color_image, info, corners[0], FONT_HERSHEY_DUPLEX, 0.6, Scalar(178, 34, 34));
+        }
 
         RNG rng(1000);
         for (size_t i = 0; i < 4; i++)
@@ -126,11 +130,12 @@ static void drawBarcodeResults(Mat &frame, const vector<Point> &corners, const v
 {
     if (!corners.empty())
     {
-        for (size_t i = 0; i < corners.size(); i += 4)
+        for (int i = 0; i < corners.size(); i += 4)
         {
             size_t bar_idx = i / 4;
             vector<Point> barcode_contour(corners.begin() + i, corners.begin() + i + 4);
-            drawBarcodeContour(frame, barcode_contour, g_detectOnly || decode_type[bar_idx] != barcode::NONE);
+            drawBarcodeContour(frame, barcode_contour, decode_info[bar_idx],
+                               g_detectOnly || decode_type[bar_idx] != barcode::NONE);
 
             cout << "BAR[" << bar_idx << "] @ " << Mat(barcode_contour).reshape(2, 1) << ": ";
             if (decode_info.size() > bar_idx)
@@ -159,10 +164,8 @@ static void drawBarcodeResults(Mat &frame, const vector<Point> &corners, const v
 }
 //! [visualize]
 
-static void
-runBarcode(const Mat &input, vector<Point> &corners, vector<cv::String> &decode_info,
-           vector<cv::barcode::BarcodeType> &decode_type
-)
+static void runBarcode(const Mat &input, vector<Point> &corners, vector<cv::String> &decode_info,
+                       vector<cv::barcode::BarcodeType> &decode_type)
 {
     if (!g_detectOnly)
     {
