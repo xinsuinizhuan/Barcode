@@ -29,7 +29,7 @@ TEST(integration_testing, detect_and_decode)
     std::string pre_path = R"(./../../)";
     std::ifstream correctness_file;
     float last_correctness = 0;
-    std::string path{pre_path + "test/data/integration_test_data/correctness.txt"};
+    std::string path{pre_path + "test/correctness.txt"};
     correctness_file.open(path);
     if (correctness_file.is_open())
     {
@@ -39,8 +39,8 @@ TEST(integration_testing, detect_and_decode)
 
     //图->答案, 图list,读取文件中所有的图ignore .csv
     std::vector<std::string> img_types = {"jpg", "png"};
-    std::string data_path{pre_path + "test/data/integration_test_data/"};
-    std::string result_file{pre_path + "test/data/integration_test_data/result.csv"};
+    std::string data_path{pre_path + "test/data/BarcodeTestDataset/"};
+    std::string result_file{pre_path + "test/data/BarcodeTestDataset/result.csv"};
     Verifier verifier{dir + prototxt, dir + model, data_path, result_file, img_types};
     cv::TickMeter time;
     time.start();

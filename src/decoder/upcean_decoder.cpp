@@ -145,12 +145,12 @@ std::pair<Result, float> UPCEANDecoder::decodeROI(const Mat &bar_img) const
     std::string max_result;
     BarcodeType max_type = BarcodeType::NONE;
 
-    int step = bar_img.rows / (DIVIDE_PART + BIAS_PART);
+    const int step = bar_img.rows / (DIVIDE_PART + BIAS_PART);
     Result result;
     int row_num;
-    for (int i = BIAS_PART / 2; i < DIVIDE_PART + BIAS_PART / 2; ++i)
+    for (int i = 0; i < DIVIDE_PART; ++i)
     {
-        row_num = i * step;
+        row_num = (i + BIAS_PART / 2) * step;
         if (row_num < 0 || row_num > bar_img.rows)
         {
             continue;
@@ -175,7 +175,7 @@ std::pair<Result, float> UPCEANDecoder::decodeROI(const Mat &bar_img) const
         return std::make_pair(Result(string(), BarcodeType::NONE), 0.0f);
     }
 
-    float confidence = (float) vote_cnt / (float) total_vote;
+    float confidence = (float) vote_cnt / (float) DIVIDE_PART;
     //Check if it is UPC-A format
     if (max_type == BarcodeType::EAN_13 && max_result[0] == '0')
     {

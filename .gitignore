@@ -18,7 +18,6 @@ CMakeSettings.json
 mono_crash.*
 
 # Build results
-test/data/integration_test_data/*.jpg
 test/wrong_decode
 test/screenshot
 [Dd]ebug/
